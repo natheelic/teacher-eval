@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Home,
   Table2,
@@ -21,32 +22,44 @@ function NavItem({
   label,
   showLabel,
   dot,
+  href = "#",
 }: {
   icon: React.ComponentType<{ className?: string }>;
   active?: boolean;
   label?: string;
   showLabel?: boolean;
   dot?: boolean;
+  href?: string;
 }) {
+  const className = `relative flex size-8 items-center justify-center gap-2 overflow-visible rounded-md pl-1.5 pr-2 py-2 hover:bg-black/4 ${
+    active ? "bg-black/4" : ""
+  } ${showLabel ? "w-auto pr-3" : ""}`;
+
+  const content = (
+    <>
+      <Icon className="size-5 text-[#030303]" />
+      {showLabel && (
+        <span className="text-[13px] font-medium text-[#696969] whitespace-nowrap">
+          {label}
+        </span>
+      )}
+      {dot && (
+        <span className="absolute left-[18px] top-[8px] size-2 rounded-full bg-[#dc7b18]" />
+      )}
+    </>
+  );
+
   return (
     <div className="flex w-full flex-col items-start">
-      <a
-        href="#"
-        title={label}
-        className={`relative flex size-8 items-center justify-center gap-2 overflow-visible rounded-md pl-1.5 pr-2 py-2 hover:bg-black/4 ${
-          active ? "bg-black/4" : ""
-        } ${showLabel ? "w-auto pr-3" : ""}`}
-      >
-        <Icon className="size-5 text-[#030303]" />
-        {showLabel && (
-          <span className="text-[13px] font-medium text-[#696969] whitespace-nowrap">
-            {label}
-          </span>
-        )}
-        {dot && (
-          <span className="absolute left-[18px] top-[8px] size-2 rounded-full bg-[#dc7b18]" />
-        )}
-      </a>
+      {href.startsWith("/") ? (
+        <Link href={href} title={label} className={className}>
+          {content}
+        </Link>
+      ) : (
+        <a href={href} title={label} className={className}>
+          {content}
+        </a>
+      )}
     </div>
   );
 }
@@ -87,7 +100,7 @@ export function IconSidebar() {
             </div>
             <Divider />
             <div className="flex flex-col p-2">
-              <NavItem icon={Settings} label="Project settings" />
+              <NavItem icon={Settings} label="Project settings" href="/project/settings" />
             </div>
           </nav>
         </div>
