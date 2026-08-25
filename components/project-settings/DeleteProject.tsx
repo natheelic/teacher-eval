@@ -8,7 +8,7 @@ export function DeleteProject() {
         title="Delete project"
         description="Permanently remove your project and its database"
       />
-      <div className="relative flex w-[688px] flex-col items-start gap-3 rounded-lg border border-[#fdd8d3] bg-[#fffcfc] p-4 pl-10">
+      <div className="relative flex w-full max-w-[688px] flex-col items-start gap-3 rounded-lg border border-[#fdd8d3] bg-[#fffcfc] p-4 pl-10">
         <AlertTriangle className="absolute left-4 top-4 size-[18px] text-[#ab413e]" />
         <p className="text-[13px] font-semibold text-[#030303]">
           Deleting this project will also remove your database and uninstall

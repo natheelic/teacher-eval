@@ -8,11 +8,11 @@ export function CustomDomains() {
         title="Custom domains"
         description="Present a branded experience to your users"
       />
-      <div className="flex w-[688px] items-start gap-3 rounded-lg border border-black/8 bg-black/[0.01] p-4">
+      <div className="flex w-full max-w-[688px] flex-col items-start gap-3 rounded-lg border border-black/8 bg-black/[0.01] p-4 sm:flex-row">
         <span className="flex size-[23px] shrink-0 items-center justify-center rounded bg-[#696969]">
           <Info className="size-[15px] text-white" />
         </span>
-        <div className="flex flex-1 items-center justify-between gap-8">
+        <div className="flex flex-1 flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:gap-8">
           <div className="flex flex-col items-start">
             <p className="text-[13px] font-semibold text-[#030303]">
               Custom domains are a Pro Plan add-on

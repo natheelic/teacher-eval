@@ -87,8 +87,8 @@ const ROWS: LogRow[] = [
 export function AuditLogsTable() {
   return (
     <div className="flex w-full flex-col items-start">
-      <div className="flex w-full items-center justify-between pb-4">
-        <div className="flex items-center gap-2">
+      <div className="flex w-full flex-wrap items-center justify-between gap-2 pb-4">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="pr-2 text-xs font-medium text-[#464646]">Filter by</span>
           <button className="flex h-[26px] items-center gap-2 rounded-md border border-dashed border-black/15 px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4">
             Projects
@@ -109,8 +109,8 @@ export function AuditLogsTable() {
         </button>
       </div>
 
-      <div className="w-full overflow-hidden rounded-md border border-black/8">
-        <table className="w-full border-collapse text-left">
+      <div className="w-full overflow-x-auto rounded-md border border-black/8">
+        <table className="w-full min-w-[640px] border-collapse text-left">
           <thead>
             <tr className="bg-black/[0.03]">
               <th className="border-b border-black/8 px-4 py-3 text-[13px] font-medium text-[#464646]">

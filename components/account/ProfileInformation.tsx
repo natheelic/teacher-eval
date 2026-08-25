@@ -6,37 +6,37 @@ export function ProfileInformation() {
     <div className="flex w-full flex-col items-start gap-6">
       <SectionHeading title="Profile information" description="" />
       <SettingsCard>
-        <div className="flex w-full items-start gap-6 border-b border-black/8 p-4">
+        <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
           <div className="flex flex-1 flex-col items-start">
             <label className="text-[13px] font-medium text-[#030303]">First name</label>
           </div>
           <input
             placeholder="First name"
-            className="h-[34px] w-[262px] shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#696969] outline-none focus:border-black/30"
+            className="h-[34px] w-full shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#696969] outline-none focus:border-black/30 sm:w-[262px]"
           />
         </div>
-        <div className="flex w-full items-start gap-6 border-b border-black/8 p-4">
+        <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
           <div className="flex flex-1 flex-col items-start">
             <label className="text-[13px] font-medium text-[#030303]">Last name</label>
           </div>
           <input
             placeholder="Last name"
-            className="h-[34px] w-[262px] shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#696969] outline-none focus:border-black/30"
+            className="h-[34px] w-full shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#696969] outline-none focus:border-black/30 sm:w-[262px]"
           />
         </div>
-        <div className="flex w-full items-start gap-6 border-b border-black/8 p-4">
+        <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
           <div className="flex flex-1 flex-col items-start">
             <label className="text-[13px] font-medium text-[#030303]">Primary email</label>
             <p className="text-[13px] font-medium text-[#696969]">
               Used for account notifications
             </p>
           </div>
-          <button className="flex h-[34px] w-[262px] shrink-0 items-center justify-between rounded-md border border-black/15 px-3 text-[13px] font-medium text-[#030303] hover:bg-black/[0.02]">
+          <button className="flex h-[34px] w-full shrink-0 items-center justify-between rounded-md border border-black/15 px-3 text-[13px] font-medium text-[#030303] hover:bg-black/[0.02] sm:w-[262px]">
             you@example.com
             <ChevronDown className="size-4 text-[#696969]" />
           </button>
         </div>
-        <div className="flex w-full items-start gap-6 border-b border-black/8 p-4">
+        <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
           <div className="flex flex-1 flex-col items-start">
             <label className="text-[13px] font-medium text-[#030303]">Username</label>
             <p className="text-[13px] font-medium text-[#696969]">
@@ -45,7 +45,7 @@ export function ProfileInformation() {
           </div>
           <input
             placeholder="username"
-            className="h-[34px] w-[262px] shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30"
+            className="h-[34px] w-full shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30 sm:w-[262px]"
           />
         </div>
         <div className="flex w-full items-center justify-end p-4">

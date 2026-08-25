@@ -6,7 +6,7 @@ export function GeneralSettingsForm() {
     <div className="flex w-full flex-col items-start gap-6">
       <SectionHeading title="General settings" description="" />
       <SettingsCard>
-        <div className="flex w-full items-start gap-6 border-b border-black/8 p-4">
+        <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
           <div className="flex flex-1 flex-col items-start">
             <label className="text-[13px] font-medium text-[#030303]">Project name</label>
             <p className="text-[13px] font-medium text-[#696969]">
@@ -15,17 +15,17 @@ export function GeneralSettingsForm() {
           </div>
           <input
             placeholder="my-project"
-            className="h-[34px] w-[327px] shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30"
+            className="h-[34px] w-full shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30 sm:w-[327px]"
           />
         </div>
-        <div className="flex w-full items-start gap-6 border-b border-black/8 p-4">
+        <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
           <div className="flex flex-1 flex-col items-start">
             <label className="text-[13px] font-medium text-[#030303]">Project ID</label>
             <p className="text-[13px] font-medium text-[#696969]">
               Reference used in APIs and URLs.
             </p>
           </div>
-          <div className="flex h-[34px] w-[327px] shrink-0 items-center justify-between rounded-md border border-black/8 bg-black/[0.01] pl-3 pr-1">
+          <div className="flex h-[34px] w-full shrink-0 items-center justify-between rounded-md border border-black/8 bg-black/[0.01] pl-3 pr-1 sm:w-[327px]">
             <span className="truncate text-[13px] font-medium text-[#464646]">
               your-project-ref
             </span>
@@ -35,14 +35,14 @@ export function GeneralSettingsForm() {
             </button>
           </div>
         </div>
-        <div className="flex w-full items-start gap-6 border-b border-black/8 p-4">
+        <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
           <div className="flex flex-1 flex-col items-start">
             <label className="text-[13px] font-medium text-[#030303]">Project region</label>
             <p className="text-[13px] font-medium text-[#696969]">
               US East (N. Virginia)
             </p>
           </div>
-          <div className="flex h-[34px] w-[327px] shrink-0 items-center justify-between rounded-md border border-black/8 bg-black/[0.01] pl-3 pr-1">
+          <div className="flex h-[34px] w-full shrink-0 items-center justify-between rounded-md border border-black/8 bg-black/[0.01] pl-3 pr-1 sm:w-[327px]">
             <span className="truncate text-[13px] font-medium text-[#464646]">
               us-east-1
             </span>

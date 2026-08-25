@@ -1,6 +1,21 @@
 import type { Metadata } from "next";
 import { Inter, Manrope, Source_Code_Pro } from "next/font/google";
+import { SearchProvider } from "@/components/search/SearchProvider";
+import { CommandPalette } from "@/components/search/CommandPalette";
+import { MobileNavProvider } from "@/components/layout/MobileNavProvider";
 import "./globals.css";
+
+const THEME_INIT_SCRIPT = `
+(function () {
+  try {
+    var mode = localStorage.getItem("theme") || "system";
+    var effective = mode === "system"
+      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      : mode;
+    document.documentElement.setAttribute("data-theme", effective);
+  } catch (e) {}
+})();
+`;
 
 const inter = Inter({
   variable: "--font-inter",
@@ -27,9 +42,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${inter.variable} ${manrope.variable} ${sourceCodePro.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-[#fdfdfd] font-sans">
-        {children}
+        <MobileNavProvider>
+          <SearchProvider>
+            {children}
+            <CommandPalette />
+          </SearchProvider>
+        </MobileNavProvider>
       </body>
     </html>
   );

@@ -9,7 +9,7 @@ export function NoticeBanner() {
   if (dismissed) return null;
 
   return (
-    <div className="fixed bottom-8 right-8 z-50 w-72 overflow-hidden rounded-md border border-black/8 bg-white shadow-lg">
+    <div className="fixed bottom-4 left-4 right-4 z-30 overflow-hidden rounded-md border border-black/8 bg-white shadow-lg sm:bottom-8 sm:left-auto sm:right-8 sm:w-72">
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{

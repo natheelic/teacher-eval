@@ -76,9 +76,9 @@ function Card({ title, count, faded }: ChartCard) {
 
 export function UsageCharts() {
   return (
-    <div className="flex items-start gap-4">
-      <div className="flex w-[1520px] flex-col items-start">
-        <div className="flex w-full items-center justify-between">
+    <div className="flex w-full min-w-0 items-start gap-4">
+      <div className="flex w-full min-w-0 flex-col items-start">
+        <div className="flex w-full flex-wrap items-center gap-3 sm:flex-nowrap sm:justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-start gap-2">
               <p className="text-lg font-medium text-[#030303]">0</p>
@@ -99,8 +99,8 @@ export function UsageCharts() {
           </button>
         </div>
 
-        <div className="relative flex w-full flex-col items-start pt-6">
-          <div className="no-scrollbar flex w-full items-start gap-4 overflow-x-auto">
+        <div className="relative flex w-full min-w-0 flex-col items-start pt-6">
+          <div className="no-scrollbar flex w-full min-w-0 items-start gap-4 overflow-x-auto">
             {CHARTS.map((c) => (
               <Card key={c.title} {...c} />
             ))}

@@ -1,20 +1,19 @@
 "use client";
 
-import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { SectionHeading, SettingsCard, SettingsRow } from "./SettingsPrimitives";
+import { useTheme, type ThemeMode } from "../theme/useTheme";
 
 type ThemeOption = {
-  key: string;
+  key: ThemeMode;
   label: string;
   preview: string;
 };
 
 const THEMES: ThemeOption[] = [
   { key: "system", label: "System", preview: "linear-gradient(135deg, #fdfdfd 50%, #1c1c1c 50%)" },
-  { key: "dark", label: "Dark", preview: "#1c1c1c" },
   { key: "light", label: "Light", preview: "#fdfdfd" },
-  { key: "classic-dark", label: "Classic Dark", preview: "#171717" },
+  { key: "dark", label: "Dark", preview: "#1c1c1c" },
 ];
 
 function ThemeSwatch({
@@ -30,7 +29,7 @@ function ThemeSwatch({
     <button
       type="button"
       onClick={onSelect}
-      className={`flex w-[206px] flex-col items-start gap-2 rounded-md border p-3 text-left shadow-sm ${
+      className={`flex w-full flex-col items-start gap-2 rounded-md border p-3 text-left shadow-sm sm:w-[206px] ${
         selected ? "border-black/30 bg-black/4" : "border-black/15 bg-black/[0.03]"
       }`}
     >
@@ -59,7 +58,7 @@ function ThemeSwatch({
 }
 
 export function AppearanceSettings() {
-  const [theme, setTheme] = useState("system");
+  const { mode, setMode } = useTheme();
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
@@ -68,21 +67,21 @@ export function AppearanceSettings() {
         description="Choose how {{APP_NAME}} looks and behaves in the dashboard."
       />
       <SettingsCard>
-        <div className="flex w-full gap-6 border-b border-black/8 p-4">
-          <div className="flex w-[202px] shrink-0 flex-col items-start gap-2">
+        <div className="flex w-full flex-col gap-6 border-b border-black/8 p-4 sm:flex-row">
+          <div className="flex w-full shrink-0 flex-col items-start gap-2 sm:w-[202px]">
             <p className="text-[13px] font-medium text-[#030303]">Theme mode</p>
             <p className="text-[13px] font-medium text-[#464646]">
               Choose how {"{{APP_NAME}}"} looks to you. Select a single theme, or
               sync with your system.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:flex sm:flex-wrap">
             {THEMES.map((t) => (
               <ThemeSwatch
                 key={t.key}
                 option={t}
-                selected={theme === t.key}
-                onSelect={() => setTheme(t.key)}
+                selected={mode === t.key}
+                onSelect={() => setMode(t.key)}
               />
             ))}
           </div>

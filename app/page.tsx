@@ -13,9 +13,9 @@ export default function Home() {
       <Header />
       <div className="flex flex-1">
         <IconSidebar />
-        <main className="flex-1 overflow-x-auto">
-          <div className="mx-auto max-w-[1600px] px-[72px] pt-12 pb-12">
-            <div className="grid grid-cols-2 gap-8">
+        <main className="flex-1 min-w-0 overflow-x-auto">
+          <div className="mx-auto max-w-[1600px] px-4 pt-8 pb-8 sm:px-[72px] sm:pt-12 sm:pb-12">
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
               <div className="self-center">
                 <ProjectOverview />
               </div>
@@ -25,8 +25,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mx-auto max-w-[1600px] px-[72px] pb-24">
-            <div className="flex flex-col gap-[56px]">
+          <div className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-[72px] sm:pb-24">
+            <div className="flex flex-col gap-10 sm:gap-[56px]">
               <UsageCharts />
               <AdvisorPanel />
               <ReportsPanel />

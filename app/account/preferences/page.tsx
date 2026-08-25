@@ -16,9 +16,9 @@ export default function PreferencesPage() {
       <AccountHeader />
       <div className="flex flex-1">
         <SettingsSidebar active="Preferences" />
-        <main className="flex-1 overflow-x-auto">
+        <main className="flex-1 min-w-0 overflow-x-auto">
           <div className="flex flex-col items-center pt-12">
-            <div className="flex w-[768px] flex-col gap-1 px-10">
+            <div className="flex w-full max-w-[768px] flex-col gap-1 px-4 sm:px-10">
               <h1 className="font-display text-[22px] font-semibold tracking-[-0.55px] text-[#030303]">
                 Preferences
               </h1>
@@ -28,7 +28,7 @@ export default function PreferencesPage() {
               </p>
             </div>
 
-            <div className="flex w-[768px] flex-col gap-16 px-10 pb-24 pt-12">
+            <div className="flex w-full max-w-[768px] flex-col gap-16 px-4 pb-24 pt-12 sm:px-10">
               <ProfileInformation />
               <SignInMethods />
               <Connections />

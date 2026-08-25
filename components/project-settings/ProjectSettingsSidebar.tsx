@@ -1,14 +1,20 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ChevronDown, X } from "lucide-react";
+import { MobileDrawer } from "../layout/MobileDrawer";
 
 function NavLink({
   label,
   href,
   active,
+  onNavigate,
 }: {
   label: string;
   href: string;
   active?: boolean;
+  onNavigate?: () => void;
 }) {
   const className = `flex w-full items-center rounded-md px-3 py-[3px] text-[13px] ${
     active
@@ -18,14 +24,14 @@ function NavLink({
 
   if (href.startsWith("/")) {
     return (
-      <Link href={href} className={className}>
+      <Link href={href} className={className} onClick={onNavigate}>
         {label}
       </Link>
     );
   }
 
   return (
-    <a href={href} className={className}>
+    <a href={href} className={className} onClick={onNavigate}>
       {label}
     </a>
   );
@@ -62,49 +68,66 @@ export function ProjectSettingsSidebar({
     | "Log Drains"
     | "Add-ons";
 }) {
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
   return (
-    <div className="flex w-[256px] shrink-0 flex-col bg-[#fdfdfd]">
-      <div className="flex min-h-12 items-center border-b border-black/8 px-6">
-        <p className="font-display text-base font-semibold text-[#030303]">
-          Settings
-        </p>
-      </div>
-      <div className="flex flex-1 flex-col overflow-hidden py-4">
-        <div className="flex flex-col px-3">
-          <p className="px-3 font-mono text-[13px] uppercase text-[#696969]">
-            Configuration
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center justify-between border-b border-black/8 px-4 py-3 text-[13px] font-medium text-[#030303] lg:hidden"
+      >
+        <span>
+          Settings: <span className="text-[#464646]">{active}</span>
+        </span>
+        <ChevronDown className="size-4 text-[#696969]" />
+      </button>
+      <MobileDrawer open={open} onClose={close} widthClassName="w-[256px]">
+        <div className="flex min-h-12 items-center justify-between border-b border-black/8 px-6">
+          <p className="font-display text-base font-semibold text-[#030303]">
+            Settings
           </p>
-          <div className="flex flex-col gap-px pt-2">
-            <NavLink label="General" href="/project/settings" active={active === "General"} />
-            <NavLink label="Infrastructure" href="#" active={active === "Infrastructure"} />
-            <NavLink label="Integrations" href="#" active={active === "Integrations"} />
-            <NavLink label="API Keys" href="#" active={active === "API Keys"} />
-            <NavLink label="JWT Keys" href="#" active={active === "JWT Keys"} />
-            <NavLink label="Log Drains" href="#" active={active === "Log Drains"} />
-            <NavLink label="Add-ons" href="#" active={active === "Add-ons"} />
+          <button onClick={close} aria-label="Close navigation" className="flex size-7 items-center justify-center rounded-md hover:bg-black/4 lg:hidden">
+            <X className="size-4 text-[#696969]" />
+          </button>
+        </div>
+        <div className="flex flex-1 flex-col overflow-hidden py-4">
+          <div className="flex flex-col px-3">
+            <p className="px-3 font-mono text-[13px] uppercase text-[#696969]">
+              Configuration
+            </p>
+            <div className="flex flex-col gap-px pt-2">
+              <NavLink label="General" href="/project/settings" active={active === "General"} onNavigate={close} />
+              <NavLink label="Infrastructure" href="#" active={active === "Infrastructure"} onNavigate={close} />
+              <NavLink label="Integrations" href="#" active={active === "Integrations"} onNavigate={close} />
+              <NavLink label="API Keys" href="#" active={active === "API Keys"} onNavigate={close} />
+              <NavLink label="JWT Keys" href="#" active={active === "JWT Keys"} onNavigate={close} />
+              <NavLink label="Log Drains" href="#" active={active === "Log Drains"} onNavigate={close} />
+              <NavLink label="Add-ons" href="#" active={active === "Add-ons"} onNavigate={close} />
+            </div>
+          </div>
+          <div className="mt-4 h-px w-full bg-black/8" />
+          <div className="flex flex-col px-3 pt-4">
+            <p className="px-3 font-mono text-[13px] uppercase text-[#696969]">
+              Integrations
+            </p>
+            <div className="flex flex-col gap-px pt-2">
+              <ExternalLink label="Data API" />
+              <ExternalLink label="Vault" badge="Beta" />
+            </div>
+          </div>
+          <div className="mt-4 h-px w-full bg-black/8" />
+          <div className="flex flex-col px-3 pt-4">
+            <p className="px-3 font-mono text-[13px] uppercase text-[#696969]">
+              Billing
+            </p>
+            <div className="flex flex-col gap-px pt-2">
+              <ExternalLink label="Subscription" />
+              <ExternalLink label="Usage" />
+            </div>
           </div>
         </div>
-        <div className="mt-4 h-px w-full bg-black/8" />
-        <div className="flex flex-col px-3 pt-4">
-          <p className="px-3 font-mono text-[13px] uppercase text-[#696969]">
-            Integrations
-          </p>
-          <div className="flex flex-col gap-px pt-2">
-            <ExternalLink label="Data API" />
-            <ExternalLink label="Vault" badge="Beta" />
-          </div>
-        </div>
-        <div className="mt-4 h-px w-full bg-black/8" />
-        <div className="flex flex-col px-3 pt-4">
-          <p className="px-3 font-mono text-[13px] uppercase text-[#696969]">
-            Billing
-          </p>
-          <div className="flex flex-col gap-px pt-2">
-            <ExternalLink label="Subscription" />
-            <ExternalLink label="Usage" />
-          </div>
-        </div>
-      </div>
-    </div>
+      </MobileDrawer>
+    </>
   );
 }

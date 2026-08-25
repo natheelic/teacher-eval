@@ -66,14 +66,14 @@ function StatItem({
 
 export function ProjectOverview() {
   return (
-    <div className="flex w-[744px] flex-col items-start">
+    <div className="flex w-full max-w-[744px] flex-col items-start">
       <div className="flex w-full items-center">
         <div className="flex flex-col items-start">
           <h1 className="font-display text-[28px] font-semibold tracking-[-0.7px] text-[#030303]">
             my-project
           </h1>
-          <div className="flex h-[38px] items-center gap-3 pt-3">
-            <p className="text-[15px] font-medium text-[#464646]">
+          <div className="flex flex-wrap items-center gap-3 pt-3">
+            <p className="break-all text-[15px] font-medium text-[#464646]">
               https://your-project-ref.{"{{APP_DOMAIN}}"}
             </p>
             <button className="flex h-[26px] items-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4">
@@ -84,7 +84,7 @@ export function ProjectOverview() {
         </div>
       </div>
 
-      <div className="grid w-full grid-cols-2 gap-x-6 gap-y-6 pt-8">
+      <div className="grid w-full grid-cols-1 gap-x-6 gap-y-6 pt-8 sm:grid-cols-2">
         <StatItem
           icon={<StatusDots />}
           label="Status"

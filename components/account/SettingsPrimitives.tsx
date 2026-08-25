@@ -17,7 +17,7 @@ export function SectionHeading({
 
 export function SettingsCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex w-[688px] flex-col items-start overflow-hidden rounded-lg border border-black/8 bg-white shadow-sm">
+    <div className="flex w-full max-w-[688px] flex-col items-start overflow-hidden rounded-lg border border-black/8 bg-white shadow-sm">
       {children}
     </div>
   );
@@ -36,11 +36,11 @@ export function SettingsRow({
 }) {
   return (
     <div
-      className={`flex w-full items-start gap-6 p-4 ${
+      className={`flex w-full flex-col items-start gap-3 p-4 sm:flex-row sm:items-start sm:gap-6 ${
         bordered ? "border-b border-black/8" : ""
       }`}
     >
-      <div className="flex min-w-0 flex-[368] flex-col items-start">
+      <div className="flex min-w-0 flex-1 flex-col items-start sm:flex-[368]">
         <p className="text-[13px] font-medium text-[#030303]">{label}</p>
         {description && (
           <p className="text-[13px] font-medium text-[#696969]">
@@ -48,7 +48,7 @@ export function SettingsRow({
           </p>
         )}
       </div>
-      <div className="flex w-[262px] shrink-0 flex-col items-end justify-center">
+      <div className="flex w-full shrink-0 flex-col items-start justify-center sm:w-[262px] sm:items-end">
         {control}
       </div>
     </div>

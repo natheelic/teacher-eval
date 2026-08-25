@@ -2,8 +2,8 @@ import { Database, ChevronLeft, ChevronRight } from "lucide-react";
 
 export function RegionMapCard() {
   return (
-    <div className="flex h-[500px] w-full flex-col items-start">
-      <div className="relative flex h-[500px] w-full flex-col items-start overflow-hidden rounded-md border border-black/8">
+    <div className="flex h-[320px] w-full flex-col items-start sm:h-[500px]">
+      <div className="relative flex h-[320px] w-full flex-col items-start overflow-hidden rounded-md border border-black/8 sm:h-[500px]">
         {/* decorative grid background standing in for the infra map */}
         <div
           className="absolute inset-0"
@@ -16,7 +16,7 @@ export function RegionMapCard() {
           }}
         />
 
-        <div className="absolute left-[226px] top-[197px] w-[293px] rounded-[4px] border-[0.9px] border-black/8 bg-white shadow-sm">
+        <div className="absolute left-1/2 top-1/2 w-[85%] max-w-[293px] -translate-x-1/2 -translate-y-1/2 rounded-[4px] border-[0.9px] border-black/8 bg-white shadow-sm sm:left-[226px] sm:top-[197px] sm:w-[293px] sm:translate-x-0 sm:translate-y-0">
           <div className="flex w-full items-start justify-between p-[11px]">
             <div className="flex gap-[11px]">
               <div className="flex size-[29px] shrink-0 items-center justify-center rounded-[5px] border-[0.9px] border-[#097c4f] bg-[#16b674]">
@@ -38,7 +38,7 @@ export function RegionMapCard() {
             </div>
             <div className="flex h-[15px] w-[29px] items-center justify-center rounded-[2px] bg-[#dc2626]" />
           </div>
-          <div className="flex items-center gap-[11px] border-t-[0.9px] border-black/8 px-[11px] py-[7px] text-[10.8px] font-medium">
+          <div className="flex flex-wrap items-center gap-[11px] border-t-[0.9px] border-black/8 px-[11px] py-[7px] text-[10.8px] font-medium">
             <span className="text-[#030303]">
               CPU <span className="text-[#464646]">0%</span>
             </span>
