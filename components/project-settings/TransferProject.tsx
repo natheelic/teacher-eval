@@ -6,10 +6,10 @@ export function TransferProject() {
     <div className="flex w-full flex-col items-start gap-6">
       <SectionHeading title="Transfer project" description="" />
       <SettingsCard>
-        <div className="flex w-full items-center justify-between gap-4 p-4">
-          <div className="flex items-start gap-4">
+        <div className="flex w-full flex-col items-start gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
             <ArrowRightLeft className="mt-0.5 size-5 shrink-0 text-[#464646]" />
-            <div className="flex max-w-[489px] flex-col items-start">
+            <div className="flex min-w-0 max-w-[489px] flex-col items-start">
               <p className="text-[13px] font-medium text-[#030303]">
                 Transfer project to another organization
               </p>

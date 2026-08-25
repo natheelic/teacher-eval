@@ -14,9 +14,9 @@ export default function ProjectSettingsPage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
       <Header />
-      <div className="flex flex-1">
+      <div className="flex min-w-0 flex-1">
         <IconSidebar />
-        <div className="flex flex-1 flex-col border-l border-black/8 lg:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col border-l border-black/8 lg:flex-row">
           <ProjectSettingsSidebar active="General" />
           <div className="hidden w-px shrink-0 bg-black/8 lg:block" />
           <main className="flex-1 min-w-0 overflow-x-auto">

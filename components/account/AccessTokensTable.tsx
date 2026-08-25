@@ -76,25 +76,25 @@ export function AccessTokensTable() {
           tokens.map((token, i) => (
             <div
               key={token.id}
-              className={`flex w-full items-center justify-between p-4 ${
+              className={`flex w-full flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between ${
                 i < tokens.length - 1 ? "border-b border-black/8" : ""
               }`}
             >
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 items-center gap-4">
                 <span className="flex size-[30px] shrink-0 items-center justify-center rounded-md bg-black/4 text-[#464646]">
                   <KeyRound className="size-4" />
                 </span>
-                <div className="flex flex-col items-start">
+                <div className="flex min-w-0 flex-col items-start">
                   <p className="text-[13px] font-medium text-[#030303]">
                     {token.name}
                   </p>
-                  <p className="font-mono text-xs font-medium text-[#696969]">
+                  <p className="truncate font-mono text-xs font-medium text-[#696969]">
                     {token.preview}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-6">
-                <div className="flex flex-col items-end">
+              <div className="flex w-full shrink-0 items-center justify-between gap-6 sm:w-auto">
+                <div className="flex flex-col items-start sm:items-end">
                   <p className="text-xs font-medium text-[#696969]">
                     Created {token.created}
                   </p>
@@ -104,7 +104,7 @@ export function AccessTokensTable() {
                 </div>
                 <button
                   onClick={() => handleRevoke(token.id)}
-                  className="flex h-[26px] items-center gap-2 rounded-md border border-[#ab413e]/30 bg-[#fff0ee] px-2.5 py-1 text-xs font-medium text-[#030303] hover:brightness-95"
+                  className="flex h-[26px] shrink-0 items-center gap-2 rounded-md border border-[#ab413e]/30 bg-[#fff0ee] px-2.5 py-1 text-xs font-medium text-[#030303] hover:brightness-95"
                 >
                   <Trash2 className="size-3.5" />
                   Revoke

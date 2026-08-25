@@ -28,12 +28,12 @@ export function KeyboardShortcuts() {
         {SHORTCUTS.map((s, i) => (
           <div
             key={i}
-            className={`flex w-full items-center justify-between px-4 py-4 ${
+            className={`flex w-full flex-wrap items-center justify-between gap-2 px-4 py-4 ${
               i < SHORTCUTS.length - 1 ? "border-b border-black/8" : ""
             }`}
           >
-            <p className="text-[13px] font-medium text-[#030303]">{s.label}</p>
-            <div className="flex items-center gap-[10px]">
+            <p className="min-w-0 text-[13px] font-medium text-[#030303]">{s.label}</p>
+            <div className="flex shrink-0 items-center gap-[10px]">
               <span className="rounded bg-black/[0.03] px-1.5 py-0.5 text-[11px] font-medium tracking-[-0.275px] text-[#696969]">
                 {s.keys}
               </span>

@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
       <Header />
-      <div className="flex flex-1">
+      <div className="flex min-w-0 flex-1">
         <IconSidebar />
         <main className="flex-1 min-w-0 overflow-x-auto">
           <div className="mx-auto max-w-[1600px] px-4 pt-8 pb-8 sm:px-[72px] sm:pt-12 sm:pb-12">

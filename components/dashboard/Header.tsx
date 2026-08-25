@@ -14,16 +14,16 @@ function Crumb({
   badgeTone?: "neutral" | "amber";
 }) {
   return (
-    <div className="flex items-center">
-      <div className="flex items-center pr-2 text-[#464646]">
+    <div className="flex min-w-0 items-center">
+      <div className="hidden shrink-0 items-center pr-2 text-[#464646] sm:flex">
         <MoreHorizontal className="size-4 opacity-0" />
       </div>
-      <div className="flex items-center">
+      <div className="flex min-w-0 items-center">
         <a
           href="#"
-          className="flex items-center gap-2 hover:opacity-80"
+          className="flex min-w-0 items-center gap-2 hover:opacity-80"
         >
-          <span className="text-[13px] font-medium text-[#030303] whitespace-nowrap">
+          <span className="min-w-0 truncate text-[13px] font-medium text-[#030303]">
             {label}
           </span>
           <span className="flex items-center justify-center size-5 rounded-md border border-black/8 bg-white">
@@ -52,7 +52,7 @@ function Crumb({
 export function Header() {
   return (
     <header className="flex h-12 items-center border-b border-black/8">
-      <div className="flex flex-1 h-[47px] items-center justify-between gap-2 pl-2 pr-3 sm:pl-4">
+      <div className="flex min-w-0 flex-1 h-[47px] items-center justify-between gap-2 pl-2 pr-3 sm:pl-4">
         <div className="flex min-w-0 items-center">
           <MobileMenuButton />
           <a href="#" className="hidden shrink-0 items-center justify-center lg:flex">

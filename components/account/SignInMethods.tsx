@@ -52,26 +52,26 @@ export function SignInMethods() {
         {METHODS.map((m, i) => (
           <div
             key={i}
-            className={`flex w-full items-center justify-between p-4 ${
+            className={`flex w-full flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between ${
               i < METHODS.length - 1 ? "border-b border-black/8" : ""
             }`}
           >
-            <div className="flex items-center gap-4">
+            <div className="flex min-w-0 items-center gap-4">
               <span
                 className={`flex size-[30px] shrink-0 items-center justify-center rounded-md ${m.iconWrap}`}
               >
                 <m.icon className="size-4" />
               </span>
-              <div className="flex flex-col items-start">
+              <div className="flex min-w-0 flex-col items-start">
                 <p className="text-[13px] font-medium capitalize text-[#030303]">
                   {m.name}
                 </p>
-                <p className="text-[13px] font-medium text-[#696969]">
+                <p className="truncate text-[13px] font-medium text-[#696969]">
                   {m.detail}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               {m.action}
               <button className="flex size-7 items-center justify-center rounded-md hover:bg-black/4">
                 <Pencil className="size-3.5 text-[#464646]" />

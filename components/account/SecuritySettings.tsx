@@ -107,16 +107,16 @@ function ActiveSessionsSection() {
         {sessions.map((session, i) => (
           <div
             key={session.id}
-            className={`flex w-full items-center justify-between p-4 ${
+            className={`flex w-full flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between ${
               i < sessions.length - 1 ? "border-b border-black/8" : ""
             }`}
           >
-            <div className="flex items-center gap-4">
+            <div className="flex min-w-0 items-center gap-4">
               <span className="flex size-[30px] shrink-0 items-center justify-center rounded-md bg-black/4 text-[#464646]">
                 <session.icon className="size-4" />
               </span>
-              <div className="flex flex-col items-start">
-                <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-col items-start">
+                <div className="flex flex-wrap items-center gap-2">
                   <p className="text-[13px] font-medium text-[#030303]">
                     {session.device}
                   </p>

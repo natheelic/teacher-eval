@@ -8,13 +8,13 @@ import { MobileMenuButton } from "../layout/MobileMenuButton";
 export function AccountHeader() {
   return (
     <header className="flex h-12 items-center border-b border-black/8">
-      <div className="flex flex-1 h-[47px] items-center justify-between gap-2 pl-2 pr-3 sm:pl-4">
-        <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-1 h-[47px] items-center justify-between gap-2 pl-2 pr-3 sm:pl-4">
+        <div className="flex min-w-0 items-center gap-2">
           <MobileMenuButton />
-          <Link href="/" className="hidden items-center justify-center sm:flex">
+          <Link href="/" className="hidden shrink-0 items-center justify-center sm:flex">
             <AppLogo className="h-[18px] w-auto" />
           </Link>
-          <span className="text-[13px] font-medium text-[#030303]">Account</span>
+          <span className="truncate text-[13px] font-medium text-[#030303]">Account</span>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">

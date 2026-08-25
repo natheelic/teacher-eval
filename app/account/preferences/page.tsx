@@ -14,7 +14,7 @@ export default function PreferencesPage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
       <AccountHeader />
-      <div className="flex flex-1">
+      <div className="flex min-w-0 flex-1">
         <SettingsSidebar active="Preferences" />
         <main className="flex-1 min-w-0 overflow-x-auto">
           <div className="flex flex-col items-center pt-12">
