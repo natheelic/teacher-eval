@@ -66,7 +66,7 @@ export function SettingsSidebar({
                 Logs
               </p>
               <div className="flex flex-col gap-px pt-2">
-                <NavLink label="Audit Logs" href="#" active={active === "Audit Logs"} />
+                <NavLink label="Audit Logs" href="/account/audit-logs" active={active === "Audit Logs"} />
               </div>
             </div>
           </div>
