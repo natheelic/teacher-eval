@@ -1,17 +1,10 @@
 import Link from "next/link";
 import {
   Home,
-  Table2,
-  Terminal,
-  Database,
-  Fingerprint,
-  FolderOpen,
-  Globe,
-  MousePointer2,
+  Users,
   Lightbulb,
   Rocket,
   ListChecks,
-  Boxes,
   Settings,
   PanelLeft,
 } from "lucide-react";
@@ -80,23 +73,13 @@ export function IconSidebar() {
           <nav className="flex w-full flex-col">
             <div className="flex flex-col gap-1 p-2">
               <NavItem icon={Home} active />
-              <NavItem icon={Table2} label="Table editor" />
-              <NavItem icon={Terminal} label="SQL editor" />
-            </div>
-            <Divider />
-            <div className="flex flex-col gap-1 p-2">
-              <NavItem icon={Database} label="Database" />
-              <NavItem icon={Fingerprint} label="Authentication" />
-              <NavItem icon={FolderOpen} label="Storage" />
-              <NavItem icon={Globe} label="Edge Functions" />
-              <NavItem icon={MousePointer2} label="Realtime" />
+              <NavItem icon={Users} label="Users" />
             </div>
             <Divider />
             <div className="flex flex-col gap-1 p-2">
               <NavItem icon={Lightbulb} label="Advisors" dot />
               <NavItem icon={Rocket} label="Reports" />
               <NavItem icon={ListChecks} label="Logs" />
-              <NavItem icon={Boxes} label="API docs" />
             </div>
             <Divider />
             <div className="flex flex-col p-2">

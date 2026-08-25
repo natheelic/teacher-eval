@@ -10,14 +10,14 @@ export function DashboardSettings() {
       />
       <SettingsCard>
         <SettingsRow
-          label="Edit entities in SQL"
-          description="Edit policies, triggers, and functions in the SQL editor instead of the guided UI."
+          label="Edit entities in code"
+          description="Edit records and fields directly instead of the guided UI."
           control={<Switch />}
         />
         <SettingsRow
           bordered={false}
           label="Queue table operations"
-          description="Review and batch table edits in Table Editor before saving them to your database."
+          description="Review and batch table edits before saving them."
           control={<Switch />}
         />
       </SettingsCard>

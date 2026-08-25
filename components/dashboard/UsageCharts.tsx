@@ -10,9 +10,9 @@ const CHARTS: ChartCard[] = [
   { title: "API Gateway", count: 3 },
   { title: "Storage", count: 1 },
   { title: "Realtime", count: 1 },
-  { title: "Postgres", count: 0, faded: true },
-  { title: "Edge Functions", count: 0, faded: true },
-  { title: "Auth", count: 0, faded: true },
+  { title: "Database", count: 0, faded: true },
+  { title: "Functions", count: 0, faded: true },
+  { title: "Authentication", count: 0, faded: true },
 ];
 
 function Sparkline({ faded }: { faded?: boolean }) {

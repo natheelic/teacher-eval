@@ -4,7 +4,7 @@ import { Switch } from "./Switch";
 const SHORTCUTS = [
   { label: "Open command menu", keys: "⌘K" },
   { label: "Toggle AI Assistant panel", keys: "⌘I" },
-  { label: "Toggle inline SQL editor", keys: "⌘E" },
+  { label: "Toggle inline editor", keys: "⌘E" },
   { label: "Copy results as Markdown", keys: "⌘⇧M" },
   { label: "Copy results as JSON", keys: "⌘⇧J" },
   { label: "Copy results as CSV", keys: "⌘⇧C" },

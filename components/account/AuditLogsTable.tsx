@@ -45,7 +45,7 @@ const ROWS: LogRow[] = [
   {
     status: "200",
     method: "GET",
-    action: "Gets project's postgrest config",
+    action: "Gets project's API config",
     target: "Project: oas-eleccom",
     ref: "Ref: zptgdwrrvktjdtxjrvyf",
     date: "24 Aug 26 11:52:54",
