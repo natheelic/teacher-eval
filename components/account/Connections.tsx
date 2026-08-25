@@ -6,7 +6,7 @@ export function Connections() {
     <div className="flex w-full flex-col items-start gap-6">
       <SectionHeading
         title="Connections"
-        description="Connect your Supabase account with other services."
+        description="Connect your {{APP_NAME}} account with other services."
       />
       <SettingsCard>
         <div className="flex w-full items-center justify-between p-4">
@@ -22,7 +22,7 @@ export function Connections() {
                 </span>
               </div>
               <p className="text-[13px] font-medium text-[#696969]">
-                Sync repos to Supabase projects for automatic branch creation
+                Sync repos to {"{{APP_NAME}}"} projects for automatic branch creation
                 and merging
               </p>
             </div>

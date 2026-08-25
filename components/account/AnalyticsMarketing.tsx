@@ -6,13 +6,13 @@ export function AnalyticsMarketing() {
     <div className="flex w-full flex-col items-start gap-6">
       <SectionHeading
         title="Analytics and Marketing"
-        description="Control whether telemetry and marketing data is sent from Supabase services."
+        description="Control whether telemetry and marketing data is sent from {{APP_NAME}} services."
       />
       <SettingsCard>
         <SettingsRow
           bordered={false}
-          label="Send telemetry data from Supabase services"
-          description="By opting in to sharing telemetry data, Supabase can analyze usage patterns to enhance user experience and use it for marketing and advertising purposes"
+          label="Send telemetry data from {{APP_NAME}} services"
+          description="By opting in to sharing telemetry data, {{APP_NAME}} can analyze usage patterns to enhance user experience and use it for marketing and advertising purposes"
           control={<Switch defaultChecked />}
         />
       </SettingsCard>

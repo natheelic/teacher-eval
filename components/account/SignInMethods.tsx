@@ -46,7 +46,7 @@ export function SignInMethods() {
     <div className="flex w-full flex-col items-start gap-6">
       <SectionHeading
         title="Sign-in methods"
-        description="Manage the providers linked to your Supabase account and update their details."
+        description="Manage the providers linked to your {{APP_NAME}} account and update their details."
       />
       <SettingsCard>
         {METHODS.map((m, i) => (

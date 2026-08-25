@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Command, Book, Search } from "lucide-react";
-import { SupabaseLogo } from "../dashboard/SupabaseLogo";
+import { AppLogo } from "../dashboard/AppLogo";
 
 export function AccountHeader() {
   return (
@@ -8,7 +8,7 @@ export function AccountHeader() {
       <div className="flex flex-1 h-[47px] items-center justify-between pl-4 pr-3">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center justify-center">
-            <SupabaseLogo className="h-[18px] w-auto" />
+            <AppLogo className="h-[18px] w-auto" />
           </Link>
           <span className="text-[13px] font-medium text-[#030303]">Account</span>
         </div>

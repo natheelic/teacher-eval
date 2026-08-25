@@ -65,14 +65,14 @@ export function AppearanceSettings() {
     <div className="flex w-full flex-col items-start gap-6">
       <SectionHeading
         title="Appearance"
-        description="Choose how Supabase looks and behaves in the dashboard."
+        description="Choose how {{APP_NAME}} looks and behaves in the dashboard."
       />
       <SettingsCard>
         <div className="flex w-full gap-6 border-b border-black/8 p-4">
           <div className="flex w-[202px] shrink-0 flex-col items-start gap-2">
             <p className="text-[13px] font-medium text-[#030303]">Theme mode</p>
             <p className="text-[13px] font-medium text-[#464646]">
-              Choose how Supabase looks to you. Select a single theme, or
+              Choose how {"{{APP_NAME}}"} looks to you. Select a single theme, or
               sync with your system.
             </p>
           </div>

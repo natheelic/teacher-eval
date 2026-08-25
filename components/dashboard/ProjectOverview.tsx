@@ -74,7 +74,7 @@ export function ProjectOverview() {
           </h1>
           <div className="flex h-[38px] items-center gap-3 pt-3">
             <p className="text-[15px] font-medium text-[#464646]">
-              https://zptgdwrrvktjdtxjrvyf.supabase.co
+              https://zptgdwrrvktjdtxjrvyf.{"{{APP_DOMAIN}}"}
             </p>
             <button className="flex h-[26px] items-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4">
               Copy

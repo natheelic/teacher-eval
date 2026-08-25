@@ -8,7 +8,7 @@ import {
   Gift,
   Search,
 } from "lucide-react";
-import { SupabaseLogo } from "./SupabaseLogo";
+import { AppLogo } from "./AppLogo";
 
 function Crumb({
   label,
@@ -61,7 +61,7 @@ export function Header() {
       <div className="flex flex-1 h-[47px] items-center justify-between pl-4 pr-3">
         <div className="flex items-center">
           <a href="#" className="flex items-center justify-center">
-            <SupabaseLogo className="h-[18px] w-auto" />
+            <AppLogo className="h-[18px] w-auto" />
           </a>
 
           <div className="flex items-center pl-2 gap-0">
