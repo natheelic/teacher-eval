@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   ChevronDown,
   Command,
@@ -101,11 +102,14 @@ export function Header() {
               <Bell className="size-4 text-[#464646]" />
             </button>
           </div>
-          <button className="flex size-8 items-center justify-center rounded-full border border-black/15 bg-[#fdfdfd] hover:bg-black/4">
+          <Link
+            href="/account/preferences"
+            className="flex size-8 items-center justify-center rounded-full border border-black/15 bg-[#fdfdfd] hover:bg-black/4"
+          >
             <span className="flex size-[30px] items-center justify-center rounded-md bg-[#030303] text-[13px] font-medium text-white">
               N
             </span>
-          </button>
+          </Link>
         </div>
       </div>
     </header>
