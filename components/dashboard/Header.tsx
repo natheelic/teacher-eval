@@ -5,7 +5,6 @@ import {
   MoreHorizontal,
   Bell,
   Book,
-  Gift,
   Search,
 } from "lucide-react";
 import { AppLogo } from "./AppLogo";
@@ -67,14 +66,6 @@ export function Header() {
           <div className="flex items-center pl-2 gap-0">
             <Crumb label="Nathee Srina's projects" badge="Free" />
             <Crumb label="oas-eleccom" />
-            <Crumb label="main" badge="Production" badgeTone="amber" />
-          </div>
-
-          <div className="flex items-start pl-3">
-            <button className="flex h-[26px] items-center gap-1 rounded-full border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4">
-              <span className="rotate-90 text-[10px]">⇌</span>
-              Connect
-            </button>
           </div>
         </div>
 
@@ -94,9 +85,6 @@ export function Header() {
             </button>
             <button className="flex size-8 items-center justify-center rounded-full border border-black/15 hover:bg-black/4">
               <Book className="size-4 text-[#464646]" />
-            </button>
-            <button className="flex size-8 items-center justify-center rounded-full border border-black/15 hover:bg-black/4">
-              <Gift className="size-4 text-[#464646]" />
             </button>
             <button className="flex size-8 items-center justify-center rounded-full border border-black/15 hover:bg-black/4">
               <Bell className="size-4 text-[#464646]" />
