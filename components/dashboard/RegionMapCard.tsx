@@ -27,12 +27,12 @@ export function RegionMapCard() {
                   Primary Database
                 </p>
                 <p className="text-[11.7px] font-medium text-[#464646]">
-                  Southeast Asia (Singapore)
+                  US East (N. Virginia)
                 </p>
                 <div className="flex items-center gap-1 text-[11.7px] font-medium">
-                  <span className="text-[#464646]">ap-southeast-1</span>
+                  <span className="text-[#464646]">us-east-1</span>
                   <span className="text-[#696969]">·</span>
-                  <span className="text-[#464646]">t4g.nano</span>
+                  <span className="text-[#464646]">nano</span>
                 </div>
               </div>
             </div>
@@ -40,18 +40,18 @@ export function RegionMapCard() {
           </div>
           <div className="flex items-center gap-[11px] border-t-[0.9px] border-black/8 px-[11px] py-[7px] text-[10.8px] font-medium">
             <span className="text-[#030303]">
-              CPU <span className="text-[#464646]">2%</span>
+              CPU <span className="text-[#464646]">0%</span>
             </span>
             <span className="text-[#696969]">·</span>
             <span className="text-[#030303]">
-              Disk <span className="text-[#464646]">4%</span>
+              Disk <span className="text-[#464646]">0%</span>
             </span>
             <span className="text-[#696969]">·</span>
             <span className="text-[#030303]">
-              RAM <span className="text-[#464646]">43%</span>
+              RAM <span className="text-[#464646]">0%</span>
             </span>
             <span className="text-[#696969]">·</span>
-            <span className="text-[#464646]">5/60 conns</span>
+            <span className="text-[#464646]">0/60 conns</span>
           </div>
         </div>
 

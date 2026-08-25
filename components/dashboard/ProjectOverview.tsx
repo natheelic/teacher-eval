@@ -70,11 +70,11 @@ export function ProjectOverview() {
       <div className="flex w-full items-center">
         <div className="flex flex-col items-start">
           <h1 className="font-display text-[28px] font-semibold tracking-[-0.7px] text-[#030303]">
-            oas-eleccom
+            my-project
           </h1>
           <div className="flex h-[38px] items-center gap-3 pt-3">
             <p className="text-[15px] font-medium text-[#464646]">
-              https://zptgdwrrvktjdtxjrvyf.{"{{APP_DOMAIN}}"}
+              https://your-project-ref.{"{{APP_DOMAIN}}"}
             </p>
             <button className="flex h-[26px] items-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4">
               Copy

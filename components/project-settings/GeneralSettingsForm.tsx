@@ -14,7 +14,7 @@ export function GeneralSettingsForm() {
             </p>
           </div>
           <input
-            defaultValue="oas-eleccom"
+            placeholder="my-project"
             className="h-[34px] w-[327px] shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30"
           />
         </div>
@@ -27,7 +27,7 @@ export function GeneralSettingsForm() {
           </div>
           <div className="flex h-[34px] w-[327px] shrink-0 items-center justify-between rounded-md border border-black/8 bg-black/[0.01] pl-3 pr-1">
             <span className="truncate text-[13px] font-medium text-[#464646]">
-              zptgdwrrvktjdtxjrvyf
+              your-project-ref
             </span>
             <button className="flex h-6 items-center gap-1 rounded-md border border-black/15 bg-[#fdfdfd] px-2 text-xs font-medium text-[#030303] hover:bg-black/4">
               <Copy className="size-3.5" />
@@ -39,12 +39,12 @@ export function GeneralSettingsForm() {
           <div className="flex flex-1 flex-col items-start">
             <label className="text-[13px] font-medium text-[#030303]">Project region</label>
             <p className="text-[13px] font-medium text-[#696969]">
-              Southeast Asia (Singapore)
+              US East (N. Virginia)
             </p>
           </div>
           <div className="flex h-[34px] w-[327px] shrink-0 items-center justify-between rounded-md border border-black/8 bg-black/[0.01] pl-3 pr-1">
             <span className="truncate text-[13px] font-medium text-[#464646]">
-              ap-southeast-1
+              us-east-1
             </span>
             <button className="flex h-6 items-center gap-1 rounded-md border border-black/15 bg-[#fdfdfd] px-2 text-xs font-medium text-[#030303] hover:bg-black/4">
               <Copy className="size-3.5" />

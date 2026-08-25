@@ -7,9 +7,9 @@ type ChartCard = {
 };
 
 const CHARTS: ChartCard[] = [
-  { title: "API Gateway", count: 3 },
-  { title: "Storage", count: 1 },
-  { title: "Realtime", count: 1 },
+  { title: "API Gateway", count: 0, faded: true },
+  { title: "Storage", count: 0, faded: true },
+  { title: "Realtime", count: 0, faded: true },
   { title: "Database", count: 0, faded: true },
   { title: "Functions", count: 0, faded: true },
   { title: "Authentication", count: 0, faded: true },
@@ -25,8 +25,8 @@ function Sparkline({ faded }: { faded?: boolean }) {
         )}
       </svg>
       <div className="mt-2 flex w-full items-center justify-between text-[10px] text-[#696969]">
-        <span>Aug 24, 10:53am</span>
-        <span>Aug 24, 11:53am</span>
+        <span>60 minutes ago</span>
+        <span>Now</span>
       </div>
     </div>
   );
@@ -81,13 +81,13 @@ export function UsageCharts() {
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-start gap-2">
-              <p className="text-lg font-medium text-[#030303]">5</p>
+              <p className="text-lg font-medium text-[#030303]">0</p>
               <p className="text-lg font-medium text-[#464646]">
                 Total Requests
               </p>
             </div>
             <div className="flex items-start gap-2">
-              <p className="text-lg font-medium text-[#030303]">100.0%</p>
+              <p className="text-lg font-medium text-[#030303]">—</p>
               <p className="text-lg font-medium text-[#464646]">
                 Success Rate
               </p>

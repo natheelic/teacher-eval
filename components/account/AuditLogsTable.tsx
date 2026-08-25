@@ -14,65 +14,65 @@ const ROWS: LogRow[] = [
     status: "201",
     method: "POST",
     action: "Gets project's logs from the unified logs stream",
-    target: "Project: oas-eleccom",
-    ref: "Ref: zptgdwrrvktjdtxjrvyf",
-    date: "24 Aug 26 11:53:05",
+    target: "Project: my-project",
+    ref: "Ref: your-project-ref",
+    date: "2 minutes ago",
   },
   {
     status: "201",
     method: "POST",
     action: "Gets project's logs from the unified logs stream",
-    target: "Project: oas-eleccom",
-    ref: "Ref: zptgdwrrvktjdtxjrvyf",
-    date: "24 Aug 26 11:53:04",
+    target: "Project: my-project",
+    ref: "Ref: your-project-ref",
+    date: "3 minutes ago",
   },
   {
     status: "201",
     method: "POST",
     action: "Gets project's logs from the unified logs stream",
-    target: "Project: oas-eleccom",
-    ref: "Ref: zptgdwrrvktjdtxjrvyf",
-    date: "24 Aug 26 11:53:04",
+    target: "Project: my-project",
+    ref: "Ref: your-project-ref",
+    date: "4 minutes ago",
   },
   {
     status: "201",
     method: "POST",
     action: "[Beta] Gets project's network bans",
-    target: "Project: oas-eleccom",
-    ref: "Ref: zptgdwrrvktjdtxjrvyf",
-    date: "24 Aug 26 11:52:55",
+    target: "Project: my-project",
+    ref: "Ref: your-project-ref",
+    date: "12 minutes ago",
   },
   {
     status: "200",
     method: "GET",
     action: "Gets project's API config",
-    target: "Project: oas-eleccom",
-    ref: "Ref: zptgdwrrvktjdtxjrvyf",
-    date: "24 Aug 26 11:52:54",
+    target: "Project: my-project",
+    ref: "Ref: your-project-ref",
+    date: "13 minutes ago",
   },
   {
     status: "200",
     method: "GET",
     action: "Get project api keys",
-    target: "Project: oas-eleccom",
-    ref: "Ref: zptgdwrrvktjdtxjrvyf",
-    date: "24 Aug 26 11:52:54",
+    target: "Project: my-project",
+    ref: "Ref: your-project-ref",
+    date: "14 minutes ago",
   },
   {
     status: "200",
     method: "GET",
     action: "Gets project's settings",
-    target: "Project: oas-eleccom",
-    ref: "Ref: zptgdwrrvktjdtxjrvyf",
-    date: "24 Aug 26 11:52:54",
+    target: "Project: my-project",
+    ref: "Ref: your-project-ref",
+    date: "15 minutes ago",
   },
   {
     status: "200",
     method: "GET",
     action: "Get project api keys",
-    target: "Project: oas-eleccom",
-    ref: "Ref: zptgdwrrvktjdtxjrvyf",
-    date: "24 Aug 26 11:52:54",
+    target: "Project: my-project",
+    ref: "Ref: your-project-ref",
+    date: "16 minutes ago",
   },
   {
     status: "201",
@@ -80,7 +80,7 @@ const ROWS: LogRow[] = [
     action: "Logged into account",
     target: null,
     ref: null,
-    date: "24 Aug 26 11:52:47",
+    date: "20 minutes ago",
   },
 ];
 
@@ -96,7 +96,7 @@ export function AuditLogsTable() {
           </button>
           <button className="flex h-[26px] items-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4">
             <Clock className="size-3.5" />
-            23 Aug, 11:53 - 24 Aug, 11:53
+            Last 24 hours
           </button>
           <span className="mx-2 h-5 w-px bg-black/15" />
           <span className="text-xs font-medium text-[#464646]">

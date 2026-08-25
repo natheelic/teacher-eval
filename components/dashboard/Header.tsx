@@ -64,8 +64,8 @@ export function Header() {
           </a>
 
           <div className="flex items-center pl-2 gap-0">
-            <Crumb label="Nathee Srina's projects" badge="Free" />
-            <Crumb label="oas-eleccom" />
+            <Crumb label="Your Organization" badge="Free" />
+            <Crumb label="my-project" />
           </div>
         </div>
 
@@ -95,7 +95,7 @@ export function Header() {
             className="flex size-8 items-center justify-center rounded-full border border-black/15 bg-[#fdfdfd] hover:bg-black/4"
           >
             <span className="flex size-[30px] items-center justify-center rounded-md bg-[#030303] text-[13px] font-medium text-white">
-              N
+              U
             </span>
           </Link>
         </div>

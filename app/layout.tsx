@@ -18,7 +18,7 @@ const sourceCodePro = Source_Code_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "oas-eleccom | Nathee Srina's projects | {{APP_NAME}}",
+  title: "{{APP_NAME}}",
   description: "Project dashboard",
 };
 

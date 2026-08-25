@@ -32,7 +32,7 @@ export function ProfileInformation() {
             </p>
           </div>
           <button className="flex h-[34px] w-[262px] shrink-0 items-center justify-between rounded-md border border-black/15 px-3 text-[13px] font-medium text-[#030303] hover:bg-black/[0.02]">
-            nathee.sri@lic.ac.th
+            you@example.com
             <ChevronDown className="size-4 text-[#696969]" />
           </button>
         </div>
@@ -44,7 +44,7 @@ export function ProfileInformation() {
             </p>
           </div>
           <input
-            defaultValue="nathee.sri@lic.ac.th"
+            placeholder="username"
             className="h-[34px] w-[262px] shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30"
           />
         </div>

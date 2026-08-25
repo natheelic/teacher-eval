@@ -14,7 +14,7 @@ const METHODS: Method[] = [
     icon: Mail,
     iconWrap: "bg-black/4 text-[#464646]",
     name: "Email",
-    detail: "nathee.sri@lic.ac.th",
+    detail: "you@example.com",
     action: (
       <button className="flex h-[26px] items-center justify-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4">
         Change password
@@ -25,19 +25,19 @@ const METHODS: Method[] = [
     icon: Lock,
     iconWrap: "bg-black/4 text-[#696969]",
     name: "Vercel Marketplace",
-    detail: "nathee.sri@lic.ac.th",
+    detail: "you@example.com",
   },
   {
     icon: Lock,
     iconWrap: "bg-black/4 text-[#696969]",
     name: "Vercel Marketplace",
-    detail: "nathee.sri@lic.ac.th",
+    detail: "you@example.com",
   },
   {
     icon: GitFork,
     iconWrap: "bg-[#030303] text-white",
     name: "GitHub",
-    detail: "natheelic · nathee.sri@lic.ac.th",
+    detail: "you · you@example.com",
   },
 ];
 

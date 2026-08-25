@@ -33,7 +33,7 @@ export function AccountHeader() {
           </div>
           <button className="flex size-8 items-center justify-center rounded-full border border-black/15 bg-[#fdfdfd] hover:bg-black/4">
             <span className="flex size-[30px] items-center justify-center rounded-md bg-[#030303] text-[13px] font-medium text-white">
-              N
+              U
             </span>
           </button>
         </div>

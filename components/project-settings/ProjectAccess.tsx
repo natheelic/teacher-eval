@@ -26,7 +26,7 @@ export function ProjectAccess() {
           <div className="flex w-full items-center px-4 py-3">
             <span className="flex flex-1 items-center gap-2">
               <span className="text-[13px] font-medium text-[#030303]">
-                nathee.sri@lic.ac.th
+                you@example.com
               </span>
               <span className="flex items-center rounded-full border border-black/15 bg-white px-[5.5px] py-[3px] text-[9px] font-medium uppercase tracking-[0.63px] text-[#464646]">
                 You
