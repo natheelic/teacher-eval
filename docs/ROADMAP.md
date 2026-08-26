@@ -326,17 +326,23 @@ database query.
   `NEXT_PUBLIC_APP_DOMAIN` are present and well-formed, and `next build` never opens a connection
   during page-data collection — verified locally by running `pnpm build` with dummy env values and
   no reachable database, which succeeded (21 routes generated, no Prisma connection error).
-- **5.3** **Delete `package-lock.json`.** It coexists with the authoritative `pnpm-lock.yaml` and
-  invites a wrong-package-manager install (D-14).
-- **5.4** **Document `SHADOW_DATABASE_URL` in `.env.example`.** It is read by `prisma.config.ts`
-  and required for the documented destructive-migration workflow, but appears nowhere in the
-  example environment (D-13).
-- **5.5** **Remove the dead `Authenticator` model** unless WebAuthn is genuinely planned (D-11).
-  An unused table implies a capability that does not exist.
+- **5.3** ✅ **Deleted `package-lock.json`.** `pnpm-lock.yaml` is now the only lockfile in the repo,
+  so `npm install` can no longer silently create a second, divergent one (D-14, resolved).
+- **5.4** ✅ **Documented `SHADOW_DATABASE_URL` in `.env.example`**, commented out alongside the
+  `docker exec ... CREATE DATABASE portal_shadow` command that provisions it — matches the
+  optional-until-needed pattern already used for `AUTH_URL` (D-13, resolved).
+- **5.5** ✅ **Removed the dead `Authenticator` model.** Dropped the table, its FK constraint, and
+  the `authenticators` relation off `User` in `prisma/schema.prisma`
+  (`prisma/migrations/20260827013649_drop_authenticator/`) — no WebAuthn support exists anywhere
+  else in the app, so the table implied a capability that didn't exist (D-11, resolved).
 - **5.6** **Make the command palette search live data** — it currently searches a hardcoded
   five-item navigation list in `components/search/search-data.ts` and cannot find a user or a log
-  entry (NFR-42).
-- **5.7** **Rename the package.** `package.json` still reads `"name": "my-template"`.
+  entry (NFR-42). *(In progress: `lib/actions/search.ts`'s `searchPalette()` Server Action and
+  `lib/queries/users.ts`'s `searchUsersForPalette()` now exist, but `CommandPalette.tsx` still
+  imports the static `SEARCH_ITEMS` list too — verify the wiring is complete, not just started,
+  before marking this done.)*
+- **5.7** ✅ **Renamed the package.** `package.json`'s `name` is now `"portal"`, not
+  `"my-template"`.
 - **5.8** **Add rate limiting.** No rate-limiting infrastructure exists anywhere in the app,
   including on password sign-in and the new TOTP code check added in 1.2 — needed before this app
   is exposed beyond a trusted network.
