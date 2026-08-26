@@ -715,8 +715,10 @@ deleted with the old multi-tenancy layer. `UserPreferences` now has only `theme`
   (FR-02).
 - **NFR-41** — The interface shall be usable on small viewports via `MobileNavProvider` and
   `MobileDrawer`.
-- **NFR-42** — A command palette shall be reachable with ⌘K.
-  **[PARTIALLY IMPLEMENTED]** — it searches a hardcoded 5-item navigation list, not live data.
+- **NFR-42** — A command palette shall be reachable with ⌘K, searching live users and audit log
+  entries in addition to the static navigation list — `components/search/CommandPalette.tsx`,
+  `lib/actions/search.ts`, `lib/queries/users.ts`'s `searchUsersForPalette()`,
+  `lib/queries/audit.ts`'s `searchAuditLogsForPalette()`.
 
 ---
 

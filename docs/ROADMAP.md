@@ -335,12 +335,32 @@ database query.
   the `authenticators` relation off `User` in `prisma/schema.prisma`
   (`prisma/migrations/20260827013649_drop_authenticator/`) — no WebAuthn support exists anywhere
   else in the app, so the table implied a capability that didn't exist (D-11, resolved).
-- **5.6** **Make the command palette search live data** — it currently searches a hardcoded
-  five-item navigation list in `components/search/search-data.ts` and cannot find a user or a log
-  entry (NFR-42). *(In progress: `lib/actions/search.ts`'s `searchPalette()` Server Action and
-  `lib/queries/users.ts`'s `searchUsersForPalette()` now exist, but `CommandPalette.tsx` still
-  imports the static `SEARCH_ITEMS` list too — verify the wiring is complete, not just started,
-  before marking this done.)*
+- **5.6** ✅ **Command palette search is now live data**, layered on top of the still-relevant
+  hardcoded nav list rather than replacing it (⌘K should always be able to jump to
+  `/account/security` even with an empty query — that part of the old behavior was correct, just
+  incomplete). `searchPalette()` (`lib/actions/search.ts`) now runs both a user search
+  (pre-existing `searchUsersForPalette()`) and a new `searchAuditLogsForPalette()`
+  (`lib/queries/audit.ts`) in parallel and returns `{ users, auditLogs }`; `CommandPalette.tsx`
+  renders nav + user hits + real audit-log hits together instead of the old single canned
+  `Search audit logs for "<query>"` link that appeared unconditionally regardless of whether
+  anything actually matched.
+  - **Scope enforced server-side, matching the audit log page's own rule:** a non-manager only
+    ever gets their own rows back from `searchAuditLogsForPalette()` (`actorId` filter), same as
+    `getAuditLogs()`'s scope clamping — but unlike the page, the palette always searches everything
+    the viewer is authorized to see (no "mine"-by-default), since a search box with no visible
+    scope toggle shouldn't silently narrow results.
+  - **Fixed a real bug during implementation, not just added the feature:** an early version used
+    `requireUser()` (which redirects when signed out) for the audit search, which would have broken
+    the palette for anonymous visitors — `CommandPalette` is mounted globally in `app/layout.tsx`,
+    including on the public `/` landing page. Switched to `getCurrentUser()` (returns `null`
+    instead of redirecting), matching the pattern `searchUsersForPalette()` already used.
+  - **Verified live in Chrome against the dev DB:** signed in as an existing `MANAGER` account,
+    searched "password" and got five real, distinctly-timestamped audit rows (`Reset password via
+    emailed link`, `Set a password`, etc.) rather than a canned link; searched "dana" and got a
+    real user hit (`Dana Lopez` / `dana@example.com`) whose click landed on `/users?q=dana%40example.com`
+    pre-filtered to that one row; searched "invited" and got two real invitation rows whose
+    sublabels showed the actual invitee names (`Riley`, `Casey Test`), and clicking one landed on
+    `/account/audit-logs?target=Riley` correctly filtered to that target's 2 matching rows.
 - **5.7** ✅ **Renamed the package.** `package.json`'s `name` is now `"portal"`, not
   `"my-template"`.
 - **5.8** **Add rate limiting.** No rate-limiting infrastructure exists anywhere in the app,

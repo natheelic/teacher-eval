@@ -34,6 +34,7 @@ function CommandPaletteDialog({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(0);
   const [userHits, setUserHits] = useState<Result[]>([]);
+  const [auditHits, setAuditHits] = useState<Result[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -42,22 +43,33 @@ function CommandPaletteDialog({ onClose }: { onClose: () => void }) {
   }, []);
 
   // Debounced: a live query per keystroke would hit the DB far more than a
-  // ⌘K palette warrants. Users with no manage-users permission always get an
-  // empty list back (searchUsersForPalette enforces that server-side too).
+  // ⌘K palette warrants. Both queries enforce their own visibility rules
+  // server-side (searchUsersForPalette, searchAuditLogsForPalette) — a signed
+  // out visitor or a member with no manage-users permission gets an empty
+  // list back regardless of what's typed here.
   useEffect(() => {
     const q = query.trim();
     const timer = setTimeout(() => {
       if (q.length < 2) {
         setUserHits([]);
+        setAuditHits([]);
         return;
       }
-      searchPalette(q).then((hits) => {
+      searchPalette(q).then(({ users, auditLogs }) => {
         setUserHits(
-          hits.map((hit) => ({
+          users.map((hit) => ({
             key: `user:${hit.id}`,
             label: hit.label,
             sublabel: hit.email,
             href: `/users?q=${encodeURIComponent(hit.email)}`,
+          })),
+        );
+        setAuditHits(
+          auditLogs.map((hit) => ({
+            key: `audit:${hit.id}`,
+            label: hit.label,
+            sublabel: hit.sublabel,
+            href: hit.href,
           })),
         );
         setHighlight(0);
@@ -78,19 +90,7 @@ function CommandPaletteDialog({ onClose }: { onClose: () => void }) {
     }));
   }, [query]);
 
-  const auditResult = useMemo<Result[]>(() => {
-    const q = query.trim();
-    if (!q) return [];
-    return [
-      {
-        key: "audit",
-        label: `Search audit logs for "${q}"`,
-        href: `/account/audit-logs?target=${encodeURIComponent(q)}`,
-      },
-    ];
-  }, [query]);
-
-  const results = [...navResults, ...userHits, ...auditResult];
+  const results = [...navResults, ...userHits, ...auditHits];
 
   function handleQueryChange(value: string) {
     setQuery(value);

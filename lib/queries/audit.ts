@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth/require-session";
+import { getCurrentUser, requireUser } from "@/lib/auth/require-session";
 import { canManageUsers } from "@/lib/permissions";
 import { ACTION_CODES, type ActionCode } from "@/lib/action-codes";
+import { formatDateTime } from "@/lib/format";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 export type AuditLogView = {
@@ -140,6 +141,53 @@ function toView(row: AuditRow): AuditLogView {
     userAgent: row.userAgent,
     metadata: (row.metadata as Record<string, unknown> | null) ?? null,
   };
+}
+
+export type AuditSearchHit = {
+  id: string;
+  label: string;
+  sublabel: string;
+  href: string;
+};
+
+/**
+ * Used by the ⌘K command palette. Same scope rule as the audit log page
+ * itself — a non-manager only ever gets their own rows back, regardless of
+ * what they typed — but unlike the page, this always searches everything the
+ * viewer is authorized to see rather than defaulting to "mine", since a
+ * search box with no visible scope toggle shouldn't silently narrow results.
+ */
+export async function searchAuditLogsForPalette(
+  query: string,
+): Promise<AuditSearchHit[]> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return [];
+  const canSeeAll = canManageUsers(viewer.role);
+
+  const q = query.trim().slice(0, 100);
+  if (q.length < 2) return [];
+
+  const where: Prisma.AuditLogWhereInput = {
+    ...(canSeeAll ? {} : { actorId: viewer.id }),
+    OR: [
+      { targetLabel: { contains: q, mode: "insensitive" } },
+      { action: { contains: q, mode: "insensitive" } },
+    ],
+  };
+
+  const rows = await prisma.auditLog.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: { id: true, action: true, targetLabel: true, createdAt: true },
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    label: row.action,
+    sublabel: `${row.targetLabel ?? "No target"} · ${formatDateTime(row.createdAt)}`,
+    href: `/account/audit-logs?target=${encodeURIComponent(row.targetLabel ?? "")}`,
+  }));
 }
 
 export async function getAuditLogs(
