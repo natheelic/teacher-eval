@@ -92,6 +92,8 @@ These are persisted-but-inert, and the UI implies otherwise. Don't mistake them 
 
 Pages are `async` server components that fetch and pass props down; sections take props. Two exceptions fetch directly (both `cache`d): `Header`/`AccountHeader` (used by five pages) and `AuditLogsTable` (owns its filters and cursor). Mutations are Server Actions ending in `revalidatePath`; route handlers are reserved for `[...nextauth]`, machine APIs, and webhooks. Audit-log filters are URL `searchParams`, not client fetches.
 
+`app/api/*` is excluded from the proxy's session-redirect gate (`PUBLIC_PREFIXES` in `auth.config.ts` includes `/api`) — every route handler under it owns its own authentication and its own error response, since redirecting a machine client to an HTML sign-in page makes no sense. `app/api/me/route.ts` is the first such route: `GET`, protected by `lib/auth/api-token.ts`'s `authenticateApiToken()` (bearer-token lookup by `ApiToken.tokenHash`, rejecting revoked/expired/deleted-or-suspended-owner the same way `getCurrentUser()` does for sessions).
+
 The pattern throughout: **server shell owns layout and copy, a small client leaf owns the interactivity** (`UserRowActions`, `CopyButton`, `ConnectionButton`, `AccountDeletionButton`, …), which keeps `SettingsCard`/`SettingsRow` composition intact.
 
 Dates: render absolute strings from the server; `RelativeTime` upgrades to "2 minutes ago" only after hydration (via `useSyncExternalStore`) to avoid mismatches. Theme has two stores — `UserPreferences.theme` is authoritative, `localStorage` is the paint-blocking cache read by the inline script in `app/layout.tsx`; `useSyncedTheme` writes localStorage first, then the DB.

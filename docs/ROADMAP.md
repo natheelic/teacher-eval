@@ -77,11 +77,19 @@ feature currently produces secrets that do nothing (D-6).
   by the unique `tokenHash`, and rejects a missing/malformed header, an unknown hash, a revoked
   token, an expired one, or one belonging to a deleted/suspended account — mirroring
   `getCurrentUser()`'s account-state checks. Returns `null` uniformly rather than distinguishing
-  the failure reason. Not yet wired to a route — that's 2.2 — so it was verified with a standalone
-  script exercising all six paths directly, then removed. Scopes are returned but not enforced
-  (2.5).
-- **2.2** Add at least one machine API route that this path protects, under `app/api/`. Route
-  handlers are the correct mechanism here — they are explicitly reserved for machine APIs.
+  the failure reason. Scopes are returned but not enforced (2.5).
+- **2.2** ✅ `GET /api/me` (`app/api/me/route.ts`) is the first machine route this path protects —
+  returns the token holder's id/email/role/status, or 401 with `WWW-Authenticate: Bearer`. Wiring
+  it up surfaced a real bug: the proxy's session-redirect gate covered `/api/*` too, so an
+  unauthenticated machine request was 307-redirected to the HTML `/signin` page before the route
+  handler ever ran — `PUBLIC_PREFIXES` in `auth.config.ts` only excluded `/api/auth`. Widened it to
+  `/api`, since every route under `app/api/` (NextAuth's own handlers included) already owns its
+  authentication and its own 401/error response; the proxy's redirect-based gate was never the
+  right mechanism for a machine client. Verified end-to-end: minted a real token via
+  `/account/access-tokens`, confirmed `GET /api/me` with it returns 200 with the right identity,
+  confirmed a request with no token or a garbage token gets 401 (not a redirect), and confirmed
+  revoking the token immediately breaks it. Session-gated pages (e.g. `/dashboard`) still redirect
+  to `/signin` as before — only `/api/*` changed.
 - **2.3** Write `ApiToken.lastUsedAt` on each successful authentication, so the token list shows
   which tokens are live.
 - **2.4** Honour `expiresAt` — and expose an expiry field in the creation form, which currently

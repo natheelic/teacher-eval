@@ -70,7 +70,15 @@ export const authConfig = {
  */
 export const DEFAULT_SIGNED_IN_PATH = "/dashboard";
 
-const PUBLIC_PREFIXES = ["/signin", "/signup", "/api/auth"];
+/**
+ * "Public" here means "skip the proxy's session-redirect gate" — for `/api`
+ * that's not because the routes are unauthenticated, but because a redirect
+ * to an HTML sign-in page makes no sense for a machine client. Every route
+ * under app/api/ (NextAuth's own handlers, and bearer-token routes like
+ * app/api/me) is responsible for its own auth and its own 401, not the
+ * proxy's session cookie check.
+ */
+const PUBLIC_PREFIXES = ["/signin", "/signup", "/api"];
 
 /**
  * Paths that are public but must match exactly. `/` cannot go in

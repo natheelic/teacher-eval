@@ -1,0 +1,28 @@
+import { NextResponse } from "next/server";
+import { authenticateApiToken } from "@/lib/auth/api-token";
+
+// Prisma needs Node built-ins, same as the NextAuth route handler.
+export const runtime = "nodejs";
+
+/**
+ * The first machine API route — exists to prove `authenticateApiToken()`
+ * actually protects something (ROADMAP 2.2), and doubles as the canonical
+ * "who does this token act as" check a token holder needs before calling
+ * anything else.
+ */
+export async function GET(request: Request) {
+  const auth = await authenticateApiToken(request);
+  if (!auth) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: { "WWW-Authenticate": "Bearer" } },
+    );
+  }
+
+  return NextResponse.json({
+    id: auth.user.id,
+    email: auth.user.email,
+    role: auth.user.role,
+    status: auth.user.status,
+  });
+}
