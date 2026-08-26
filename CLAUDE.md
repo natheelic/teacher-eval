@@ -71,6 +71,7 @@ Deletion is a **soft delete**: `deletedAt` is set, status becomes `SUSPENDED`, t
 - The Credentials provider **forces `session.strategy: "jwt"`**, so the adapter's `Session` table stays permanently empty. The UI's session list is the separate `DeviceSession` model, keyed by the JWT's `sid`.
 - Because a JWT is self-contained, revocation only bites where the DB is read — i.e. in `requireUser()`. Changing a password revokes all other `DeviceSession`s.
 - Never unlink a user's last remaining sign-in method.
+- **Every account must have a password**, even a Google-only one: `requireUser()` redirects anyone with no `passwordHash` to `/account/set-password` before anything else, since that's currently the only account-recovery path (no email-based reset exists). The proxy forwards the request path as an `x-pathname` header so that page — and its own `changePassword` Server Action — can be exempted from the very check that sends people there; nothing else is. Google's `profile()` mapping in `auth.config.ts` also splits `given_name`/`family_name` into `firstName`/`lastName` so a Google sign-up isn't left with an unset name the way it otherwise would be.
 - Auditing must never be the reason a user-visible operation fails — `logAudit` swallows its own errors by design. Don't add a code path that depends on it having succeeded.
 
 ### Known shells
@@ -102,9 +103,10 @@ Each route in `app/` is a thin composition of layout chrome + section components
 - `app/page.tsx` — the **public landing page**. Reads no session (it must stay renderable for
   anonymous visitors); `/` is public via `PUBLIC_EXACT` in `auth.config.ts`, which is separate
   from `PUBLIC_PREFIXES` because a `/` prefix would make every path public.
-- `app/users/page.tsx` — the users table (`Header` + `IconSidebar` + `components/users/UsersTable`). This is the signed-in main screen; `DEFAULT_SIGNED_IN_PATH` in `auth.config.ts` points here and is the fallback for every `callbackUrl`.
+- `app/dashboard/page.tsx` — the signed-in home for every role (`Header` + `IconSidebar`, `DashboardStats` + `RecentActivity`). `DEFAULT_SIGNED_IN_PATH` in `auth.config.ts` points here and is the fallback for every `callbackUrl`. Managers/admins get user-count stats and everyone's recent activity; members/viewers get their own activity only.
+- `app/users/page.tsx` — the user-management table (`Header` + `IconSidebar` + `components/users/UsersTable`), reachable from the dashboard for managers and admins only — members and viewers are redirected to `/account/preferences`.
 - `app/account/{preferences,security,access-tokens,audit-logs}/page.tsx` — account section: `AccountHeader` + `SettingsSidebar` (from `components/account/`), with an `active` prop identifying the current nav item. There is **no** `app/account/layout.tsx`.
-- `app/(auth)/{signin,signup}/page.tsx` — the only route group; gives auth pages a bare layout with no dashboard chrome without changing their URLs.
+- `app/(auth)/{signin,signup}/page.tsx` — bare layout, no dashboard chrome, without changing the URL. `app/(auth)/account/set-password/page.tsx` lives in this same route group for the same reason, even though its URL (`/account/set-password`) sits outside `/signin`/`/signup` — see the password-gate invariant above.
 
 `app/layout.tsx` also wraps everything in `MobileNavProvider` → `SearchProvider` and renders `CommandPalette`, alongside the paint-blocking theme script.
 

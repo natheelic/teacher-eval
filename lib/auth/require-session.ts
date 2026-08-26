@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { canManageUsers } from "@/lib/permissions";
@@ -122,14 +123,35 @@ async function touchDeviceSession(sid: string, lastActiveAt: Date) {
     });
 }
 
+export const SET_PASSWORD_PATH = "/account/set-password";
+
 /**
  * Use in every protected page and Server Action. Redirects rather than throws
  * so an expired or revoked session lands the user back on sign-in.
+ *
+ * Also gates on `hasPassword`: an account with no password (currently only
+ * possible via Google) has no working credentials-recovery path, so it is
+ * sent to set one before it can reach anything else. The set-password page
+ * and its own Server Action are exempted via the pathname the proxy forwards
+ * — without that, redirecting there would redirect right back to itself.
  */
 export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) redirect("/signin");
+
+  if (!user.hasPassword && (await currentPathname()) !== SET_PASSWORD_PATH) {
+    redirect(SET_PASSWORD_PATH);
+  }
+
   return user;
+}
+
+async function currentPathname(): Promise<string | null> {
+  try {
+    return (await headers()).get("x-pathname");
+  } catch {
+    return null;
+  }
 }
 
 /**

@@ -18,12 +18,19 @@ export const proxy = auth((req) => {
   const { pathname, search } = req.nextUrl;
   const signedIn = Boolean(req.auth?.user);
 
+  // Forwarded so lib/auth/require-session.ts — the DB-backed layer — can make
+  // path-aware decisions (e.g. exempting /account/set-password from a gate)
+  // without every call site re-deriving the current route itself.
+  const headers = new Headers(req.headers);
+  headers.set("x-pathname", pathname);
+  const withPathname = () => NextResponse.next({ request: { headers } });
+
   if (isPublicPath(pathname)) {
     // Someone already signed in has no business on /signin or /signup.
     if (signedIn && (pathname === "/signin" || pathname === "/signup")) {
       return NextResponse.redirect(new URL(DEFAULT_SIGNED_IN_PATH, req.nextUrl));
     }
-    return NextResponse.next();
+    return withPathname();
   }
 
   if (!signedIn) {
@@ -32,7 +39,7 @@ export const proxy = auth((req) => {
     return NextResponse.redirect(signInUrl);
   }
 
-  return NextResponse.next();
+  return withPathname();
 });
 
 export const config = {

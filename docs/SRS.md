@@ -220,9 +220,11 @@ the point of the change.
 | Route | File | Access | Content |
 |---|---|---|---|
 | `/` | `app/page.tsx` | Anonymous and authenticated | Public landing page: product summary and links to `/signin` and `/signup`. Reads no session. |
+| `/dashboard` | `app/dashboard/page.tsx` | All | Signed-in home. `ADMIN`/`MANAGER` get user stats and everyone's recent activity; `MEMBER`/`VIEWER` get their own activity only. Anonymous ⇒ `/signin`. |
 | `/users` | `app/users/page.tsx` | `ADMIN`, `MANAGER` | Users table. Anonymous ⇒ `/signin`; `MEMBER`/`VIEWER` ⇒ `/account/preferences`. |
 | `/signin` | `app/(auth)/signin/page.tsx` | Anonymous | Credentials form, optional Google button, mapped error copy. |
 | `/signup` | `app/(auth)/signup/page.tsx` | Anonymous | Registration form, optional Google button. |
+| `/account/set-password` | `app/(auth)/account/set-password/page.tsx` | All (no `passwordHash`) | Mandatory password-setup step, reached only via the FR-39a redirect. |
 | `/account/preferences` | `app/account/preferences/page.tsx` | All | Profile, sign-in methods, connections, appearance, shortcuts, dashboard, analytics, danger zone. |
 | `/account/security` | `app/account/security/page.tsx` | All | Password, two-factor toggle, active device sessions. |
 | `/account/access-tokens` | `app/account/access-tokens/page.tsx` | All | Personal API token list and creation form. |
@@ -277,6 +279,9 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
 - **FR-13** — The system shall offer Google as a sign-in provider **if and only if** both
   `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` are configured. Automatic linking of a Google
   identity to an existing email shall be disabled.
+- **FR-13a** — A Google sign-up shall populate `firstName`/`lastName` from the profile's
+  `given_name`/`family_name`, not leave them unset. *Implementation:* the Google provider's
+  `profile()` override in `auth.config.ts`.
 - **FR-14** — Registration shall accept first name (required), last name (optional), email and a
   password meeting `passwordSchema`, and shall reject an email already in use.
 - **FR-15** — **The first account ever created shall be assigned `role: ADMIN`;** every
@@ -298,7 +303,8 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
   `/signin?callbackUrl=<pathname+search>`. Public prefixes are `/signin`, `/signup`, `/api/auth`;
   `/` is public as an exact match only.
 - **FR-21** — An authenticated request to `/signin` or `/signup` shall redirect to
-  `DEFAULT_SIGNED_IN_PATH` (`/users`), which is also the fallback when no `callbackUrl` is given.
+  `DEFAULT_SIGNED_IN_PATH` (`/dashboard`), which is also the fallback when no `callbackUrl` is
+  given.
 - **FR-22** — `callbackUrl` shall be sanitised before use, so that a crafted value cannot redirect
   the user off-site after sign-in.
 - **FR-23** — Failed credential authentication shall report exactly `"Incorrect email or
@@ -342,6 +348,12 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
   whose `DeviceSession` has been revoked or has expired. Because the JWT is self-contained,
   this is the **only** point at which revocation takes effect — and it therefore takes effect on
   the very next request.
+- **FR-39a** — `requireUser()` shall redirect any authenticated caller with no `passwordHash` to
+  `/account/set-password`, since a password is currently the only account-recovery path. This
+  applies retroactively to any account that already has no password, not only new sign-ups.
+  `/account/set-password` and its `changePassword` Server Action are exempted from this
+  redirect via the `x-pathname` header the proxy forwards, to avoid redirecting to itself.
+  *Implementation:* `lib/auth/require-session.ts`, `proxy.ts`.
 
 #### FR-3x — User administration
 
@@ -633,11 +645,12 @@ required entry is missing or malformed.
 | Requirements | Primary implementation |
 |---|---|
 | FR-10 – FR-13, FR-17 – FR-19, FR-24 | `auth.ts`, `auth.config.ts` |
+| FR-13a | `auth.config.ts` (Google `profile()`), `types/next-auth.d.ts` |
 | FR-14 – FR-16 | `lib/actions/auth.ts`, `lib/bootstrap.ts` |
 | FR-20 – FR-22 | `proxy.ts`, `auth.config.ts` (`isPublicPath`) |
 | FR-30 – FR-36 | `lib/permissions.ts` |
 | FR-37, FR-38 | `lib/actions/users.ts` (`assertNotLastAdmin`, `loadActionable`) |
-| FR-39 | `lib/auth/require-session.ts` |
+| FR-39, FR-39a | `lib/auth/require-session.ts`, `proxy.ts` |
 | FR-40 – FR-44 | `lib/actions/users.ts` |
 | FR-45 – FR-49 | `lib/queries/users.ts` |
 | FR-50, FR-60, FR-61 | `lib/actions/profile.ts` |

@@ -8,6 +8,12 @@ declare module "next-auth" {
       sid?: string;
     } & DefaultSession["user"];
   }
+
+  interface User {
+    /** Only populated by the Google provider's profile() mapping. */
+    firstName?: string | null;
+    lastName?: string | null;
+  }
 }
 
 // The JWT interface lives in @auth/core/jwt; `next-auth/jwt` only re-exports

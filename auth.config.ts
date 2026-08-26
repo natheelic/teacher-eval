@@ -21,6 +21,19 @@ export const authConfig = {
           // Never silently attach a Google login to an existing password
           // account — linking is an explicit, authenticated action instead.
           allowDangerousEmailAccountLinking: false,
+          // Overrides the default id/name/email/image mapping entirely, so
+          // those three are reproduced here alongside the split name — Google
+          // is the only source that ever gives us given/family name apart.
+          profile(profile) {
+            return {
+              id: profile.sub,
+              name: profile.name,
+              email: profile.email,
+              image: profile.picture,
+              firstName: profile.given_name,
+              lastName: profile.family_name ?? null,
+            };
+          },
         }),
       ]
     : [],
