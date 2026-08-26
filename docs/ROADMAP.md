@@ -105,8 +105,20 @@ feature currently produces secrets that do nothing (D-6).
   in red), with the expired/not-expired comparison deferred to after hydration
   (`useSyncExternalStore`, the same pattern `RelativeTime` uses) so the server render and the
   client's hydration pass can't disagree about whether "now" has crossed the threshold.
-- **2.5** Define and enforce `scopes`. The column is `String[]` with a default of `[]` and is
-  never written; decide the vocabulary before it accumulates ad-hoc values.
+- **2.5** ✅ `lib/auth/scopes.ts` defines the controlled vocabulary — `API_TOKEN_SCOPES`, currently
+  just `identity:read` — as the single source of truth, so the column can't accumulate ad-hoc
+  strings as more routes are added. The creation form renders a checkbox per entry (defaulting to
+  checked, so a freshly minted token works out of the box); `createApiToken()` filters submitted
+  values against the vocabulary before writing `ApiToken.scopes`, silently dropping anything
+  unrecognized (a tampered request just doesn't get that scope, rather than erroring). `GET
+  /api/me` calls the new `hasScope(auth, "identity:read")` and returns `403` (not `401` — the
+  token is valid, just not permitted) when it's missing. The token list shows each token's scopes,
+  with an explicit warning ("No scopes — every route will reject this token") when empty.
+  **Found and left in place, not fixed (out of scope for this item):** the creation dialog's
+  `showDialog = dialogOpen && !state.plaintext` never re-opens after the first successful mint in
+  a session, since `useActionState`'s `state.plaintext` only clears when the action runs again —
+  which it can't, because the dialog won't show. A page reload works around it. Pre-existing, not
+  introduced by 2.1–2.5; worth its own item.
 - **2.6** Adopt `tokenPreview()` in `lib/auth/tokens.ts` — it has zero callers because the preview
   string is re-inlined in `lib/queries/account.ts`. One of the two should go.
 
@@ -192,6 +204,13 @@ database query.
   hash), so encrypting the column with a key derived from `AUTH_SECRET` — the same technique
   `lib/auth/totp.ts` already uses for the short-lived pending-enrollment token — is a reasonable
   follow-up hardening step.
+- **5.10** **Fix the access-token dialog's stuck-closed state.** Found during 2.5 verification:
+  `AccessTokensTable.tsx`'s `showDialog = dialogOpen && !state.plaintext` never re-opens the
+  "Generate access token" dialog after the first successful mint in a session, because
+  `useActionState`'s `state.plaintext` only clears when the action runs again — which it can't,
+  because the dialog won't show to let it. A page reload is the only workaround today. Likely fix:
+  clear `state.plaintext` (or track "dialog was explicitly reopened") on the Cancel/dismiss path
+  rather than deriving visibility from stale action state.
 
 ---
 

@@ -447,12 +447,19 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
   distinguishing the reason — if it is unknown, revoked, expired, or belongs to a deleted or
   suspended account. `GET /api/me` is the first such route, returning the token holder's identity.
   A successful authentication stamps `ApiToken.lastUsedAt`, fired without awaiting so the write
-  cannot add latency to or fail the request it authenticates. `scopes` are carried through but not
-  yet enforced by any route (see `ROADMAP.md` 2.5).
+  cannot add latency to or fail the request it authenticates.
 - **FR-59b** — A user minting a token shall be able to choose an expiration (no expiration, 7, 30,
   90, or 365 days) from the creation form; the system shall resolve this to `ApiToken.expiresAt` at
   creation time and never accept an absolute date from the client directly. The token list shall
   display each token's expiration state (no expiration, upcoming, or already expired).
+- **FR-59c** — `ApiToken.scopes` shall be drawn from a controlled vocabulary
+  (`lib/auth/scopes.ts`'s `API_TOKEN_SCOPES`), not free-form strings; a user minting a token shall
+  choose which scopes to grant it (all checked by default) from the creation form, and a value
+  outside the vocabulary shall be silently dropped rather than accepted. Each route under
+  `app/api/` shall declare the scope it requires and reject a token lacking it with `403`,
+  distinct from the `401` returned for a token that fails FR-59a's authentication checks. `GET
+  /api/me` requires `identity:read`. The token list shall display each token's granted scopes,
+  with an explicit warning when a token has none.
 
 **Account deletion**
 
@@ -708,6 +715,7 @@ required entry is missing or malformed.
 | FR-57 – FR-59 | `lib/actions/tokens.ts`, `lib/auth/tokens.ts` |
 | FR-59a | `lib/auth/api-token.ts`, `app/api/me/route.ts` |
 | FR-59b | `lib/actions/tokens.ts`, `components/account/AccessTokensTable.tsx` |
+| FR-59c | `lib/auth/scopes.ts`, `lib/auth/api-token.ts`, `app/api/me/route.ts` |
 | FR-70, FR-75 | `lib/actions/preferences.ts`, `lib/queries/account.ts` |
 | FR-80 – FR-82, FR-85 | `lib/audit.ts` + call sites |
 | FR-83 – FR-84, FR-86 | `lib/queries/audit.ts` |
@@ -722,7 +730,7 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 
 | # | Requirement | Deviation |
 |---|---|---|
-| D-6 | §1.2 | `GET /api/me` now authenticates with a minted token (`lib/auth/api-token.ts`), stamps `lastUsedAt`, and honours a user-chosen `expiresAt`, but it's the only route so far, and `scopes` are checked on the read side but never written by the UI. `tokenPreview()` in `lib/auth/tokens.ts` has no callers. |
+| D-6 | §1.2 | `tokenPreview()` in `lib/auth/tokens.ts` has no callers — the preview string is re-inlined in `lib/queries/account.ts` (ROADMAP 2.6). Otherwise resolved: `GET /api/me` authenticates with a minted token, honours `expiresAt`, stamps `lastUsedAt`, and enforces `scopes` (FR-59a – FR-59c) — it remains the only route, which is expected until a second one exists to need it. |
 | D-7 | DR-03 | `UserStatus.INVITED` is unreachable; there is no invitation flow. |
 | D-9 | FR-86 | Audit filtering is limited to range and scope; action codes are inline literals with no central definition. |
 | D-11 | §3.4 | `Authenticator` and `VerificationToken` are dead models. |

@@ -12,6 +12,7 @@ import {
 } from "@/lib/actions/tokens";
 import type { ApiTokenView } from "@/lib/queries/account";
 import { formatDate } from "@/lib/format";
+import { API_TOKEN_SCOPES } from "@/lib/auth/scopes";
 
 const initialState: CreateTokenState = {};
 
@@ -80,6 +81,11 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
                   </p>
                   <p className="truncate font-mono text-xs font-medium text-[#696969]">
                     {token.preview}
+                  </p>
+                  <p className="text-xs font-medium text-[#696969]">
+                    {token.scopes.length > 0
+                      ? token.scopes.join(", ")
+                      : "No scopes — every route will reject this token"}
                   </p>
                 </div>
               </div>
@@ -167,6 +173,31 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
                 <option value="365">1 year</option>
               </select>
             </label>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[13px] font-medium text-[#030303]">
+                Scopes
+              </span>
+              {API_TOKEN_SCOPES.map((scope) => (
+                <label
+                  key={scope.value}
+                  className="flex items-start gap-2 text-[13px] font-medium text-[#030303]"
+                >
+                  <input
+                    type="checkbox"
+                    name="scopes"
+                    value={scope.value}
+                    defaultChecked
+                    className="mt-0.5"
+                  />
+                  <span className="flex flex-col">
+                    {scope.label}
+                    <span className="text-xs font-medium text-[#696969]">
+                      {scope.description}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"

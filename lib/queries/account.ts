@@ -104,6 +104,7 @@ export type ApiTokenView = {
   createdAt: string;
   lastUsedAt: string | null;
   expiresAt: string | null;
+  scopes: string[];
 };
 
 export const getApiTokens = cache(async (): Promise<ApiTokenView[]> => {
@@ -120,6 +121,7 @@ export const getApiTokens = cache(async (): Promise<ApiTokenView[]> => {
       createdAt: true,
       lastUsedAt: true,
       expiresAt: true,
+      scopes: true,
     },
   });
 
@@ -130,5 +132,6 @@ export const getApiTokens = cache(async (): Promise<ApiTokenView[]> => {
     createdAt: row.createdAt.toISOString(),
     lastUsedAt: toIso(row.lastUsedAt),
     expiresAt: toIso(row.expiresAt),
+    scopes: row.scopes,
   }));
 });

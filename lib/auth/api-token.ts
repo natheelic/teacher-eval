@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { hashToken } from "@/lib/auth/tokens";
+import type { ApiTokenScope } from "@/lib/auth/scopes";
 import type { Role, UserStatus } from "@/lib/generated/prisma/enums";
 
 export type ApiTokenAuth = {
@@ -18,7 +19,8 @@ export type ApiTokenAuth = {
  * session at all) rather than distinguishing which — mirroring
  * getCurrentUser()'s soft-delete/suspended checks so the same account state
  * is honored on both the session and token paths. Scopes are returned but
- * not yet enforced here — see ROADMAP 2.5.
+ * not enforced here — a route checks its own required scope with
+ * hasScope(), since only the route knows what it needs.
  */
 export async function authenticateApiToken(
   request: Request,
@@ -63,6 +65,11 @@ export async function authenticateApiToken(
       status: token.user.status,
     },
   };
+}
+
+/** A route calls this after authenticateApiToken() to check its own scope. */
+export function hasScope(auth: ApiTokenAuth, scope: ApiTokenScope): boolean {
+  return auth.token.scopes.includes(scope);
 }
 
 /**

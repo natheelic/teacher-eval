@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/require-session";
 import { mintToken } from "@/lib/auth/tokens";
+import { isApiTokenScope } from "@/lib/auth/scopes";
 import { logAudit } from "@/lib/audit";
 
 export type CreateTokenState = {
@@ -39,6 +40,16 @@ function resolveExpiresAt(raw: FormDataEntryValue | null): Date | null {
   return days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
 }
 
+/**
+ * Same closed-set defense as resolveExpiresAt(): the form only ever submits
+ * checkbox values matching API_TOKEN_SCOPES, but a tampered request could
+ * submit anything, so unrecognized values are silently dropped rather than
+ * rejected — a token minted with a bogus scope just doesn't get that scope.
+ */
+function resolveScopes(formData: FormData): string[] {
+  return formData.getAll("scopes").filter((v): v is string => typeof v === "string" && isApiTokenScope(v));
+}
+
 export async function createApiToken(
   _prev: CreateTokenState,
   formData: FormData,
@@ -52,6 +63,7 @@ export async function createApiToken(
 
   const token = mintToken();
   const expiresAt = resolveExpiresAt(formData.get("expiresIn"));
+  const scopes = resolveScopes(formData);
 
   await prisma.apiToken.create({
     data: {
@@ -61,6 +73,7 @@ export async function createApiToken(
       last4: token.last4,
       tokenHash: token.tokenHash,
       expiresAt,
+      scopes,
     },
   });
 
