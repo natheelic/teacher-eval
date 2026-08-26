@@ -2,6 +2,8 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { canManageUsers } from "@/lib/permissions";
+import type { Role, UserStatus } from "@/lib/generated/prisma/enums";
 
 export type CurrentUser = {
   id: string;
@@ -12,6 +14,8 @@ export type CurrentUser = {
   firstName: string | null;
   lastName: string | null;
   username: string | null;
+  role: Role;
+  status: UserStatus;
   hasPassword: boolean;
   twoFactorEnabled: boolean;
   deletionRequestedAt: Date | null;
@@ -42,6 +46,8 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       firstName: true,
       lastName: true,
       username: true,
+      role: true,
+      status: true,
       passwordHash: true,
       twoFactorEnabled: true,
       deletionRequestedAt: true,
@@ -49,7 +55,8 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     },
   });
 
-  if (!user || user.deletedAt) return null;
+  // A suspended account keeps its rows but must not hold a usable session.
+  if (!user || user.deletedAt || user.status === "SUSPENDED") return null;
 
   // A revoked device session invalidates the token even though the token
   // itself is still cryptographically valid.
@@ -73,6 +80,8 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     firstName: user.firstName,
     lastName: user.lastName,
     username: user.username,
+    role: user.role,
+    status: user.status,
     hasPassword: Boolean(user.passwordHash),
     twoFactorEnabled: user.twoFactorEnabled,
     deletionRequestedAt: user.deletionRequestedAt,
@@ -98,5 +107,15 @@ async function touchDeviceSession(sid: string, lastActiveAt: Date) {
 export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) redirect("/signin");
+  return user;
+}
+
+/**
+ * Guards the user-management area. Redirects rather than throwing so a member
+ * who follows a stale link lands somewhere sensible instead of on an error.
+ */
+export async function requireUserManager(): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (!canManageUsers(user.role)) redirect("/account/preferences");
   return user;
 }

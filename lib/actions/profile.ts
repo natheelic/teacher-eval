@@ -74,8 +74,7 @@ export async function updateProfile(
     actionCode: "account.profile.updated",
     method: "POST",
     statusCode: 200,
-    targetType: "user",
-    targetId: user.id,
+    targetUserId: user.id,
   });
 
   revalidatePath("/account/preferences");
@@ -96,8 +95,7 @@ export async function requestAccountDeletion(): Promise<ActionState> {
     actionCode: "account.deletion.requested",
     method: "POST",
     statusCode: 202,
-    targetType: "user",
-    targetId: user.id,
+    targetUserId: user.id,
   });
 
   revalidatePath("/account/preferences");
@@ -118,8 +116,7 @@ export async function cancelAccountDeletion(): Promise<ActionState> {
     actionCode: "account.deletion.cancelled",
     method: "POST",
     statusCode: 200,
-    targetType: "user",
-    targetId: user.id,
+    targetUserId: user.id,
   });
 
   revalidatePath("/account/preferences");

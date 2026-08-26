@@ -2,16 +2,12 @@ import Link from "next/link";
 import { ArrowDown } from "lucide-react";
 import { AuditLogFilters } from "./AuditLogFilters";
 import { RelativeTime } from "./RelativeTime";
-import {
-  getAuditLogs,
-  parseAuditFilters,
-  type AuditRange,
-} from "@/lib/queries/audit";
+import { getAuditLogs, parseAuditFilters } from "@/lib/queries/audit";
 
 export type AuditLogsTableProps = {
   searchParams: {
     range?: string | string[];
-    project?: string | string[];
+    scope?: string | string[];
     cursor?: string | string[];
   };
 };
@@ -23,14 +19,14 @@ export type AuditLogsTableProps = {
  */
 export async function AuditLogsTable({ searchParams }: AuditLogsTableProps) {
   const filters = parseAuditFilters(searchParams);
-  const { rows, total, nextCursor, projects } = await getAuditLogs(filters);
+  const { rows, total, nextCursor, canSeeAll } = await getAuditLogs(filters);
 
   return (
     <div className="flex w-full flex-col items-start">
       <AuditLogFilters
-        range={filters.range as AuditRange}
-        projectId={filters.projectId}
-        projects={projects}
+        range={filters.range}
+        scope={filters.scope}
+        canSeeAll={canSeeAll}
         total={total}
       />
 
@@ -42,7 +38,7 @@ export async function AuditLogsTable({ searchParams }: AuditLogsTableProps) {
                 Action
               </th>
               <th className="border-b border-black/8 px-4 py-3 text-[13px] font-medium text-[#464646]">
-                Target
+                {canSeeAll && filters.scope === "all" ? "Actor" : "Target"}
               </th>
               <th className="border-b border-black/8 px-4 py-3 text-[13px] font-medium text-[#464646]">
                 <span className="inline-flex items-center gap-2">
@@ -86,22 +82,11 @@ export async function AuditLogsTable({ searchParams }: AuditLogsTableProps) {
                     </div>
                   </td>
                   <td className={`${cellBorder} px-4 py-3 align-top`}>
-                    {row.target ? (
-                      <div className="flex flex-col">
-                        <span className="text-[13px] font-medium text-[#464646]">
-                          {row.target.label}
-                        </span>
-                        {row.target.ref && (
-                          <span className="text-xs font-medium text-[#464646]">
-                            Ref: {row.target.ref}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-[13px] font-medium text-[#464646]">
-                        -
-                      </span>
-                    )}
+                    <span className="text-[13px] font-medium text-[#464646]">
+                      {(canSeeAll && filters.scope === "all"
+                        ? row.actor
+                        : row.target) ?? "-"}
+                    </span>
                   </td>
                   <td
                     className={`${cellBorder} px-4 py-3 align-top text-[13px] text-[#6f6f6f]`}

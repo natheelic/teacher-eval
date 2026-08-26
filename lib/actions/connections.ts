@@ -40,8 +40,8 @@ export async function unlinkProvider(provider: string): Promise<void> {
     actionCode: "account.connection.removed",
     method: "DELETE",
     statusCode: 200,
-    targetType: "connection",
-    targetId: provider,
+    targetUserId: user.id,
+    targetLabel: provider,
   });
 
   revalidatePath("/account/preferences");

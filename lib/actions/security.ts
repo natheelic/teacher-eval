@@ -80,8 +80,7 @@ export async function changePassword(
     actionCode: "account.password.changed",
     method: "POST",
     statusCode: 200,
-    targetType: "user",
-    targetId: user.id,
+    targetUserId: user.id,
   });
 
   revalidatePath("/account/preferences");
@@ -104,8 +103,8 @@ export async function revokeDeviceSession(sessionId: string): Promise<void> {
     actionCode: "account.session.revoked",
     method: "POST",
     statusCode: 200,
-    targetType: "session",
-    targetId: sessionId,
+    targetUserId: user.id,
+    targetLabel: "Device session",
   });
 
   revalidatePath("/account/security");
@@ -150,8 +149,7 @@ export async function setTwoFactorEnabled(enabled: boolean): Promise<void> {
     actionCode: enabled ? "account.2fa.enabled" : "account.2fa.disabled",
     method: "POST",
     statusCode: 200,
-    targetType: "user",
-    targetId: user.id,
+    targetUserId: user.id,
   });
 
   revalidatePath("/account/security");

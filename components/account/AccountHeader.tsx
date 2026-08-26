@@ -4,10 +4,14 @@ import { AppLogo } from "../dashboard/AppLogo";
 import { AccountMenu } from "./AccountMenu";
 import { SearchTrigger } from "../search/SearchTrigger";
 import { MobileMenuButton } from "../layout/MobileMenuButton";
-import { getWorkspace } from "@/lib/queries/workspace";
+import { requireUser } from "@/lib/auth/require-session";
+import { getPreferences } from "@/lib/queries/account";
 
 export async function AccountHeader() {
-  const { user } = await getWorkspace();
+  const [user, preferences] = await Promise.all([
+    requireUser(),
+    getPreferences(),
+  ]);
 
   return (
     <header className="flex h-12 items-center border-b border-black/8">
@@ -30,7 +34,10 @@ export async function AccountHeader() {
               <Book className="size-4 text-[#464646]" />
             </button>
           </div>
-          <AccountMenu initial={user.initial} />
+          <AccountMenu
+            initial={(user.name?.trim() || user.email)[0]!.toUpperCase()}
+            theme={preferences.theme}
+          />
         </div>
       </div>
     </header>

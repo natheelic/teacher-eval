@@ -51,7 +51,7 @@ export async function createApiToken(
     actionCode: "account.token.created",
     method: "POST",
     statusCode: 201,
-    targetType: "token",
+    targetUserId: user.id,
     targetLabel: parsed.data,
   });
 
@@ -82,8 +82,7 @@ export async function revokeApiToken(tokenId: string): Promise<void> {
     actionCode: "account.token.revoked",
     method: "DELETE",
     statusCode: 200,
-    targetType: "token",
-    targetId: token.id,
+    targetUserId: user.id,
     targetLabel: token.name,
   });
 
