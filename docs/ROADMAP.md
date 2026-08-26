@@ -182,9 +182,29 @@ on the same transport rather than re-litigating the question.
     verified" page → DB confirmed `emailVerified` stamped and the token row consumed. Separately,
     triggered "Resend" on an existing unverified seed account from `/account/preferences`,
     followed that link, and watched the badge flip from "Not verified" to "Verified" on reload.
-- **3.3 — Forgot password.** There is no reset route. Administrators can reset another user's
-  password, but a locked-out user with no admin available has no recourse. This shares the
-  `verification-tokens.ts` machinery with 3.1/3.2.
+- **3.3** ✅ **Forgot password.** `/forgot-password` (email only) and `/reset-password?token=...`
+  (new password) give a locked-out user a self-service path that doesn't depend on an admin being
+  available. Shares `verification-tokens.ts` with 3.1/3.2 — a 1-hour expiry, tighter than email
+  verification's 24 hours, since a password reset is more sensitive than an address-ownership
+  check.
+  - **Enumeration deliberately closed off:** `requestPasswordReset()` returns the identical
+    `{ ok: true }` regardless of whether the email matches an `ACTIVE` account — no message that
+    varies by outcome, unlike sign-up's "already in use" check. This is the one flow in the app
+    worth that protection, since (unlike sign-up) it's the natural target for probing which
+    addresses have accounts. Whether email is configured at all is still revealed up front — that's
+    operational state, not account data, so it can fail loudly before the enumeration-safe check.
+  - **Session handling mirrors the admin-initiated reset, not a signed-in password change:** every
+    `DeviceSession` is revoked, with no "current session" exemption — the requester isn't
+    authenticated yet, so there's nothing to exempt. A distinct audit code
+    (`account.password.reset_completed`) keeps it separable from an admin's `user.password.reset`
+    in the log.
+  - **Verified end-to-end in Chrome + Mailpit:** requested a reset for a real account → real email
+    arrived → followed its link → set a new password → landed auto-signed-in on `/dashboard`, with
+    both "Requested a password reset" and "Reset password via emailed link" in the audit trail.
+    Requesting a reset for a nonexistent email produced the byte-identical on-screen confirmation
+    and, confirmed via Mailpit, sent no email at all. Re-submitting the same (now-consumed) link
+    was correctly rejected as invalid/expired, matching invitations' and email-verification's
+    single-use behavior.
 - ✅ **3.4 — Honour deletion requests.** `deletionRequestedAt` is now enforced: `requireUser()`
   soft-deletes any account past the 30-day window on its next request (no scheduled job — there is
   no job runner in this app, so it piggybacks on the same chokepoint that already enforces

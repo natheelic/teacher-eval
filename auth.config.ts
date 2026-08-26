@@ -80,7 +80,15 @@ export const DEFAULT_SIGNED_IN_PATH = "/dashboard";
  * app/api/me) is responsible for its own auth and its own 401, not the
  * proxy's session cookie check.
  */
-const PUBLIC_PREFIXES = ["/signin", "/signup", "/invite", "/verify-email", "/api"];
+const PUBLIC_PREFIXES = [
+  "/signin",
+  "/signup",
+  "/invite",
+  "/verify-email",
+  "/forgot-password",
+  "/reset-password",
+  "/api",
+];
 
 /**
  * Paths that are public but must match exactly. `/` cannot go in

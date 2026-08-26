@@ -308,6 +308,23 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
 - **FR-16c** — A user whose email is not yet verified shall be able to trigger a fresh
   verification email from `/account/preferences`, subject to email being configured (FR-40c).
   *Implementation:* `resendVerificationEmail()` in `lib/actions/email-verification.ts`.
+- **FR-16d** — Requesting a password reset (`/forgot-password`, email only) shall return the
+  identical response — `ok: true`, no message that varies by outcome — whether or not the email
+  matches an `ACTIVE` account, to prevent using this form to enumerate accounts (the one flow in
+  the app worth that protection, unlike sign-up's "already in use" check, since it's the natural
+  target for probing which addresses have accounts). A match sends a reset link (shared token
+  mechanism, FR-40a, 1-hour expiry — tighter than FR-16a's 24 hours, since a password reset is
+  more sensitive than an address-ownership check). Whether email is configured at all is safe to
+  reveal before this check, since that's operational state, not account data.
+  *Implementation:* `requestPasswordReset()` in `lib/actions/password-reset.ts`.
+- **FR-16e** — Visiting `/reset-password?token=<token>` and submitting a password meeting
+  `passwordSchema` shall consume the token; reject with a clear, actionable error if it is
+  missing, invalid, expired, or already used; otherwise rehash the password, revoke **every**
+  `DeviceSession` for that account (there is no "current session" to exempt, unlike a signed-in
+  password change — the requester isn't authenticated yet, same as an admin-initiated reset,
+  FR-43), and sign the user in immediately (mirroring FR-14's registration auto-sign-in).
+  Audit: `account.password.reset_completed`, distinct from FR-43's admin-initiated
+  `user.password.reset`. *Implementation:* `resetPassword()` in `lib/actions/password-reset.ts`.
 - **FR-17** — On initial sign-in the system shall create a `DeviceSession` row and stamp its id
   into the JWT as `sid`, alongside the user id as `uid`. Device labelling shall degrade
   gracefully when request headers are unavailable.
@@ -745,6 +762,7 @@ required entry is missing or malformed.
 | FR-13a | `auth.config.ts` (Google `profile()`), `types/next-auth.d.ts` |
 | FR-14 – FR-16 | `lib/actions/auth.ts`, `lib/bootstrap.ts` |
 | FR-16a – FR-16c | `lib/auth/email-verification.ts`, `lib/actions/email-verification.ts`, `app/(auth)/verify-email/page.tsx`, `auth.config.ts` |
+| FR-16d – FR-16e | `lib/auth/password-reset.ts`, `lib/actions/password-reset.ts`, `app/(auth)/{forgot-password,reset-password}/page.tsx` |
 | FR-20 – FR-22 | `proxy.ts`, `auth.config.ts` (`isPublicPath`) |
 | FR-30 – FR-36 | `lib/permissions.ts` |
 | FR-37, FR-38 | `lib/actions/users.ts` (`assertNotLastAdmin`, `loadActionable`) |
@@ -780,7 +798,7 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 | # | Requirement | Deviation |
 |---|---|---|
 | D-9 | FR-86 | Audit filtering is limited to range and scope; action codes are inline literals with no central definition. |
-| D-11 | §3.4 | `Authenticator` is a dead model — no WebAuthn. `VerificationToken` is now actively used (invitations and email verification, FR-40a/FR-16a) — only password reset (ROADMAP 3.3) remains unimplemented. |
+| D-11 | §3.4 | `Authenticator` is a dead model — no WebAuthn. |
 | D-12 | NFR-25 | No test framework, no CI. |
 | D-13 | Appendix A | `SHADOW_DATABASE_URL` is read by `prisma.config.ts` but absent from `.env.example`. |
 | D-14 | §2.4 | `package-lock.json` coexists with the authoritative `pnpm-lock.yaml`. |

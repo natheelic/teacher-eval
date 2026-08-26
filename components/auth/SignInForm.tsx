@@ -46,6 +46,12 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
         onChange={setPassword}
         error={state.fieldErrors?.password}
       />
+      <Link
+        href="/forgot-password"
+        className="-mt-2 self-end text-xs font-medium text-[#696969] hover:text-[#030303] hover:underline"
+      >
+        Forgot password?
+      </Link>
       {showCode && (
         <Field
           label="Authentication code"
