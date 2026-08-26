@@ -11,10 +11,24 @@ export const DELETION_GRACE_PERIOD_MS = 30 * 24 * 60 * 60 * 1000;
  * OAuth) is the same trust bar as clicking Cancel, so it's treated the same
  * way. Scoped with a conditional update so signing in on an account with no
  * pending request never writes a spurious audit row.
+ *
+ * Deliberately excludes a request whose grace period has already elapsed:
+ * the sign-in hook runs inside `jwt()`, which fires *before* the page load
+ * that follows ever reaches `getCurrentUser()`'s lazy expiry check. Without
+ * this bound, signing in one day after the 30-day deadline would silently
+ * cancel the overdue deletion instead of letting that same page load enact
+ * it — permanently defeating FR-61a for anyone who just waits past day 30
+ * before signing back in.
  */
 export async function cancelPendingDeletion(userId: string): Promise<void> {
   const { count } = await prisma.user.updateMany({
-    where: { id: userId, deletionRequestedAt: { not: null } },
+    where: {
+      id: userId,
+      deletionRequestedAt: {
+        not: null,
+        gt: new Date(Date.now() - DELETION_GRACE_PERIOD_MS),
+      },
+    },
     data: { deletionRequestedAt: null },
   });
   if (count === 0) return;
