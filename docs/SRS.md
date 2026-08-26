@@ -225,7 +225,7 @@ the point of the change.
 | `/signin` | `app/(auth)/signin/page.tsx` | Anonymous | Credentials form, optional Google button, mapped error copy. |
 | `/signup` | `app/(auth)/signup/page.tsx` | Anonymous | Registration form, optional Google button. |
 | `/account/set-password` | `app/(auth)/account/set-password/page.tsx` | All (no `passwordHash`) | Mandatory password-setup step, reached only via the FR-39a redirect. |
-| `/account/preferences` | `app/account/preferences/page.tsx` | All | Profile, sign-in methods, connections, appearance, shortcuts, dashboard, analytics, danger zone. |
+| `/account/preferences` | `app/account/preferences/page.tsx` | All | Profile, connections, appearance, shortcuts, dashboard, analytics, danger zone. Password change lives on `/account/security` only, reachable via `SettingsSidebar`. |
 | `/account/security` | `app/account/security/page.tsx` | All | Password, two-factor toggle, active device sessions. |
 | `/account/access-tokens` | `app/account/access-tokens/page.tsx` | All | Personal API token list and creation form. |
 | `/account/audit-logs` | `app/account/audit-logs/page.tsx` | All | Audit log table with range and scope filters. |
@@ -409,9 +409,10 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
 
 - **FR-51** — A user shall be able to link a supported OAuth provider (currently `google` only).
 - **FR-52** — **The system shall never allow a user to unlink their last remaining sign-in
-  method.** `unlinkProvider` shall refuse when fewer than one method would remain, and
-  `canUnlink` shall be false in the UI for the same condition. Audit:
-  `account.connection.removed`.
+  method.** `unlinkProvider` shall refuse when fewer than one method would remain, and the
+  Disconnect control in `Connections`/`ConnectionButton` shall be disabled for the same
+  condition (`canDisconnect`, computed in `app/account/preferences/page.tsx` from
+  `user.hasPassword` and the linked-provider count). Audit: `account.connection.removed`.
   *Rationale:* the account would become permanently inaccessible.
 - **FR-53** — A user who signed in via OAuth and has no `passwordHash` shall be able to *set* a
   password without supplying a current one. A user who has a password must supply the correct
@@ -461,10 +462,18 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
 
 **Two-factor**
 
-- **FR-62** — **[NOT IMPLEMENTED]** Two-factor authentication. `setTwoFactorEnabled` flips the
-  `User.twoFactorEnabled` boolean and writes an audit entry, but `twoFactorSecret` is never
-  written or read and the sign-in flow contains no second-factor step. The toggle is currently
-  cosmetic. See [`ROADMAP.md`](./ROADMAP.md) Phase 1.
+- **FR-62** — A user may enable TOTP two-factor authentication from `/account/security`: the
+  server generates a secret and shows it as a QR code and a manual key, and only writes
+  `User.twoFactorSecret` / sets `twoFactorEnabled` once the user confirms one valid 6-digit code
+  — nothing is persisted from an abandoned enrollment. A user with 2FA enabled must supply a
+  valid code, in addition to their password, to sign in via the Credentials provider; **Google
+  (OAuth) sign-in is not gated by this control** — 2FA here is tied to the password path, which
+  is the only one with a "current credential" concept to attach a second factor to. Disabling
+  requires the account's current password (or is unconditional for an OAuth-only account with no
+  password) and clears both fields. Audit: `account.2fa.enabled` / `account.2fa.disabled`.
+  *Implementation:* `lib/auth/totp.ts`, `lib/actions/twoFactor.ts`,
+  `components/account/TwoFactorSettings.tsx`, the `authorize()`/`TwoFactorRequired` handling in
+  `auth.ts`.
 
 #### FR-5x — Preferences
 
@@ -474,17 +483,13 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
 - **FR-70** — A user shall be able to set their theme to `LIGHT`, `DARK` or `SYSTEM`.
   `UserPreferences.theme` is authoritative; `localStorage` is a paint-blocking cache.
   `useSyncedTheme` shall write `localStorage` first, then the database.
-- **FR-71** — A user shall be able to set `sidebarBehavior` to `OPEN`, `CLOSED` or
-  `EXPAND_ON_HOVER`. **[PARTIALLY IMPLEMENTED]** — the value is stored but no component reads it.
-- **FR-72** — A user shall be able to toggle `telemetryEnabled`. **[PARTIALLY IMPLEMENTED]** —
-  stored, but nothing consults it.
-- **FR-73** — A user shall be able to toggle the dashboard flags `editEntitiesInCode` and
-  `queueTableOperations`. The action shall accept only those two keys (allow-list).
-  **[PARTIALLY IMPLEMENTED]** — stored, but nothing consults them.
-- **FR-74** — A user shall be able to enable or disable individual keyboard shortcuts. The slug
-  shall match `/^[a-z0-9-]{1,64}$/` and be merged into the `keyboardShortcuts` JSON map.
-  **[PARTIALLY IMPLEMENTED]** — only ⌘K (the command palette) is actually wired to a behaviour.
 - **FR-75** — Preferences reads shall fall back to the schema defaults when no row exists.
+
+FR-71 – FR-74 (`sidebarBehavior`, `telemetryEnabled`, the `editEntitiesInCode`/
+`queueTableOperations` dashboard flags, and per-shortcut keyboard toggles) were removed rather
+than implemented — none had any reader anywhere in the app, and several named features already
+deleted with the old multi-tenancy layer. `UserPreferences` now has only `theme`; see
+`docs/ROADMAP.md` Phase 1 (1.3 – 1.5).
 
 #### FR-6x — Audit
 
@@ -524,6 +529,17 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
 - **FR-86** — **[NOT IMPLEMENTED]** Filtering by `actionCode`, target, method, status code, IP or
   user agent. These columns are written but neither surfaced nor filterable. There is also no
   central constant for the codes in FR-85 — they are inline string literals at each call site.
+
+#### FR-9x — Feedback
+
+*Implemented in `lib/actions/feedback.ts`.*
+
+- **FR-90** — A signed-in user shall be able to submit free-text feedback (1–2000 characters)
+  from any page, via the Feedback control in the account header. It is stored in a dedicated
+  `Feedback` row (`userId`, `message`, `createdAt`); `userId` is `SetNull` on account deletion, so
+  the row survives. **[NOT IMPLEMENTED]**: there is no admin-facing view of submitted feedback —
+  intentional for now, to avoid building a second admin surface before `docs/ROADMAP.md` Phase 6
+  establishes one. Not written to `AuditLog`; it isn't a security-relevant action.
 
 ---
 
@@ -673,11 +689,13 @@ required entry is missing or malformed.
 | FR-61 | `lib/auth/deletion.ts`, `lib/actions/profile.ts`, `auth.ts` |
 | FR-61a | `lib/auth/deletion.ts`, `lib/auth/require-session.ts` |
 | FR-51 – FR-52 | `lib/actions/connections.ts`, `lib/queries/account.ts` |
-| FR-53 – FR-56, FR-62 | `lib/actions/security.ts` |
+| FR-53 – FR-56 | `lib/actions/security.ts` |
+| FR-62 | `lib/auth/totp.ts`, `lib/actions/twoFactor.ts`, `auth.ts` |
 | FR-57 – FR-59 | `lib/actions/tokens.ts`, `lib/auth/tokens.ts` |
-| FR-70 – FR-75 | `lib/actions/preferences.ts`, `lib/queries/account.ts` |
+| FR-70, FR-75 | `lib/actions/preferences.ts`, `lib/queries/account.ts` |
 | FR-80 – FR-82, FR-85 | `lib/audit.ts` + call sites |
 | FR-83 – FR-84, FR-86 | `lib/queries/audit.ts` |
+| FR-90 | `lib/actions/feedback.ts`, `components/dashboard/FeedbackDialog.tsx` |
 | NFR-30 – NFR-32 | `lib/env.ts`, `lib/app-config.ts` |
 | DR-01 – DR-04 | `prisma/schema.prisma` |
 
@@ -688,11 +706,7 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 
 | # | Requirement | Deviation |
 |---|---|---|
-| D-1 | FR-62 | Two-factor authentication is a stored boolean with no secret and no challenge step. |
 | D-2 | DR-04 | `lastLoginAt` is displayed but never written. |
-| D-3 | FR-71 | `sidebarBehavior` is stored but no sidebar reads it. |
-| D-4 | FR-72, FR-73 | `telemetryEnabled`, `editEntitiesInCode` and `queueTableOperations` are stored but inert. |
-| D-5 | FR-74, NFR-42 | Only ⌘K is implemented; several shortcut labels name features removed with the tenancy layer. |
 | D-6 | §1.2 | API tokens can be minted but no route consumes them; `scopes`, `expiresAt` and `lastUsedAt` are never written or checked. `tokenPreview()` in `lib/auth/tokens.ts` has no callers. |
 | D-7 | DR-03 | `UserStatus.INVITED` is unreachable; there is no invitation flow. |
 | D-9 | FR-86 | Audit filtering is limited to range and scope; action codes are inline literals with no central definition. |

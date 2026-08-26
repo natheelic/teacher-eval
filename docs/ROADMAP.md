@@ -53,10 +53,10 @@ misleads. None of it is large work.
 | # | Item | Why | Files |
 |---|---|---|---|
 | 1.1 | **Write `lastLoginAt`** on successful authentication | The users table renders this column, so administrators currently see an empty value for every account and cannot tell an abandoned account from an active one (D-2). One write in the `signIn` event or the Credentials `authorize`. | `auth.ts` |
-| 1.2 | **Resolve two-factor authentication** — either implement TOTP end to end (write `twoFactorSecret`, add enrolment with a QR code, add a challenge step to sign-in) or remove the toggle | A security control that reports "enabled" while doing nothing is worse than an absent one; a user may rely on it (D-1, FR-62). If TOTP is not near-term, hide the row. | `lib/actions/security.ts`, `components/account/SecuritySettings.tsx`, `auth.ts` |
-| 1.3 | **Make `sidebarBehavior` do something** — have `IconSidebar` and `SettingsSidebar` read the preference | The setting offers three options and changes nothing (D-3, FR-71). | `components/dashboard/IconSidebar.tsx`, `components/account/SettingsSidebar.tsx` |
-| 1.4 | **Decide the fate of `telemetryEnabled`, `editEntitiesInCode`, `queueTableOperations`** — wire them or drop them | Three more inert switches (D-4). Dropping them is a legitimate outcome and costs less than implementing them. | `components/account/{AnalyticsMarketing,DashboardSettings}.tsx`, `lib/actions/preferences.ts` |
-| 1.5 | **Prune and implement keyboard shortcuts** | The list is hardcoded, several entries name features deleted with the tenancy layer ("New project", "Publish OAuth app", "Add project connection"), and only ⌘K exists (D-5). Delete the stale entries first, then implement what remains. | `components/account/KeyboardShortcuts.tsx` |
+| 1.2 | ✅ **Two-factor authentication implemented for real** — TOTP enrollment (QR + manual key + confirm code before anything is persisted), a sign-in challenge step on the Credentials path, and a password-confirmed disable flow | Done — see FR-62. Google sign-in is deliberately not gated by this. | `lib/auth/totp.ts`, `lib/actions/twoFactor.ts`, `components/account/TwoFactorSettings.tsx`, `auth.ts` |
+| 1.3 | ✅ **`sidebarBehavior` removed** — dropped rather than wired up | Nothing ever read it (D-3, FR-71); the `UserPreferences` column and `SidebarBehavior` enum are gone. | — |
+| 1.4 | ✅ **`telemetryEnabled`, `editEntitiesInCode`, `queueTableOperations` removed** | Three inert switches (D-4), dropped rather than implemented — no telemetry client, no code-editor mode, no batched edits exist anywhere in the app to wire them to. | — |
+| 1.5 | ✅ **Keyboard shortcuts section removed** | The list was hardcoded, several entries named features deleted with the tenancy layer ("New project", "Publish OAuth app", "Add project connection"), and none of the 13 toggles — including the one for ⌘K — were ever read; ⌘K itself is hardcoded in `CommandPalette.tsx` independent of the toggle and is unaffected (D-5). | — |
 | 1.6 | **Fix stale copy on `/signup`** — it still promises the account "creates your organization and a first project" | Directly contradicts what the product does (D-10). | `app/(auth)/signup/page.tsx` |
 | 1.7 | **Replace or remove the hardcoded `NoticeBanner`** | It shows fixed marketing copy about a Terms of Service update, with a "Learn more" button that goes nowhere, on every page (D-15). Either make it data-driven or delete it. | `components/dashboard/NoticeBanner.tsx` |
 | 1.8 | **Remove or wire the dead chrome** — Feedback, Docs and Notifications buttons in the headers; the decorative sidebar collapse control; the unconditionally-active "Users" nav item | Non-functional affordances (D-15). | `components/dashboard/{Header,IconSidebar}.tsx`, `components/account/AccountHeader.tsx` |
@@ -159,6 +159,38 @@ database query.
   five-item navigation list in `components/search/search-data.ts` and cannot find a user or a log
   entry (NFR-42).
 - **5.7** **Rename the package.** `package.json` still reads `"name": "my-template"`.
+- **5.8** **Add rate limiting.** No rate-limiting infrastructure exists anywhere in the app,
+  including on password sign-in and the new TOTP code check added in 1.2 — needed before this app
+  is exposed beyond a trusted network.
+- **5.9** **Encrypt `User.twoFactorSecret` at rest.** It is currently stored in plaintext, same as
+  the column the schema already reserved for it. It must stay decryptable (unlike a password
+  hash), so encrypting the column with a key derived from `AUTH_SECRET` — the same technique
+  `lib/auth/totp.ts` already uses for the short-lived pending-enrollment token — is a reasonable
+  follow-up hardening step.
+
+---
+
+## Phase 6 — A first admin panel 🟢
+
+**Why:** there is currently no admin/site-wide settings page anywhere in the app — only the
+`/users` table and each user's own `/account/*` pages. A couple of requested features need one,
+so it's worth building the first version deliberately rather than as a side effect of whichever
+feature asks for it first.
+
+- **6.1 — Logo upload.** No logo/branding config exists today: `components/dashboard/AppLogo.tsx`
+  is a hardcoded inline SVG used identically at all 4 call sites (`app/page.tsx`,
+  `app/(auth)/layout.tsx`, `components/dashboard/Header.tsx`, `components/account/AccountHeader.tsx`),
+  and `lib/app-config.ts` only exposes `appName`/`appDomain` from build-time env vars — nothing
+  DB-backed or user-uploadable. Building this needs: a new `ADMIN`-only route (the actual start of
+  this phase), a storage decision (no upload/object-storage package exists in `package.json` at
+  all — e.g. `@vercel/blob`, S3-compatible bucket, or a `public/`-write fallback), a new Prisma
+  field for the logo URL (a singleton settings row, since there's no existing app-wide config
+  table), a new upload Server Action, and updating `AppLogo.tsx`'s 4 call sites to render it
+  conditionally instead of the hardcoded SVG.
+- **6.2 — A real view for submitted feedback.** `Feedback` (added alongside 6.1's motivating
+  request) has no admin-facing read UI yet — rows are only inspectable via `psql`/Prisma Studio.
+  Once 6.1's admin route exists, add a simple list view here rather than building a second,
+  separate admin surface for it.
 
 ---
 

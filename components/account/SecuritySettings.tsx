@@ -2,14 +2,13 @@
 
 import { useActionState, useOptimistic, useTransition } from "react";
 import { Laptop, Smartphone, Tablet, X } from "lucide-react";
-import { SectionHeading, SettingsCard, SettingsRow } from "./SettingsPrimitives";
-import { Switch } from "./Switch";
+import { SectionHeading, SettingsCard } from "./SettingsPrimitives";
 import { RelativeTime } from "./RelativeTime";
+import { TwoFactorSettings } from "./TwoFactorSettings";
 import {
   changePassword,
   revokeAllOtherSessions,
   revokeDeviceSession,
-  setTwoFactorEnabled,
 } from "@/lib/actions/security";
 import type { ActionState } from "@/lib/actions/profile";
 import type { DeviceSessionView } from "@/lib/queries/account";
@@ -117,40 +116,6 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
   );
 }
 
-function TwoFactorSection({ enabled }: { enabled: boolean }) {
-  const [pending, startTransition] = useTransition();
-  const [optimistic, setOptimistic] = useOptimistic(
-    enabled,
-    (_state, next: boolean) => next,
-  );
-
-  return (
-    <div className="flex w-full flex-col items-start gap-6">
-      <SectionHeading title="Two-factor authentication" description="" />
-      <SettingsCard>
-        <SettingsRow
-          bordered={false}
-          label="Require a second factor to sign in"
-          description="Add an extra layer of security using an authenticator app."
-          control={
-            <Switch
-              checked={optimistic}
-              disabled={pending}
-              aria-label="Require a second factor to sign in"
-              onCheckedChange={(next) =>
-                startTransition(async () => {
-                  setOptimistic(next);
-                  await setTwoFactorEnabled(next);
-                })
-              }
-            />
-          }
-        />
-      </SettingsCard>
-    </div>
-  );
-}
-
 function ActiveSessionsSection({ sessions }: { sessions: DeviceSessionView[] }) {
   const [pending, startTransition] = useTransition();
   const [optimistic, removeOptimistic] = useOptimistic(
@@ -254,7 +219,7 @@ export function SecuritySettings({
   return (
     <div className="flex w-full flex-col gap-16">
       <PasswordSection hasPassword={hasPassword} />
-      <TwoFactorSection enabled={twoFactorEnabled} />
+      <TwoFactorSettings enabled={twoFactorEnabled} hasPassword={hasPassword} />
       <ActiveSessionsSection sessions={sessions} />
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signInAction, type AuthFormState } from "@/lib/actions/auth";
 import { Field, FormError, SubmitButton } from "./AuthPrimitives";
@@ -12,6 +12,13 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
     signInAction,
     initialState,
   );
+  const showCode = state.needsCode ?? false;
+
+  // Controlled rather than relying on the browser retaining uncontrolled
+  // input DOM state across the two submissions this flow needs once 2FA is
+  // enabled — a Server Action round trip doesn't guarantee that survives.
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   return (
     <form action={formAction} className="flex w-full flex-col gap-4">
@@ -25,6 +32,8 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
         type="email"
         autoComplete="email"
         placeholder="you@example.com"
+        value={email}
+        onChange={setEmail}
         error={state.fieldErrors?.email}
       />
       <Field
@@ -33,11 +42,25 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
         type="password"
         autoComplete="current-password"
         placeholder="••••••••••"
+        value={password}
+        onChange={setPassword}
         error={state.fieldErrors?.password}
       />
+      {showCode && (
+        <Field
+          label="Authentication code"
+          name="code"
+          type="text"
+          inputMode="numeric"
+          maxLength={6}
+          autoComplete="one-time-code"
+          placeholder="123456"
+          error={state.fieldErrors?.code}
+        />
+      )}
 
       <SubmitButton pending={pending}>
-        {pending ? "Signing in..." : "Sign in"}
+        {pending ? "Signing in..." : showCode ? "Verify" : "Sign in"}
       </SubmitButton>
 
       <p className="text-center text-[13px] font-medium text-[#696969]">

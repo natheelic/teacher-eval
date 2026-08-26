@@ -77,7 +77,7 @@ const PUBLIC_PREFIXES = ["/signin", "/signup", "/api/auth"];
  * PUBLIC_PREFIXES: the `startsWith(`${prefix}/`)` test below would then make
  * every path in the app public.
  */
-const PUBLIC_EXACT = ["/"];
+const PUBLIC_EXACT = ["/", "/terms"];
 
 export function isPublicPath(pathname: string): boolean {
   return (

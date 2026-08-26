@@ -1,9 +1,8 @@
 "use client";
 
-import { SectionHeading, SettingsCard, SettingsRow } from "./SettingsPrimitives";
+import { SectionHeading, SettingsCard } from "./SettingsPrimitives";
 import { type ThemeMode } from "../theme/useTheme";
 import { useSyncedTheme } from "../theme/useSyncedTheme";
-import { SidebarBehaviorSelect } from "./SidebarBehaviorSelect";
 import { appName } from "@/lib/app-config";
 
 type ThemeOption = {
@@ -61,13 +60,9 @@ function ThemeSwatch({
 
 export type AppearanceSettingsProps = {
   theme: "LIGHT" | "DARK" | "SYSTEM";
-  sidebarBehavior: "OPEN" | "CLOSED" | "EXPAND_ON_HOVER";
 };
 
-export function AppearanceSettings({
-  theme,
-  sidebarBehavior,
-}: AppearanceSettingsProps) {
+export function AppearanceSettings({ theme }: AppearanceSettingsProps) {
   const { mode, setMode } = useSyncedTheme(theme);
 
   return (
@@ -77,7 +72,7 @@ export function AppearanceSettings({
         description={`Choose how ${appName} looks and behaves in the dashboard.`}
       />
       <SettingsCard>
-        <div className="flex w-full flex-col gap-6 border-b border-black/8 p-4 sm:flex-row">
+        <div className="flex w-full flex-col gap-6 p-4 sm:flex-row">
           <div className="flex w-full shrink-0 flex-col items-start gap-2 sm:w-[202px]">
             <p className="text-[13px] font-medium text-[#030303]">Theme mode</p>
             <p className="text-[13px] font-medium text-[#464646]">
@@ -96,12 +91,6 @@ export function AppearanceSettings({
             ))}
           </div>
         </div>
-        <SettingsRow
-          bordered={false}
-          label="Sidebar behavior"
-          description="Choose your preferred sidebar behavior: open, closed, or expand on hover."
-          control={<SidebarBehaviorSelect value={sidebarBehavior} />}
-        />
       </SettingsCard>
     </div>
   );

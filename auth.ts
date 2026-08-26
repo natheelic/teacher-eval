@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { randomUUID } from "node:crypto";
@@ -9,10 +9,23 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
 import { parseDevice, clientIpFrom } from "@/lib/auth/device";
 import { cancelPendingDeletion } from "@/lib/auth/deletion";
+import { verifyTotpCode } from "@/lib/auth/totp";
+
+/**
+ * Thrown by authorize() instead of returning null when the password is
+ * correct but the account has 2FA enabled and no valid code was submitted.
+ * signInAction distinguishes this from a plain wrong-password CredentialsSignin
+ * to reveal the code field. The static `type` must be set explicitly — JS
+ * static properties inherit through `extends`, so an unset subclass would
+ * silently report its parent's "CredentialsSignin" type instead.
+ */
+export class TwoFactorRequired extends CredentialsSignin {}
+TwoFactorRequired.type = "TwoFactorRequired";
 
 const credentialsSchema = z.object({
   email: z.email(),
   password: z.string().min(1),
+  code: z.string().trim().regex(/^\d{6}$/).optional(),
 });
 
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
@@ -36,7 +49,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const parsed = credentialsSchema.safeParse(raw);
         if (!parsed.success) return null;
 
-        const { email, password } = parsed.data;
+        const { email, password, code } = parsed.data;
 
         const user = await prisma.user.findUnique({
           where: { email: email.toLowerCase() },
@@ -47,6 +60,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             image: true,
             passwordHash: true,
             deletedAt: true,
+            twoFactorEnabled: true,
+            twoFactorSecret: true,
           },
         });
 
@@ -54,6 +69,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // missing account and a wrong password take about the same time.
         const ok = await verifyPassword(password, user?.passwordHash ?? null);
         if (!user || !ok || user.deletedAt) return null;
+
+        if (user.twoFactorEnabled && user.twoFactorSecret) {
+          if (!code || !(await verifyTotpCode(user.twoFactorSecret, code))) {
+            throw new TwoFactorRequired();
+          }
+        }
 
         return {
           id: user.id,

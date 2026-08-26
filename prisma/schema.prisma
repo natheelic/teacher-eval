@@ -58,6 +58,7 @@ model User {
   apiTokens      ApiToken[]
   auditLogs      AuditLog[]       @relation("AuditActor")
   auditTargets   AuditLog[]       @relation("AuditTargetUser")
+  feedback       Feedback[]
 
   @@index([role])
   @@index([status])
@@ -154,26 +155,10 @@ enum ThemeMode {
   SYSTEM
 }
 
-enum SidebarBehavior {
-  OPEN
-  CLOSED
-  EXPAND_ON_HOVER
-}
-
 model UserPreferences {
   userId String @id
 
-  theme           ThemeMode       @default(SYSTEM)
-  sidebarBehavior SidebarBehavior @default(EXPAND_ON_HOVER)
-
-  telemetryEnabled Boolean @default(true)
-
-  editEntitiesInCode   Boolean @default(false)
-  queueTableOperations Boolean @default(false)
-
-  /// Record<slug, boolean>. JSON because the key set is owned by the UI and
-  /// changes with every shipped shortcut; it is never queried or joined.
-  keyboardShortcuts Json @default("{}")
+  theme ThemeMode @default(SYSTEM)
 
   updatedAt DateTime @updatedAt
 
@@ -258,5 +243,19 @@ model AuditLog {
 
   @@index([actorId, createdAt(sort: Desc)])
   @@index([targetUserId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+/// Submitted from the header's Feedback button. No admin viewing UI yet —
+/// intentional, to avoid rebuilding the "no admin panel exists" problem for
+/// a first-cut feature; read via psql/Prisma Studio for now.
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  message   String
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   @@index([createdAt(sort: Desc)])
 }

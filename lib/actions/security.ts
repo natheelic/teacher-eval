@@ -133,24 +133,3 @@ export async function revokeAllOtherSessions(): Promise<void> {
   revalidatePath("/account/security");
 }
 
-export async function setTwoFactorEnabled(enabled: boolean): Promise<void> {
-  const user = await requireUser();
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { twoFactorEnabled: enabled },
-  });
-
-  await logAudit({
-    actorId: user.id,
-    action: enabled
-      ? "Enabled two-factor authentication"
-      : "Disabled two-factor authentication",
-    actionCode: enabled ? "account.2fa.enabled" : "account.2fa.disabled",
-    method: "POST",
-    statusCode: 200,
-    targetUserId: user.id,
-  });
-
-  revalidatePath("/account/security");
-}

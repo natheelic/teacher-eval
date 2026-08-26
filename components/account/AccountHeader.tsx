@@ -4,6 +4,7 @@ import { AppLogo } from "../dashboard/AppLogo";
 import { AccountMenu } from "./AccountMenu";
 import { SearchTrigger } from "../search/SearchTrigger";
 import { MobileMenuButton } from "../layout/MobileMenuButton";
+import { FeedbackDialog } from "../dashboard/FeedbackDialog";
 import { requireUser } from "@/lib/auth/require-session";
 import { getPreferences } from "@/lib/queries/account";
 
@@ -25,14 +26,15 @@ export async function AccountHeader() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <button className="hidden h-8 items-center justify-center rounded-full px-2.5 py-1 text-xs font-medium text-[#464646] hover:bg-black/4 sm:flex">
-            Feedback
-          </button>
+          <FeedbackDialog />
           <div className="flex items-center gap-2">
             <SearchTrigger />
-            <button className="hidden size-8 items-center justify-center rounded-full border border-black/15 hover:bg-black/4 sm:flex">
+            <Link
+              href="/docs"
+              className="hidden size-8 items-center justify-center rounded-full border border-black/15 hover:bg-black/4 sm:flex"
+            >
               <Book className="size-4 text-[#464646]" />
-            </button>
+            </Link>
           </div>
           <AccountMenu
             initial={(user.name?.trim() || user.email)[0]!.toUpperCase()}

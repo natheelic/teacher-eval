@@ -34,7 +34,11 @@ export function Field({
   placeholder,
   required = true,
   defaultValue,
+  value,
+  onChange,
   error,
+  inputMode,
+  maxLength,
 }: {
   label: string;
   name: string;
@@ -43,7 +47,11 @@ export function Field({
   placeholder?: string;
   required?: boolean;
   defaultValue?: string;
+  value?: string;
+  onChange?: (value: string) => void;
   error?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  maxLength?: number;
 }) {
   const describedBy = error ? `${name}-error` : undefined;
 
@@ -62,7 +70,11 @@ export function Field({
         autoComplete={autoComplete}
         placeholder={placeholder}
         required={required}
-        defaultValue={defaultValue}
+        defaultValue={onChange ? undefined : defaultValue}
+        value={onChange ? value : undefined}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+        inputMode={inputMode}
+        maxLength={maxLength}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={`h-[34px] w-full rounded-md border bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30 ${

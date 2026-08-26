@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { X } from "lucide-react";
 
 export function NoticeBanner() {
@@ -39,9 +40,12 @@ export function NoticeBanner() {
             Our Data Processing Addendum is now built into the terms.
           </p>
         </div>
-        <button className="flex h-[26px] w-fit items-center justify-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4">
+        <Link
+          href="/terms"
+          className="flex h-[26px] w-fit items-center justify-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4"
+        >
           Learn more
-        </button>
+        </Link>
       </div>
     </div>
   );

@@ -3,16 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/require-session";
 import { toIso } from "@/lib/format";
 
-export type SignInMethodView = {
-  provider: string;
-  providerLabel: string;
-  detail: string;
-  /** Only the email/password method offers a password change. */
-  canChangePassword: boolean;
-  /** False for the last remaining method — removing it would lock the user out. */
-  canUnlink: boolean;
-};
-
 export type ConnectionView = {
   provider: string;
   providerLabel: string;
@@ -33,44 +23,6 @@ export function providerLabel(provider: string): string {
 /** Providers offered as linkable connections, whether or not they're linked. */
 const LINKABLE = ["google"] as const;
 
-export const getSignInMethods = cache(async (): Promise<SignInMethodView[]> => {
-  const user = await requireUser();
-
-  const accounts = await prisma.account.findMany({
-    where: { userId: user.id },
-    select: { provider: true, providerAccountId: true },
-  });
-
-  const methods: SignInMethodView[] = [];
-
-  if (user.hasPassword) {
-    methods.push({
-      provider: "credentials",
-      providerLabel: "Email",
-      detail: user.email,
-      canChangePassword: true,
-      canUnlink: false,
-    });
-  }
-
-  for (const account of accounts) {
-    methods.push({
-      provider: account.provider,
-      providerLabel: providerLabel(account.provider),
-      detail: user.email,
-      canChangePassword: false,
-      canUnlink: false, // replaced below once the total is known
-    });
-  }
-
-  // Unlinking is only safe while another way to sign in remains.
-  const total = methods.length;
-  return methods.map((method) => ({
-    ...method,
-    canUnlink: method.provider !== "credentials" && total > 1,
-  }));
-});
-
 export const getConnections = cache(async (): Promise<ConnectionView[]> => {
   const user = await requireUser();
 
@@ -90,11 +42,6 @@ export const getConnections = cache(async (): Promise<ConnectionView[]> => {
 
 export type PreferencesView = {
   theme: "LIGHT" | "DARK" | "SYSTEM";
-  sidebarBehavior: "OPEN" | "CLOSED" | "EXPAND_ON_HOVER";
-  telemetryEnabled: boolean;
-  editEntitiesInCode: boolean;
-  queueTableOperations: boolean;
-  keyboardShortcuts: Record<string, boolean>;
 };
 
 export const getPreferences = cache(async (): Promise<PreferencesView> => {
@@ -108,11 +55,6 @@ export const getPreferences = cache(async (): Promise<PreferencesView> => {
 
   return {
     theme: row?.theme ?? "SYSTEM",
-    sidebarBehavior: row?.sidebarBehavior ?? "EXPAND_ON_HOVER",
-    telemetryEnabled: row?.telemetryEnabled ?? true,
-    editEntitiesInCode: row?.editEntitiesInCode ?? false,
-    queueTableOperations: row?.queueTableOperations ?? false,
-    keyboardShortcuts: (row?.keyboardShortcuts as Record<string, boolean>) ?? {},
   };
 });
 

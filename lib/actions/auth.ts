@@ -4,7 +4,7 @@ import { AuthError } from "next-auth";
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
-import { signIn, signOut } from "@/auth";
+import { signIn, signOut, TwoFactorRequired } from "@/auth";
 import { DEFAULT_SIGNED_IN_PATH } from "@/auth.config";
 import { prisma } from "@/lib/prisma";
 import { passwordSchema } from "@/lib/auth/password";
@@ -14,11 +14,17 @@ import { logAudit } from "@/lib/audit";
 export type AuthFormState = {
   error?: string;
   fieldErrors?: Record<string, string>;
+  needsCode?: boolean;
 };
 
 const signInSchema = z.object({
   email: z.email("Enter a valid email address"),
   password: z.string().min(1, "Enter your password"),
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Enter the 6-digit code")
+    .optional(),
 });
 
 const signUpSchema = z
@@ -51,9 +57,11 @@ export async function signInAction(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const rawCode = formData.get("code");
   const parsed = signInSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
+    code: rawCode ? rawCode : undefined,
   });
 
   if (!parsed.success) {
@@ -64,12 +72,24 @@ export async function signInAction(
     await signIn("credentials", {
       email: parsed.data.email.toLowerCase(),
       password: parsed.data.password,
+      // signIn() serializes options through URLSearchParams, which coerces
+      // an undefined value to the literal string "undefined" — omit the key
+      // entirely rather than pass code: undefined when none was submitted.
+      ...(parsed.data.code ? { code: parsed.data.code } : {}),
       redirectTo: safeCallbackUrl(formData.get("callbackUrl")),
     });
   } catch (error) {
     // A *successful* signIn throws a redirect. Let it through untouched;
     // swallowing it would make every good login look like a failure.
     unstable_rethrow(error);
+    if (error instanceof TwoFactorRequired) {
+      return {
+        needsCode: true,
+        error: parsed.data.code
+          ? "Incorrect code. Try again."
+          : "Enter the 6-digit code from your authenticator app.",
+      };
+    }
     if (error instanceof AuthError) {
       return { error: "Incorrect email or password." };
     }
