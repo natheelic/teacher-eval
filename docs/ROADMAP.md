@@ -231,7 +231,24 @@ filterable; the view offers only range and scope (D-9).
   (`pnpm typecheck` passed with zero changes needed elsewhere) — verified the guard is real, not
   just quiet, by deliberately typo-ing one call site (`"user.role.change"`) and confirming `tsc`
   rejected it with a "Did you mean" pointing at the correct code, then reverting.
-- **4.2** Add filters for action code and target user.
+- **4.2** ✅ **Filters for action code and target added.** `/account/audit-logs` gained an "All
+  actions" `<select>` (options rendered directly from `ACTION_CODES`, humanized —
+  `"user.role.changed"` → `"User role changed"` — so there's no separate label map to keep in
+  sync) and a "Search target" free-text box matching `targetLabel` case-insensitively, mirroring
+  `UserFilters`' existing search-box pattern (uncontrolled input keyed by the current value, so
+  the URL — not React state — is the source of truth). Both compose with the existing range/scope
+  filters and reset pagination on change; a "Clear filters" button appears only once one is
+  active.
+  - **Split `ACTION_CODES` out of `lib/audit.ts` into `lib/action-codes.ts`:** the filter select is
+    a Client Component, and `lib/audit.ts` imports `next/headers` and the Prisma client — pulling
+    that into the browser bundle broke the build (`pg`/`@prisma/adapter-pg` have no browser
+    build). `lib/audit.ts` re-exports both `ACTION_CODES` and `ActionCode` from the new module, so
+    every existing server-side import kept working unchanged.
+  - **Verified live:** selecting an action filtered the table to only matching rows, with the URL
+    reflecting `?actionCode=...`; searching a target's name matched case-insensitively; "Clear
+    filters" reset both filters and returned to the full unfiltered log. Also caught, via the
+    build, that a Client Component transitively importing Prisma is a real error, not just a
+    lint nit — confirms the fix actually mattered rather than being defensive-only.
 - **4.3** Surface IP, user agent and `metadata` in an expandable row detail.
 - **4.4** Add CSV export for a filtered range.
 - **4.5** Consider a retention policy. `AuditLog` grows without bound and has no archival path.

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/require-session";
 import { canManageUsers } from "@/lib/permissions";
+import { ACTION_CODES, type ActionCode } from "@/lib/action-codes";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 export type AuditLogView = {
@@ -19,6 +20,9 @@ export type AuditScope = "mine" | "all";
 export type AuditFilters = {
   range: AuditRange;
   scope: AuditScope;
+  actionCode: ActionCode | null;
+  /** Free-text match against the denormalised targetLabel. */
+  target: string;
   cursor: string | null;
 };
 
@@ -38,9 +42,13 @@ const RANGE_MS: Record<Exclude<AuditRange, "all">, number> = {
   "30d": 30 * 24 * 60 * 60 * 1000,
 };
 
+const ACTION_CODE_SET: Set<string> = new Set(ACTION_CODES);
+
 export function parseAuditFilters(params: {
   range?: string | string[];
   scope?: string | string[];
+  actionCode?: string | string[];
+  target?: string | string[];
   cursor?: string | string[];
 }): AuditFilters {
   const first = (v: string | string[] | undefined) =>
@@ -52,9 +60,17 @@ export function parseAuditFilters(params: {
       ? rawRange
       : "24h";
 
+  const rawActionCode = first(params.actionCode);
+  const actionCode: ActionCode | null =
+    rawActionCode && ACTION_CODE_SET.has(rawActionCode)
+      ? (rawActionCode as ActionCode)
+      : null;
+
   return {
     range,
     scope: first(params.scope) === "all" ? "all" : "mine",
+    actionCode,
+    target: (first(params.target) ?? "").trim().slice(0, 100),
     cursor: first(params.cursor) ?? null,
   };
 }
@@ -75,6 +91,14 @@ export async function getAuditLogs(
 
   if (filters.range !== "all") {
     where.createdAt = { gte: new Date(Date.now() - RANGE_MS[filters.range]) };
+  }
+
+  if (filters.actionCode) {
+    where.actionCode = filters.actionCode;
+  }
+
+  if (filters.target) {
+    where.targetLabel = { contains: filters.target, mode: "insensitive" };
   }
 
   const [rows, total] = await Promise.all([

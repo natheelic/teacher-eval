@@ -1,41 +1,10 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { clientIpFrom } from "@/lib/auth/device";
+import type { ActionCode } from "@/lib/action-codes";
 
-/**
- * The closed vocabulary of audit action codes. A call site passing anything
- * outside this list fails to typecheck rather than silently writing a row
- * that filtering-by-code (ROADMAP 4.2) can never match. Add a code here
- * before using it anywhere else.
- */
-export const ACTION_CODES = [
-  // Self-service account actions
-  "account.created",
-  "account.profile.updated",
-  "account.password.changed",
-  "account.password.reset_requested",
-  "account.password.reset_completed",
-  "account.2fa.enabled",
-  "account.2fa.disabled",
-  "account.session.revoked",
-  "account.session.revoked_all",
-  "account.connection.removed",
-  "account.token.created",
-  "account.token.revoked",
-  "account.deletion.requested",
-  "account.deletion.cancelled",
-  // Admin-surface actions on a target user
-  "user.invited",
-  "user.invitation.accepted",
-  "user.invitation.resent",
-  "user.role.changed",
-  "user.suspended",
-  "user.reactivated",
-  "user.password.reset",
-  "user.deleted",
-] as const;
-
-export type ActionCode = (typeof ACTION_CODES)[number];
+export type { ActionCode } from "@/lib/action-codes";
+export { ACTION_CODES } from "@/lib/action-codes";
 
 export type AuditInput = {
   actorId?: string | null;

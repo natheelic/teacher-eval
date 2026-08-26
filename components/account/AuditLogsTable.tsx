@@ -8,6 +8,8 @@ export type AuditLogsTableProps = {
   searchParams: {
     range?: string | string[];
     scope?: string | string[];
+    actionCode?: string | string[];
+    target?: string | string[];
     cursor?: string | string[];
   };
 };
@@ -26,6 +28,8 @@ export async function AuditLogsTable({ searchParams }: AuditLogsTableProps) {
       <AuditLogFilters
         range={filters.range}
         scope={filters.scope}
+        actionCode={filters.actionCode}
+        target={filters.target}
         canSeeAll={canSeeAll}
         total={total}
       />

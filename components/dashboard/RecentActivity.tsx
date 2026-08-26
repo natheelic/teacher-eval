@@ -8,6 +8,8 @@ export async function RecentActivity({ canSeeAll }: { canSeeAll: boolean }) {
   const { rows } = await getAuditLogs({
     range: "7d",
     scope: canSeeAll ? "all" : "mine",
+    actionCode: null,
+    target: "",
     cursor: null,
   });
   const recent = rows.slice(0, 5);

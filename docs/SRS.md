@@ -588,6 +588,14 @@ deleted with the old multi-tenancy layer. `UserPreferences` now has only `theme`
 - **FR-84** — The audit view shall support a scope of `mine` or `all`. A viewer who cannot manage
   users shall be constrained to their own rows **even when they request `scope=all`**:
   `if (!canSeeAll || filters.scope === "mine") where.actorId = viewer.id;`
+- **FR-84a** — The audit view shall support filtering by `actionCode` (validated against
+  `ACTION_CODES`; an unrecognized value is ignored rather than erroring) and by a free-text
+  `target` query matched case-insensitively against the denormalised `targetLabel` (FR-82),
+  capped at 100 characters. Both compose with FR-83's range and FR-84's scope, and both reset
+  cursor pagination when changed. *Implementation:* `getAuditLogs()` / `parseAuditFilters()` in
+  `lib/queries/audit.ts`; `ACTION_CODES` itself lives in `lib/action-codes.ts` — split out from
+  `lib/audit.ts` so the vocabulary can be imported by the Client Component filter UI without
+  pulling `lib/audit.ts`'s `next/headers`/Prisma imports into the browser bundle.
 - **FR-85** — The system shall record only a code drawn from the closed vocabulary
   `ACTION_CODES` (`lib/audit.ts`) — `AuditInput.actionCode` is typed against it, so a call site
   passing anything outside the list fails to typecheck rather than silently writing an
@@ -613,11 +621,9 @@ deleted with the old multi-tenancy layer. `UserPreferences` now has only `theme`
   | `user.password.reset` | Target's password reset by an administrator |
   | `user.deleted` | Target soft-deleted |
 
-- **FR-86** — **[PARTIALLY IMPLEMENTED]** `actionCode` is now a closed, centrally-typed
-  vocabulary (FR-85) — the precondition ROADMAP 4.1 called out before filtering by it could be
-  safe. Filtering by `actionCode`, target, method, status code, IP or user agent is still not
-  surfaced in the UI (ROADMAP 4.2); those columns are written but not yet queryable from
-  `/account/audit-logs`.
+- **FR-86** — **[PARTIALLY IMPLEMENTED]** Filtering by `actionCode` and target is implemented
+  (FR-84a). Method, status code, IP and user agent are still written but not yet filterable or
+  surfaced (ROADMAP 4.3).
 
 #### FR-9x — Feedback
 
@@ -793,7 +799,7 @@ required entry is missing or malformed.
 | FR-59c | `lib/auth/scopes.ts`, `lib/auth/api-token.ts`, `app/api/me/route.ts` |
 | FR-70, FR-75 | `lib/actions/preferences.ts`, `lib/queries/account.ts` |
 | FR-80 – FR-82, FR-85 | `lib/audit.ts` + call sites |
-| FR-83 – FR-84, FR-86 | `lib/queries/audit.ts` |
+| FR-83 – FR-84a, FR-86 | `lib/queries/audit.ts`, `lib/action-codes.ts`, `components/account/AuditLogFilters.tsx` |
 | FR-90 | `lib/actions/feedback.ts`, `components/dashboard/FeedbackDialog.tsx` |
 | NFR-30 – NFR-32 | `lib/env.ts`, `lib/app-config.ts` |
 | DR-01 – DR-04 | `prisma/schema.prisma` |
@@ -805,7 +811,7 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 
 | # | Requirement | Deviation |
 |---|---|---|
-| D-9 | FR-86 | Audit filtering is limited to range and scope; action codes are inline literals with no central definition. |
+| D-9 | FR-86 | Audit filtering covers range, scope, action code and target; method, status code, IP and user agent remain unfilterable and unsurfaced (ROADMAP 4.3). |
 | D-11 | §3.4 | `Authenticator` is a dead model — no WebAuthn. |
 | D-12 | NFR-25 | No test framework, no CI. |
 | D-13 | Appendix A | `SHADOW_DATABASE_URL` is read by `prisma.config.ts` but absent from `.env.example`. |
