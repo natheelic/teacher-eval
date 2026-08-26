@@ -286,7 +286,19 @@ filterable; the view offers only range and scope (D-9).
     header row, real DB rows, proper quoting on fields containing commas (formatted dates,
     user-agent strings), and exactly 20 lines (header + 19 rows) matching the UI's "Viewing 19
     logs in total".
-- **4.5** Consider a retention policy. `AuditLog` grows without bound and has no archival path.
+- **4.5** ✅ **Considered — documented, deliberately not enforced.** Decision (asked explicitly,
+  since unlike every other Phase 4 item this one is a policy call, not a build task):
+  document a recommendation rather than build enforcement now. Recorded as `DR-05` in
+  `docs/SRS.md` — retain `AuditLog` rows for 365 days from `createdAt`, then archive or
+  hard-delete, a common security-log baseline that comfortably covers this app's own longest
+  built-in look-back (`AuditRange`'s `30d`). Left unenforced because this app has **no
+  scheduled-job infrastructure at all** — the only other time-based cleanup here (the 30-day
+  deletion grace period, FR-61a) works by piggybacking on `requireUser()`, a chokepoint every
+  authenticated request already passes through, and `AuditLog` rows have no equivalent per-row
+  request trigger to piggyback on. Building a cron/job runner just for this one item would be
+  disproportionate to the rest of this phase. Revisit once the app has scheduled-job
+  infrastructure for any reason — at that point this becomes a straightforward
+  `deleteMany({ where: { createdAt: { lt: cutoff } } })`.
 
 **Exit criteria:** an administrator can answer "what did this user do, and from where" without a
 database query.

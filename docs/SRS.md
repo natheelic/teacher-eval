@@ -747,7 +747,10 @@ SidebarBehavior OPEN | CLOSED | EXPAND_ON_HOVER
 
 - **DR-01** — `User.email` and `User.username` shall be unique. Soft delete shall preserve both
   constraints by rewriting the email and nulling the username (FR-44).
-- **DR-02** — `AuditLog` shall be treated as append-only. No code path may update or delete a row.
+- **DR-02** — `AuditLog` shall be treated as append-only by application code. No Server Action,
+  route handler, or query may update or delete a row. This governs ordinary request-handling code
+  only; a deliberately-scoped retention job (DR-05), if one is ever built, is the sole intended
+  exception, not a violation of it.
 - **DR-03** — `UserStatus.INVITED` shall be assigned by `createUser()` and cleared to `ACTIVE`
   only by a successful `acceptInvitation()` (FR-40, FR-40b) — the only two code paths permitted to
   write it.
@@ -755,6 +758,17 @@ SidebarBehavior OPEN | CLOSED | EXPAND_ON_HOVER
   sign-in (Credentials and OAuth alike), from the `jwt` callback's initial-sign-in branch in
   `auth.ts` — the same place `DeviceSession` creation and pending-deletion cancellation already
   run, so it fires exactly once per new session rather than once per request.
+- **DR-05** — **[NOT ENFORCED]** `AuditLog` has no retention or archival policy and grows without
+  bound (ROADMAP 4.5). Recommendation, not yet implemented: retain rows for **365 days** from
+  `createdAt`, then archive or hard-delete — a common security-log baseline (e.g. the retention
+  window several SOC 2-style frameworks expect) that comfortably covers this app's own longest
+  built-in look-back (`AuditRange`'s `30d`, FR-83). Deliberately left unenforced rather than
+  half-built: enforcing it needs a recurring job, and this app has **no scheduled-job
+  infrastructure at all** — the one other time-based cleanup here (the 30-day account-deletion
+  grace period, FR-61a) works by piggybacking on `requireUser()`, a chokepoint every authenticated
+  request already passes through, but `AuditLog` rows have no equivalent per-row request trigger
+  to piggyback on. Building a cron/job runner just for this would be disproportionate to every
+  other item in this phase. Revisit once the app has scheduled-job infrastructure for any reason.
 
 **Migrations**
 
@@ -822,6 +836,7 @@ required entry is missing or malformed.
 | FR-90 | `lib/actions/feedback.ts`, `components/dashboard/FeedbackDialog.tsx` |
 | NFR-30 – NFR-32 | `lib/env.ts`, `lib/app-config.ts` |
 | DR-01 – DR-04 | `prisma/schema.prisma` |
+| DR-05 | `docs/ROADMAP.md` (4.5) — documented, not enforced |
 
 ### Appendix C — Known deviations
 
@@ -834,3 +849,4 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 | D-12 | NFR-25 | No test framework, no CI. |
 | D-13 | Appendix A | `SHADOW_DATABASE_URL` is read by `prisma.config.ts` but absent from `.env.example`. |
 | D-14 | §2.4 | `package-lock.json` coexists with the authoritative `pnpm-lock.yaml`. |
+| D-15 | DR-05 | `AuditLog` has no retention/archival enforcement — a 365-day policy is documented but not implemented, since it would need scheduled-job infrastructure this app doesn't have anywhere else. |
