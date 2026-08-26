@@ -363,9 +363,53 @@ database query.
     `/account/audit-logs?target=Riley` correctly filtered to that target's 2 matching rows.
 - **5.7** ✅ **Renamed the package.** `package.json`'s `name` is now `"portal"`, not
   `"my-template"`.
-- **5.8** **Add rate limiting.** No rate-limiting infrastructure exists anywhere in the app,
-  including on password sign-in and the new TOTP code check added in 1.2 — needed before this app
-  is exposed beyond a trusted network.
+- **5.8** ✅ **Added rate limiting** to `auth.ts`'s Credentials `authorize()` — the one chokepoint
+  that covers both password sign-in and the TOTP code check added in 1.2, since a correct code is
+  only ever checked after a correct password on the same call.
+  - **New `lib/auth/rate-limit.ts`:** a plain in-memory fixed-window counter, deliberately not
+    backed by Redis or any external store — this app runs as a single long-lived Node server (see
+    CLAUDE.md), not a fleet of serverless instances that would each keep independent counters, so
+    a `Map` already gives every request the same view. Cached on `globalThis` across Next's dev-mode
+    HMR passes, same reasoning as `lib/prisma.ts`'s connection-pool cache. Expired buckets are swept
+    lazily on the next `recordFailure` call rather than by a background job — this app has no
+    scheduled-job infrastructure at all (the same reasoning already applied to `AuditLog` retention
+    in 4.5's DR-05) — capped to run at most once a minute so the sweep itself stays cheap.
+  - **Two independent limiters, both keyed off failed attempts only** (never successes — a limiter
+    that also counted successes would eventually lock out normal use): 10 failures per 15 minutes
+    per **account** (email, lower-cased) covers a targeted attack on one account and is generous
+    enough that a user mistyping a TOTP code twice doesn't get locked out; 30 failures per 15
+    minutes per **IP** is deliberately looser (a shared office NAT can legitimately produce many
+    sign-ins) and exists only to slow a credential-stuffing scan across many different accounts
+    from one source. The account limiter is checked and enforced regardless of whether the email
+    belongs to a real account, so probing many nonexistent addresses behaves identically to probing
+    one real one — no enumeration signal added on top of what already existed.
+  - **A wrong TOTP code only counts as a failure once a code was actually submitted** — the first
+    pass of the two-step 2FA flow (password only, which throws `TwoFactorRequired` to reveal the
+    code field) is not itself a guess and must not consume attempts.
+  - **Checked before querying the database or running bcrypt**, so a locked-out account/IP doesn't
+    get another round of expensive work — this also means the rate-limit check itself does not
+    become a new timing oracle for account existence, since it runs identically either way.
+  - **New `TooManySignInAttempts` error class** (mirrors `TwoFactorRequired`'s pattern, including
+    the explicit static `.type` since it doesn't survive `extends` automatically) surfaces as "Too
+    many sign-in attempts. Try again in a few minutes." in `signInAction` — a distinct message from
+    the generic "Incorrect email or password.", but one that reveals nothing about whether the
+    account exists, since it fires the same way for a made-up address.
+  - **Unit-tested** (`lib/auth/rate-limit.test.ts`, 6 tests, using `vi.useFakeTimers()` to control
+    window expiry deterministically): allows with no history, stays allowed under the limit, blocks
+    at the limit, resets after the window elapses, `clearRateLimit` un-blocks immediately, and
+    independent keys don't interfere with each other.
+  - **Verified end-to-end in Chrome against the dev server:** submitted 10 wrong passwords for a
+    real `MANAGER` account and got the generic "Incorrect email or password." each time, then hit
+    "Too many sign-in attempts. Try again in a few minutes." exactly on the next attempt — including
+    when that next attempt used a different password, confirming the lockout is enforced before
+    credential verification, not just after N wrong guesses specifically. A fresh, nonexistent
+    email in the same browser session (same IP, well under the per-IP limit) got the normal
+    "Incorrect email or password." on its first attempt, confirming per-account buckets are
+    isolated and the account limiter doesn't false-positive across different emails.
+  - **Deliberately out of scope here:** `requestPasswordReset()` (forgot-password) is a separate
+    enumeration-sensitive endpoint that could also benefit from rate limiting, but the roadmap item
+    that motivated this work named sign-in and the TOTP check specifically — worth its own item
+    rather than folded in silently.
 - **5.9** **Encrypt `User.twoFactorSecret` at rest.** It is currently stored in plaintext, same as
   the column the schema already reserved for it. It must stay decryptable (unlike a password
   hash), so encrypting the column with a key derived from `AUTH_SECRET` — the same technique

@@ -202,8 +202,10 @@ the point of the change.
   throws at import time otherwise.
 - **A-2** Google OAuth is optional. Providers are registered only when both `AUTH_GOOGLE_ID` and
   `AUTH_GOOGLE_SECRET` are set; `googleEnabled` gates the UI accordingly.
-- **A-3** The deployment is trusted internally. There is no rate limiting, CAPTCHA, or brute-force
-  lockout.
+- **A-3** The deployment is trusted internally. Credentials sign-in and the TOTP code check are
+  rate-limited (`lib/auth/rate-limit.ts`, an in-memory per-process counter — see
+  docs/ROADMAP.md 5.8), but nothing else is: no CAPTCHA anywhere, and no rate limiting on
+  `requestPasswordReset()` or any other endpoint.
 - **A-4** Clock skew between application and database is negligible; session expiry compares
   against database time.
 - **A-5** `/signup` is open to anyone who can reach it. Restricting registration is a deployment

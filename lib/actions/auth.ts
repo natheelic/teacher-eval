@@ -4,7 +4,7 @@ import { AuthError } from "next-auth";
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
-import { signIn, signOut, TwoFactorRequired } from "@/auth";
+import { signIn, signOut, TwoFactorRequired, TooManySignInAttempts } from "@/auth";
 import { DEFAULT_SIGNED_IN_PATH } from "@/auth.config";
 import { prisma } from "@/lib/prisma";
 import { passwordSchema } from "@/lib/auth/password";
@@ -83,6 +83,9 @@ export async function signInAction(
     // A *successful* signIn throws a redirect. Let it through untouched;
     // swallowing it would make every good login look like a failure.
     unstable_rethrow(error);
+    if (error instanceof TooManySignInAttempts) {
+      return { error: "Too many sign-in attempts. Try again in a few minutes." };
+    }
     if (error instanceof TwoFactorRequired) {
       return {
         needsCode: true,

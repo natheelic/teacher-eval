@@ -10,6 +10,7 @@ import { verifyPassword } from "@/lib/auth/password";
 import { parseDevice, clientIpFrom } from "@/lib/auth/device";
 import { cancelPendingDeletion } from "@/lib/auth/deletion";
 import { verifyTotpCode, decryptTwoFactorSecret } from "@/lib/auth/totp";
+import { checkRateLimit, recordFailure, clearRateLimit } from "@/lib/auth/rate-limit";
 
 /**
  * Thrown by authorize() instead of returning null when the password is
@@ -21,6 +22,28 @@ import { verifyTotpCode, decryptTwoFactorSecret } from "@/lib/auth/totp";
  */
 export class TwoFactorRequired extends CredentialsSignin {}
 TwoFactorRequired.type = "TwoFactorRequired";
+
+/**
+ * Thrown by authorize() when either the submitted email or the request's IP
+ * has too many recent failed attempts (wrong password, or wrong/missing TOTP
+ * code once one has actually been submitted). Same static-`type` footgun as
+ * TwoFactorRequired above.
+ */
+export class TooManySignInAttempts extends CredentialsSignin {}
+TooManySignInAttempts.type = "TooManySignInAttempts";
+
+// Deliberately generous: this covers wrong-password *and* wrong-TOTP-code
+// attempts against the same account, so it must have enough headroom for a
+// legitimate user who mistypes a 2FA code a couple of times without locking
+// them out — while still making a 1-in-a-million 6-digit code infeasible to
+// brute force (limit this tight already turns that into a multi-year attack).
+const LOGIN_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_ATTEMPT_LIMIT_PER_ACCOUNT = 10;
+// Looser than the per-account limit — an office NAT or corporate proxy can
+// legitimately produce many sign-ins from one IP. This exists to slow a
+// credential-stuffing scan across many different accounts from one source,
+// not to replace the per-account limit.
+const LOGIN_ATTEMPT_LIMIT_PER_IP = 30;
 
 const credentialsSchema = z.object({
   email: z.email(),
@@ -50,6 +73,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!parsed.success) return null;
 
         const { email, password, code } = parsed.data;
+        const emailKey = `login:account:${email.toLowerCase()}`;
+        const ip = await clientIpForRequest();
+        const ipKey = ip ? `login:ip:${ip}` : null;
+
+        // Checked before touching the database or bcrypt: a locked-out
+        // account or IP shouldn't get another round of expensive work.
+        const accountLimit = checkRateLimit(emailKey, LOGIN_ATTEMPT_LIMIT_PER_ACCOUNT);
+        const ipLimit = ipKey
+          ? checkRateLimit(ipKey, LOGIN_ATTEMPT_LIMIT_PER_IP)
+          : { allowed: true, retryAfterMs: 0 };
+        if (!accountLimit.allowed || !ipLimit.allowed) {
+          throw new TooManySignInAttempts();
+        }
 
         const user = await prisma.user.findUnique({
           where: { email: email.toLowerCase() },
@@ -68,14 +104,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // verifyPassword still runs bcrypt when passwordHash is null, so a
         // missing account and a wrong password take about the same time.
         const ok = await verifyPassword(password, user?.passwordHash ?? null);
-        if (!user || !ok || user.deletedAt) return null;
+        if (!user || !ok || user.deletedAt) {
+          recordFailure(emailKey, LOGIN_ATTEMPT_WINDOW_MS);
+          if (ipKey) recordFailure(ipKey, LOGIN_ATTEMPT_WINDOW_MS);
+          return null;
+        }
 
         if (user.twoFactorEnabled && user.twoFactorSecret) {
           const secret = decryptStoredSecret(user.twoFactorSecret);
-          if (!code || !secret || !(await verifyTotpCode(secret, code))) {
+          const codeOk = Boolean(code) && Boolean(secret) && (await verifyTotpCode(secret!, code!));
+          if (!codeOk) {
+            // Only counts as an attempt once a code was actually submitted —
+            // the first pass (password only, prompting for the code) is the
+            // normal two-step flow, not a guess.
+            if (code) {
+              recordFailure(emailKey, LOGIN_ATTEMPT_WINDOW_MS);
+              if (ipKey) recordFailure(ipKey, LOGIN_ATTEMPT_WINDOW_MS);
+            }
             throw new TwoFactorRequired();
           }
         }
+
+        // Only the per-account bucket is cleared on success. The per-IP
+        // bucket deliberately is not: it exists to catch one source scanning
+        // across many accounts, and a single successful login (its own or a
+        // captured one) shouldn't reset that count.
+        clearRateLimit(emailKey);
 
         return {
           id: user.id,
@@ -187,6 +241,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 function decryptStoredSecret(ciphertext: string): string | null {
   try {
     return decryptTwoFactorSecret(ciphertext);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Same headers()-may-be-unavailable guard as createDeviceSession below. A
+ * missing IP just means the per-IP limiter is skipped for that call — the
+ * per-account limiter still applies.
+ */
+async function clientIpForRequest(): Promise<string | null> {
+  try {
+    const { headers } = await import("next/headers");
+    return clientIpFrom(await headers());
   } catch {
     return null;
   }
