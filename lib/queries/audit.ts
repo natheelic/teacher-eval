@@ -12,6 +12,9 @@ export type AuditLogView = {
   target: string | null;
   actor: string | null;
   createdAt: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  metadata: Record<string, unknown> | null;
 };
 
 export type AuditRange = "24h" | "7d" | "30d" | "all";
@@ -114,6 +117,9 @@ export async function getAuditLogs(
         action: true,
         targetLabel: true,
         createdAt: true,
+        ipAddress: true,
+        userAgent: true,
+        metadata: true,
         actor: { select: { name: true, email: true } },
       },
     }),
@@ -132,6 +138,9 @@ export async function getAuditLogs(
       target: row.targetLabel,
       actor: row.actor ? (row.actor.name?.trim() || row.actor.email) : null,
       createdAt: row.createdAt.toISOString(),
+      ipAddress: row.ipAddress,
+      userAgent: row.userAgent,
+      metadata: (row.metadata as Record<string, unknown> | null) ?? null,
     })),
     total,
     nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null,

@@ -249,7 +249,21 @@ filterable; the view offers only range and scope (D-9).
     filters" reset both filters and returned to the full unfiltered log. Also caught, via the
     build, that a Client Component transitively importing Prisma is a real error, not just a
     lint nit — confirms the fix actually mattered rather than being defensive-only.
-- **4.3** Surface IP, user agent and `metadata` in an expandable row detail.
+- **4.3** ✅ **IP, user agent and `metadata` surfaced in an expandable row detail.** Each row in
+  `/account/audit-logs` is now a small client component (`AuditLogRow.tsx`) rather than a plain
+  `<tr>` — needed for per-row expand/collapse state, which a server component can't hold. Clicking
+  a row with at least one of the three present toggles a detail line below it (IP address, user
+  agent, and pretty-printed `metadata` when set); a row with none of them shows no chevron and
+  isn't clickable, which in practice only happens for a request-less write like the grace-period
+  deletion sweep.
+  - **`metadata` is genuinely never populated by any call site today** — despite the original
+    "Why" framing above listing it alongside the other written-but-unsurfaced columns, `grep`
+    turned up zero uses. The detail view still renders it whenever present, so a future call site
+    that starts passing it needs no UI change — but there's nothing to see yet.
+  - **Verified live:** expanded a row, confirmed the real IP (`::1`, this session's Mailpit-fronted
+    localhost) and user agent (this session's actual Chrome/Mac string) rendered correctly;
+    collapsed it back; expanded two different rows simultaneously to confirm state is per-row, not
+    shared.
 - **4.4** Add CSV export for a filtered range.
 - **4.5** Consider a retention policy. `AuditLog` grows without bound and has no archival path.
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowDown } from "lucide-react";
 import { AuditLogFilters } from "./AuditLogFilters";
-import { RelativeTime } from "./RelativeTime";
+import { AuditLogRow } from "./AuditLogRow";
 import { getAuditLogs, parseAuditFilters } from "@/lib/queries/audit";
 
 export type AuditLogsTableProps = {
@@ -63,43 +63,16 @@ export async function AuditLogsTable({ searchParams }: AuditLogsTableProps) {
                 </td>
               </tr>
             )}
-            {rows.map((row, i) => {
-              const cellBorder =
-                i === rows.length - 1 ? "" : "border-b border-black/8";
-              return (
-                <tr key={row.id} className="bg-white">
-                  <td className={`${cellBorder} px-4 py-3 align-top`}>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {row.statusCode !== null && (
-                        <span className="flex items-center rounded border border-black/8 bg-black/[0.03] px-1 font-mono text-xs text-[#6f6f6f]">
-                          {row.statusCode}
-                        </span>
-                      )}
-                      {row.method && (
-                        <span className="font-mono text-xs text-[#464646]">
-                          {row.method}
-                        </span>
-                      )}
-                      <span className="text-[13px] text-[#6f6f6f]">
-                        {row.action}
-                      </span>
-                    </div>
-                  </td>
-                  <td className={`${cellBorder} px-4 py-3 align-top`}>
-                    <span className="text-[13px] font-medium text-[#464646]">
-                      {(canSeeAll && filters.scope === "all"
-                        ? row.actor
-                        : row.target) ?? "-"}
-                    </span>
-                  </td>
-                  <td
-                    className={`${cellBorder} px-4 py-3 align-top text-[13px] text-[#6f6f6f]`}
-                  >
-                    <RelativeTime iso={row.createdAt} />
-                  </td>
-                </tr>
-              );
-            })}
+            {rows.map((row, i) => (
+              <AuditLogRow
+                key={row.id}
+                row={row}
+                targetColumnLabel={
+                  canSeeAll && filters.scope === "all" ? row.actor : row.target
+                }
+                showBorder={i !== rows.length - 1}
+              />
+            ))}
           </tbody>
         </table>
       </div>
