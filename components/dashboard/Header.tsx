@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Bell, Book } from "lucide-react";
+import { Book } from "lucide-react";
 import { AppLogo } from "./AppLogo";
+import { FeedbackDialog } from "./FeedbackDialog";
 import { AccountMenu } from "../account/AccountMenu";
 import { SearchTrigger } from "../search/SearchTrigger";
 import { MobileMenuButton } from "../layout/MobileMenuButton";
@@ -40,17 +41,15 @@ export async function Header() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <button className="hidden h-8 items-center justify-center rounded-full px-2.5 py-1 text-xs font-medium text-[#464646] hover:bg-black/4 lg:flex">
-            Feedback
-          </button>
+          <FeedbackDialog />
           <div className="flex items-center gap-2 lg:w-72">
             <SearchTrigger />
-            <button className="hidden size-8 items-center justify-center rounded-full border border-black/15 hover:bg-black/4 lg:flex">
+            <Link
+              href="/docs"
+              className="hidden size-8 items-center justify-center rounded-full border border-black/15 hover:bg-black/4 lg:flex"
+            >
               <Book className="size-4 text-[#464646]" />
-            </button>
-            <button className="flex size-8 items-center justify-center rounded-full border border-black/15 hover:bg-black/4">
-              <Bell className="size-4 text-[#464646]" />
-            </button>
+            </Link>
           </div>
           <AccountMenu
             initial={(user.name?.trim() || user.email)[0]!.toUpperCase()}

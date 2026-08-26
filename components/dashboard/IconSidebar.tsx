@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, ListChecks, Settings, PanelLeft, X } from "lucide-react";
+import { LayoutDashboard, Users, ListChecks, Settings, X } from "lucide-react";
 import { useMobileNav } from "../layout/MobileNavProvider";
 import { MobileDrawer } from "../layout/MobileDrawer";
 
@@ -105,11 +105,6 @@ export function IconSidebar() {
             <NavItem icon={Settings} label="Account settings" href="/account/preferences" onNavigate={close} />
           </div>
         </nav>
-      </div>
-      <div className="flex flex-col p-2">
-        <button className="hidden h-[26px] w-7 items-center justify-center rounded-md px-1.5 py-1 hover:bg-black/4 lg:flex">
-          <PanelLeft className="size-3.5 text-[#464646]" />
-        </button>
       </div>
     </MobileDrawer>
   );

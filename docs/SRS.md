@@ -715,4 +715,3 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 | D-12 | NFR-25 | No test framework, no CI. |
 | D-13 | Appendix A | `SHADOW_DATABASE_URL` is read by `prisma.config.ts` but absent from `.env.example`. |
 | D-14 | §2.4 | `package-lock.json` coexists with the authoritative `pnpm-lock.yaml`. |
-| D-15 | NFR-20 | `Header` carries non-functional Feedback, Docs and Notifications buttons (`AccountHeader`'s equivalents are wired to real destinations — FR-90, Docs page); `IconSidebar`'s collapse control does nothing and its "Users" item is unconditionally active. |
