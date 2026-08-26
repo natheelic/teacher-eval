@@ -3,6 +3,7 @@ import { Inter, Manrope, Source_Code_Pro } from "next/font/google";
 import { SearchProvider } from "@/components/search/SearchProvider";
 import { CommandPalette } from "@/components/search/CommandPalette";
 import { MobileNavProvider } from "@/components/layout/MobileNavProvider";
+import { appName } from "@/lib/env";
 import "./globals.css";
 
 const THEME_INIT_SCRIPT = `
@@ -33,7 +34,12 @@ const sourceCodePro = Source_Code_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "{{APP_NAME}}",
+  // Driven by NEXT_PUBLIC_APP_NAME now that the app has real configuration,
+  // rather than the {{APP_NAME}} template placeholder.
+  title: {
+    default: appName,
+    template: `%s · ${appName}`,
+  },
   description: "Project dashboard",
 };
 

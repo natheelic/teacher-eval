@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { LogOut, Monitor, Moon, Sun } from "lucide-react";
-import { useTheme, type ThemeMode } from "../theme/useTheme";
+import { signOutAction } from "@/lib/actions/auth";
+import { type ThemeMode } from "../theme/useTheme";
+import { useSyncedTheme } from "../theme/useSyncedTheme";
 
 const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
   { mode: "light", label: "Light", icon: Sun },
@@ -12,12 +13,17 @@ const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
   { mode: "system", label: "System", icon: Monitor },
 ];
 
-export function AccountMenu({ initial = "U" }: { initial?: string }) {
+export function AccountMenu({
+  initial = "U",
+  theme = "SYSTEM",
+}: {
+  initial?: string;
+  theme?: "LIGHT" | "DARK" | "SYSTEM";
+}) {
   const [open, setOpen] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
+  const [signingOut, startSignOut] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
-  const { mode, setMode } = useTheme();
-  const router = useRouter();
+  const { mode, setMode } = useSyncedTheme(theme);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -30,12 +36,10 @@ export function AccountMenu({ initial = "U" }: { initial?: string }) {
   }, []);
 
   function handleLogOut() {
-    setSigningOut(true);
-    setTimeout(() => {
-      setOpen(false);
-      setSigningOut(false);
-      router.push("/");
-    }, 600);
+    // signOutAction revokes this DeviceSession and redirects to /signin.
+    startSignOut(async () => {
+      await signOutAction();
+    });
   }
 
   return (

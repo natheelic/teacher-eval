@@ -1,0 +1,382 @@
+// Prisma 7: the datasource URL lives in ../prisma.config.ts, not here.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Auth.js v5 core models (@auth/prisma-adapter contract — do not rename fields)
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+
+  // Credentials provider (not part of the adapter contract)
+  passwordHash      String?
+  passwordUpdatedAt DateTime?
+
+  // ProfileInformation.tsx
+  firstName String?
+  lastName  String?
+  username  String? @unique
+
+  // SecuritySettings.tsx — two-factor section
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+
+  // DangerZone.tsx — copy promises deletion "within 30 days", so this is a
+  // request flag, not a DELETE.
+  deletionRequestedAt DateTime?
+  deletedAt           DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  authenticators Authenticator[]
+
+  preferences    UserPreferences?
+  deviceSessions DeviceSession[]
+  apiTokens      ApiToken[]
+  memberships    OrganizationMember[]
+  projectRoles   ProjectMember[]
+  auditLogs      AuditLog[]           @relation("AuditActor")
+
+  @@index([deletionRequestedAt])
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+/// Required by the adapter's types. Stays EMPTY: the Credentials provider
+/// forces `strategy: "jwt"`, so Auth.js never writes session rows.
+/// The UI's session list is DeviceSession instead.
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Authenticator {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+}
+
+// ---------------------------------------------------------------------------
+// Tenancy
+// ---------------------------------------------------------------------------
+
+enum Role {
+  OWNER
+  ADMIN
+  DEVELOPER
+  READ_ONLY
+}
+
+enum Plan {
+  FREE
+  PRO
+  TEAM
+  ENTERPRISE
+}
+
+/// Header.tsx org breadcrumb + plan badge; gates CustomDomains.
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members   OrganizationMember[]
+  projects  Project[]
+  auditLogs AuditLog[]
+}
+
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           Role     @default(DEVELOPER)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Projects
+// ---------------------------------------------------------------------------
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  RESTARTING
+  PROVISIONING
+  UNHEALTHY
+  DELETING
+}
+
+enum ComputeSize {
+  NANO
+  MICRO
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+/// Backs ProjectOverview, GeneralSettingsForm, ServiceVersions,
+/// ProjectAvailability.
+model Project {
+  id             String        @id @default(cuid())
+  organizationId String
+  name           String
+  ref            String        @unique
+  region         String        @default("us-east-1")
+  regionLabel    String        @default("US East (N. Virginia)")
+  status         ProjectStatus @default(ACTIVE)
+  compute        ComputeSize   @default(NANO)
+
+  // ProjectOverview stat tiles — nullable; the UI renders "No X" when null.
+  githubRepo        String?
+  githubInstallId   String?
+  recentBranch      String?
+  lastMigrationAt   DateTime?
+  lastMigrationName String?
+  lastBackupAt      DateTime?
+
+  // ServiceVersions.tsx
+  authVersion String @default("2.195.0")
+  apiVersion  String @default("13.0.5")
+  dbVersion   String @default("17.6.1.054")
+
+  pausedAt    DateTime?
+  restartedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      ProjectMember[]
+  domains      CustomDomain[]
+  auditLogs    AuditLog[]
+
+  @@index([organizationId])
+  @@index([organizationId, deletedAt])
+}
+
+/// ProjectAccess.tsx. Zero rows means "organization-wide access" (the UI's
+/// default state); rows are explicit per-project overrides.
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      Role     @default(DEVELOPER)
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+enum DomainStatus {
+  PENDING_VERIFICATION
+  VERIFYING
+  ACTIVE
+  FAILED
+}
+
+model CustomDomain {
+  id          String       @id @default(cuid())
+  projectId   String
+  hostname    String       @unique
+  status      DomainStatus @default(PENDING_VERIFICATION)
+  verifyToken String
+  verifiedAt  DateTime?
+  createdAt   DateTime     @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+// ---------------------------------------------------------------------------
+// Preferences
+// ---------------------------------------------------------------------------
+
+enum ThemeMode {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum SidebarBehavior {
+  OPEN
+  CLOSED
+  EXPAND_ON_HOVER
+}
+
+/// Separate table rather than columns on User: written on nearly every toggle
+/// click, irrelevant to auth, and keeps User narrow for the hot session query.
+model UserPreferences {
+  userId String @id
+
+  theme           ThemeMode       @default(SYSTEM)
+  sidebarBehavior SidebarBehavior @default(EXPAND_ON_HOVER)
+
+  telemetryEnabled Boolean @default(true)
+
+  editEntitiesInCode   Boolean @default(false)
+  queueTableOperations Boolean @default(false)
+
+  /// KeyboardShortcuts.tsx — Record<slug, boolean>. JSON because the key set is
+  /// owned by the UI, changes with every shipped shortcut, and is never joined.
+  keyboardShortcuts Json @default("{}")
+
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Sessions surfaced in the UI (NOT the adapter's Session table)
+// ---------------------------------------------------------------------------
+
+/// SecuritySettings.tsx active-session list. `id` is the JWT `jti`, written in
+/// the signIn event. Revocation is enforced in lib/auth/require-session.ts,
+/// which is the only place that reads the DB on a protected request.
+model DeviceSession {
+  id           String    @id
+  userId       String
+  deviceLabel  String
+  deviceType   String
+  userAgent    String?
+  ipAddress    String?
+  location     String?
+  lastActiveAt DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Access tokens
+// ---------------------------------------------------------------------------
+
+/// AccessTokensTable.tsx. The plaintext token is shown exactly once, at
+/// creation, and never stored — only its sha256 hash plus a display preview.
+model ApiToken {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  prefix     String
+  last4      String
+  tokenHash  String    @unique
+  scopes     String[]  @default([])
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Audit log
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id             String  @id @default(cuid())
+  actorId        String?
+  organizationId String?
+  projectId      String?
+
+  action     String
+  actionCode String
+  method     String?
+  statusCode Int?
+
+  // Denormalised so a deleted project still renders its historical label.
+  targetType  String?
+  targetId    String?
+  targetLabel String?
+  targetRef   String?
+
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  actor        User?         @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  project      Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([projectId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}

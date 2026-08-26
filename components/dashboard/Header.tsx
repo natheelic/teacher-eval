@@ -1,8 +1,17 @@
+import Link from "next/link";
 import { ChevronDown, MoreHorizontal, Bell, Book } from "lucide-react";
 import { AppLogo } from "./AppLogo";
 import { AccountMenu } from "../account/AccountMenu";
 import { SearchTrigger } from "../search/SearchTrigger";
 import { MobileMenuButton } from "../layout/MobileMenuButton";
+import { getWorkspace } from "@/lib/queries/workspace";
+
+const PLAN_LABELS: Record<string, string> = {
+  FREE: "Free",
+  PRO: "Pro",
+  TEAM: "Team",
+  ENTERPRISE: "Enterprise",
+};
 
 function Crumb({
   label,
@@ -49,21 +58,29 @@ function Crumb({
   );
 }
 
-export function Header() {
+// Used by five different pages, so it reads the workspace itself rather than
+// having every page thread the same props through. getWorkspace is cached per
+// render, so this costs nothing extra.
+export async function Header() {
+  const { organization, project, user } = await getWorkspace();
+
   return (
     <header className="flex h-12 items-center border-b border-black/8">
       <div className="flex min-w-0 flex-1 h-[47px] items-center justify-between gap-2 pl-2 pr-3 sm:pl-4">
         <div className="flex min-w-0 items-center">
           <MobileMenuButton />
-          <a href="#" className="hidden shrink-0 items-center justify-center lg:flex">
+          <Link href="/" className="hidden shrink-0 items-center justify-center lg:flex">
             <AppLogo className="h-[18px] w-auto" />
-          </a>
+          </Link>
 
           <div className="flex min-w-0 items-center pl-1 gap-0 lg:pl-2">
             <span className="hidden lg:contents">
-              <Crumb label="Your Organization" badge="Free" />
+              <Crumb
+                label={organization.name}
+                badge={PLAN_LABELS[organization.plan] ?? organization.plan}
+              />
             </span>
-            <Crumb label="my-project" />
+            {project && <Crumb label={project.name} />}
           </div>
         </div>
 
@@ -80,7 +97,7 @@ export function Header() {
               <Bell className="size-4 text-[#464646]" />
             </button>
           </div>
-          <AccountMenu />
+          <AccountMenu initial={user.initial} />
         </div>
       </div>
     </header>

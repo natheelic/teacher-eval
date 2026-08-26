@@ -1,0 +1,155 @@
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { randomUUID } from "node:crypto";
+import { z } from "zod";
+
+import { authConfig } from "@/auth.config";
+import { prisma } from "@/lib/prisma";
+import { verifyPassword } from "@/lib/auth/password";
+import { parseDevice, clientIpFrom } from "@/lib/auth/device";
+
+const credentialsSchema = z.object({
+  email: z.email(),
+  password: z.string().min(1),
+});
+
+const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
+
+  // Even under the JWT strategy the adapter still runs createUser /
+  // getUserByAccount / linkAccount, so Google sign-ins produce real User and
+  // Account rows. It just never writes to the Session table.
+  adapter: PrismaAdapter(prisma),
+
+  providers: [
+    ...authConfig.providers,
+    Credentials({
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(raw) {
+        const parsed = credentialsSchema.safeParse(raw);
+        if (!parsed.success) return null;
+
+        const { email, password } = parsed.data;
+
+        const user = await prisma.user.findUnique({
+          where: { email: email.toLowerCase() },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            image: true,
+            passwordHash: true,
+            deletedAt: true,
+          },
+        });
+
+        // verifyPassword still runs bcrypt when passwordHash is null, so a
+        // missing account and a wrong password take about the same time.
+        const ok = await verifyPassword(password, user?.passwordHash ?? null);
+        if (!user || !ok || user.deletedAt) return null;
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+        };
+      },
+    }),
+  ],
+
+  callbacks: {
+    ...authConfig.callbacks,
+
+    async jwt({ token, user, trigger }) {
+      // Initial sign-in: stamp the user id and open a DeviceSession whose id
+      // becomes the token's `sid`, so the security page can list and revoke it.
+      if (user?.id) {
+        token.uid = user.id;
+        token.sid = await createDeviceSession(user.id);
+      }
+
+      if (trigger === "update" && token.uid) {
+        const fresh = await prisma.user.findUnique({
+          where: { id: token.uid },
+          select: { name: true, email: true, image: true },
+        });
+        if (fresh) {
+          token.name = fresh.name;
+          token.email = fresh.email;
+          token.picture = fresh.image;
+        }
+      }
+
+      return token;
+    },
+
+    session({ session, token }) {
+      if (token.uid) session.user.id = token.uid;
+      if (token.sid) session.user.sid = token.sid;
+      return session;
+    },
+  },
+
+  events: {
+    /**
+     * Google sign-ins skip `authorize`, so their DeviceSession is created here
+     * only if the jwt callback has not already made one for this login.
+     */
+    async signOut(message) {
+      const sid = "token" in message ? message.token?.sid : undefined;
+      if (!sid) return;
+      await prisma.deviceSession
+        .updateMany({
+          where: { id: sid, revokedAt: null },
+          data: { revokedAt: new Date() },
+        })
+        .catch(() => {
+          // Signing out must succeed even if the bookkeeping write fails.
+        });
+    },
+  },
+});
+
+/**
+ * Records the device a session was opened from. Header access is wrapped
+ * because `headers()` is unavailable in some Auth.js call paths (e.g. the
+ * OAuth callback leg), and a missing User-Agent must not break sign-in.
+ */
+async function createDeviceSession(userId: string): Promise<string> {
+  const id = randomUUID();
+
+  let userAgent: string | null = null;
+  let ipAddress: string | null = null;
+
+  try {
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    userAgent = h.get("user-agent");
+    ipAddress = clientIpFrom(h);
+  } catch {
+    // No request context available — fall back to an unlabelled session.
+  }
+
+  const device = parseDevice(userAgent, ipAddress);
+
+  await prisma.deviceSession.create({
+    data: {
+      id,
+      userId,
+      deviceLabel: device.deviceLabel,
+      deviceType: device.deviceType,
+      userAgent: device.userAgent,
+      ipAddress: device.ipAddress,
+      expiresAt: new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000),
+    },
+  });
+
+  return id;
+}

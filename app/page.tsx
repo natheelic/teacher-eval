@@ -6,8 +6,11 @@ import { UsageCharts } from "@/components/dashboard/UsageCharts";
 import { AdvisorPanel } from "@/components/dashboard/AdvisorPanel";
 import { ReportsPanel } from "@/components/dashboard/ReportsPanel";
 import { NoticeBanner } from "@/components/dashboard/NoticeBanner";
+import { getDefaultProject } from "@/lib/queries/workspace";
 
-export default function Home() {
+export default async function Home() {
+  const project = await getDefaultProject();
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
       <Header />
@@ -17,7 +20,13 @@ export default function Home() {
           <div className="mx-auto max-w-[1600px] px-4 pt-8 pb-8 sm:px-[72px] sm:pt-12 sm:pb-12">
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
               <div className="self-center">
-                <ProjectOverview />
+                {project ? (
+                  <ProjectOverview project={project} />
+                ) : (
+                  <p className="text-[15px] font-medium text-[#696969]">
+                    This organization has no projects yet.
+                  </p>
+                )}
               </div>
               <div className="self-center">
                 <RegionMapCard />

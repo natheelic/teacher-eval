@@ -10,23 +10,53 @@ Package manager is pnpm (see `pnpm-lock.yaml` / `pnpm-workspace.yaml`); a `packa
 - `pnpm build` — production build
 - `pnpm start` — run the production build
 - `pnpm lint` — run ESLint (`eslint-config-next` core-web-vitals + typescript rules)
-- `npx tsc --noEmit` — typecheck (no dedicated `typecheck` script exists)
+- `pnpm typecheck` — `tsc --noEmit`
+- `pnpm db:up` / `pnpm db:down` — start/stop Postgres + pgAdmin via `docker-compose.yml`
+- `pnpm db:migrate` — `prisma migrate dev`; `pnpm db:studio`, `pnpm db:seed`, `pnpm db:reset`
 
 There is no test suite/framework configured in this repo.
 
+Local setup: `cp .env.example .env`, fill in `AUTH_SECRET` (`npx auth secret`), `pnpm db:up`, `pnpm db:migrate`, `pnpm dev`, then sign up at `/signup`.
+
 ## Architecture
 
-This is a **static, presentational admin-dashboard UI shell** — a reusable template intended to be the frontend layer for other projects, not a working application. There is no backend: no database, no auth, no API routes (`app/api/*` does not exist), no data fetching, and no state management. Buttons/forms are visually complete but not wired to any real submission logic (e.g. "Save" buttons are `disabled`, links are `href="#"`). Anyone building on this template is expected to bring their own backend and wire it into the existing components/props.
+Originally a static presentational shell, this now has a **real backend**: PostgreSQL (local Docker) + Prisma, with NextAuth v5 (Auth.js) for authentication.
 
 Next.js App Router (`app/`), React 19, Tailwind CSS v4 (via `@tailwindcss/postcss`, tokens defined in `app/globals.css` using `@theme inline`), `lucide-react` for icons.
+
+### Backend layout
+
+- `prisma/schema.prisma` + `prisma.config.ts` — **Prisma 7**: the datasource URL lives in `prisma.config.ts` (not the schema), `.env` is loaded there via `dotenv`, the generator is `prisma-client` (not `prisma-client-js`) emitting TypeScript to `lib/generated/prisma`, and queries go through the `@prisma/adapter-pg` driver adapter. Import the client from `@/lib/prisma`.
+- `auth.config.ts` — edge-safe Auth.js config (providers minus Credentials, `pages`, `authorized`). **Must not import Prisma or bcrypt.**
+- `auth.ts` — Node-side: Prisma adapter, Credentials + Google, JWT callbacks, `DeviceSession` lifecycle.
+- `proxy.ts` — **Next 16 renamed `middleware.ts` to `proxy.ts`** (exports `proxy` + `config.matcher`, defaults to the Node runtime, and setting `runtime` there throws). It is a *redirect* layer only — it sees just the decoded JWT.
+- `lib/auth/require-session.ts` — the real authorization layer. Every protected page and Server Action calls `requireUser()`; it is the only place revocation and account deletion are enforced.
+- `lib/queries/*` (read, `React.cache`d), `lib/actions/*` (`"use server"` mutations), `lib/audit.ts`, `lib/tenant.ts` (sign-up bootstrap).
+
+### Auth invariants
+
+- The Credentials provider **forces `session.strategy: "jwt"`**, so the adapter's `Session` table stays permanently empty. The UI's session list is the separate `DeviceSession` model, keyed by the JWT's `sid`.
+- Because a JWT is self-contained, revocation only bites where the DB is read — i.e. in `requireUser()`. Changing a password revokes all other `DeviceSession`s.
+- Never unlink a user's last remaining sign-in method.
+
+### Data flow
+
+Pages are `async` server components that fetch and pass props down; sections take props. Two exceptions fetch directly (both `cache`d): `Header`/`AccountHeader` (used by five pages) and `AuditLogsTable` (owns its filters and cursor). Mutations are Server Actions ending in `revalidatePath`; route handlers are reserved for `[...nextauth]`, machine APIs, and webhooks. Audit-log filters are URL `searchParams`, not client fetches.
+
+The pattern throughout: **server shell owns layout and copy, a small client leaf owns the interactivity** (`DeleteProjectButton`, `CopyButton`, `ConnectionButton`, …), which keeps `SettingsCard`/`SettingsRow` composition intact.
+
+Dates: render absolute strings from the server; `RelativeTime` upgrades to "2 minutes ago" only after hydration (via `useSyncExternalStore`) to avoid mismatches. Theme has two stores — `UserPreferences.theme` is authoritative, `localStorage` is the paint-blocking cache read by the inline script in `app/layout.tsx`; `useSyncedTheme` writes localStorage first, then the DB.
 
 ### Route ↔ layout composition
 
 Each route in `app/` is a thin composition of layout chrome + section components pulled from `components/`. There's no shared root layout beyond fonts/global CSS in `app/layout.tsx` — every page independently composes its own header + sidebar:
 
 - `app/page.tsx` — main dashboard: `Header` + `IconSidebar` (from `components/dashboard/`) wrapping `ProjectOverview`, `RegionMapCard`, `UsageCharts`, `AdvisorPanel`, `ReportsPanel`.
-- `app/account/preferences/page.tsx`, `app/account/audit-logs/page.tsx` — account section: `AccountHeader` + `SettingsSidebar` (from `components/account/`), with an `active` prop identifying the current nav item.
+- `app/account/{preferences,security,access-tokens,audit-logs}/page.tsx` — account section: `AccountHeader` + `SettingsSidebar` (from `components/account/`), with an `active` prop identifying the current nav item.
 - `app/project/settings/page.tsx` — project settings: `Header` + `IconSidebar` + `ProjectSettingsSidebar` (from `components/project-settings/`), also using an `active` prop for nav state.
+- `app/(auth)/{signin,signup}/page.tsx` — the only route group; gives auth pages a bare layout with no dashboard chrome without changing their URLs.
+
+`/` shows the user's default (first) project — there is deliberately no `/project/[ref]` segment.
 
 `NoticeBanner` (dashboard) is rendered at the bottom of every page as a dismissible toast-like element.
 
@@ -42,9 +72,11 @@ When adding a new settings-style section, compose it from `SettingsPrimitives` (
 
 `SettingsSidebar` and `ProjectSettingsSidebar` both take a typed `active` union prop (e.g. `"Preferences" | "Access Tokens" | "Security" | "Audit Logs"`) to highlight the current nav item — pass the matching literal from the page that renders them.
 
-### Placeholder conventions
+### Naming / configuration conventions
 
-Text that's meant to be filled in per-project (rather than genuinely blank) uses literal `{{TOKEN}}` placeholders, e.g. `{{APP_NAME}}` in `app/layout.tsx` metadata and account copy, `{{APP_DOMAIN}}` in `ProjectOverview.tsx`. Inside JSX children these are escaped as string literals (`{"{{APP_NAME}}"}`) since raw `{{...}}` is parsed as a JS expression by JSX. Preserve this pattern rather than hardcoding a real name when adding new copy that should stay project-agnostic.
+The old `{{APP_NAME}}` / `{{APP_DOMAIN}}` template placeholders are gone. Project-agnostic copy now reads real configuration from `lib/env.ts`: `appName` (`NEXT_PUBLIC_APP_NAME`) and `appDomain` (`NEXT_PUBLIC_APP_DOMAIN`, used to build per-project URLs). Import those rather than hardcoding a name or reintroducing a `{{TOKEN}}`.
+
+`lib/env.ts` parses server environment with zod at import time and throws on anything missing, so a misconfigured `.env` fails at boot instead of deep inside a query. Never import it from a Client Component — client-safe values must go through `NEXT_PUBLIC_*`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

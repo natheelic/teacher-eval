@@ -1,8 +1,10 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
 import { SectionHeading, SettingsCard, SettingsRow } from "./SettingsPrimitives";
-import { useTheme, type ThemeMode } from "../theme/useTheme";
+import { type ThemeMode } from "../theme/useTheme";
+import { useSyncedTheme } from "../theme/useSyncedTheme";
+import { SidebarBehaviorSelect } from "./SidebarBehaviorSelect";
+import { appName } from "@/lib/env";
 
 type ThemeOption = {
   key: ThemeMode;
@@ -57,22 +59,30 @@ function ThemeSwatch({
   );
 }
 
-export function AppearanceSettings() {
-  const { mode, setMode } = useTheme();
+export type AppearanceSettingsProps = {
+  theme: "LIGHT" | "DARK" | "SYSTEM";
+  sidebarBehavior: "OPEN" | "CLOSED" | "EXPAND_ON_HOVER";
+};
+
+export function AppearanceSettings({
+  theme,
+  sidebarBehavior,
+}: AppearanceSettingsProps) {
+  const { mode, setMode } = useSyncedTheme(theme);
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
       <SectionHeading
         title="Appearance"
-        description="Choose how {{APP_NAME}} looks and behaves in the dashboard."
+        description={`Choose how ${appName} looks and behaves in the dashboard.`}
       />
       <SettingsCard>
         <div className="flex w-full flex-col gap-6 border-b border-black/8 p-4 sm:flex-row">
           <div className="flex w-full shrink-0 flex-col items-start gap-2 sm:w-[202px]">
             <p className="text-[13px] font-medium text-[#030303]">Theme mode</p>
             <p className="text-[13px] font-medium text-[#464646]">
-              Choose how {"{{APP_NAME}}"} looks to you. Select a single theme, or
-              sync with your system.
+              Choose how {appName} looks to you. Select a single theme, or sync
+              with your system.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4 sm:flex sm:flex-wrap">
@@ -90,12 +100,7 @@ export function AppearanceSettings() {
           bordered={false}
           label="Sidebar behavior"
           description="Choose your preferred sidebar behavior: open, closed, or expand on hover."
-          control={
-            <button className="flex h-[34px] w-full items-center justify-between rounded-md border border-black/15 px-3 text-[13px] font-medium text-[#030303] hover:bg-black/[0.02]">
-              Expand on hover
-              <ChevronDown className="size-4 text-[#696969]" />
-            </button>
-          }
+          control={<SidebarBehaviorSelect value={sidebarBehavior} />}
         />
       </SettingsCard>
     </div>

@@ -3,7 +3,12 @@ import { SettingsSidebar } from "@/components/account/SettingsSidebar";
 import { AuditLogsTable } from "@/components/account/AuditLogsTable";
 import { NoticeBanner } from "@/components/dashboard/NoticeBanner";
 
-export default function AuditLogsPage() {
+export default async function AuditLogsPage({
+  searchParams,
+}: PageProps<"/account/audit-logs">) {
+  // Next 16: searchParams is a Promise.
+  const params = await searchParams;
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
       <AccountHeader />
@@ -21,7 +26,7 @@ export default function AuditLogsPage() {
             </div>
 
             <div className="flex w-full max-w-[1200px] flex-col px-4 pb-24 pt-12 sm:px-10">
-              <AuditLogsTable />
+              <AuditLogsTable searchParams={params} />
             </div>
           </div>
         </main>

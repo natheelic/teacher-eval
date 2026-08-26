@@ -1,4 +1,12 @@
 import { SectionHeading, SettingsCard } from "../account/SettingsPrimitives";
+import { UpgradeDatabaseButton } from "./UpgradeDatabaseButton";
+
+export type ServiceVersionsProps = {
+  projectId: string;
+  versions: { authVersion: string; apiVersion: string; dbVersion: string };
+  latestDbVersion: string;
+  canUpgrade: boolean;
+};
 
 function VersionField({ label, value }: { label: string; value: string }) {
   return (
@@ -11,7 +19,15 @@ function VersionField({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function ServiceVersions() {
+export function ServiceVersions({
+  projectId,
+  versions,
+  latestDbVersion,
+  canUpgrade,
+}: ServiceVersionsProps) {
+  // Computed on the server — no semver comparison in the component.
+  const upgradeAvailable = versions.dbVersion !== latestDbVersion;
+
   return (
     <div className="flex w-full flex-col items-start gap-6">
       <SectionHeading
@@ -20,21 +36,35 @@ export function ServiceVersions() {
       />
       <SettingsCard>
         <div className="flex w-full flex-col items-start gap-6 p-4">
-          <VersionField label="Auth version" value="2.195.0" />
-          <VersionField label="API version" value="13.0.5" />
-          <VersionField label="Database version" value="17.6.1.054" />
+          <VersionField label="Auth version" value={versions.authVersion} />
+          <VersionField label="API version" value={versions.apiVersion} />
+          <VersionField label="Database version" value={versions.dbVersion} />
 
           <div className="flex w-full flex-col items-start gap-1 rounded-lg border border-black/8 bg-black/[0.01] p-4">
-            <p className="text-[13px] font-semibold text-[#030303]">
-              Your project can be upgraded to the latest database version
-            </p>
-            <p className="text-[13px] font-medium text-[#464646]">
-              The latest database version (17.6.1.155) is available for
-              your project.
-            </p>
-            <button className="mt-2 flex h-[26px] items-center justify-center rounded-md border border-[#16b674]/75 bg-[#72e3ad] px-2.5 py-1 text-xs font-medium text-[#030303] hover:brightness-95">
-              Upgrade project
-            </button>
+            {upgradeAvailable ? (
+              <>
+                <p className="text-[13px] font-semibold text-[#030303]">
+                  Your project can be upgraded to the latest database version
+                </p>
+                <p className="text-[13px] font-medium text-[#464646]">
+                  The latest database version ({latestDbVersion}) is available
+                  for your project.
+                </p>
+                <UpgradeDatabaseButton
+                  projectId={projectId}
+                  disabled={!canUpgrade}
+                />
+              </>
+            ) : (
+              <>
+                <p className="text-[13px] font-semibold text-[#030303]">
+                  Your project is up to date
+                </p>
+                <p className="text-[13px] font-medium text-[#464646]">
+                  Running the latest database version ({latestDbVersion}).
+                </p>
+              </>
+            )}
           </div>
         </div>
       </SettingsCard>

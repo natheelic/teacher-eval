@@ -1,113 +1,38 @@
-import { ChevronDown, Clock, RefreshCw, ArrowDown } from "lucide-react";
+import Link from "next/link";
+import { ArrowDown } from "lucide-react";
+import { AuditLogFilters } from "./AuditLogFilters";
+import { RelativeTime } from "./RelativeTime";
+import {
+  getAuditLogs,
+  parseAuditFilters,
+  type AuditRange,
+} from "@/lib/queries/audit";
 
-type LogRow = {
-  status: string;
-  method: string;
-  action: string;
-  target: string | null;
-  ref: string | null;
-  date: string;
+export type AuditLogsTableProps = {
+  searchParams: {
+    range?: string | string[];
+    project?: string | string[];
+    cursor?: string | string[];
+  };
 };
 
-const ROWS: LogRow[] = [
-  {
-    status: "201",
-    method: "POST",
-    action: "Gets project's logs from the unified logs stream",
-    target: "Project: my-project",
-    ref: "Ref: your-project-ref",
-    date: "2 minutes ago",
-  },
-  {
-    status: "201",
-    method: "POST",
-    action: "Gets project's logs from the unified logs stream",
-    target: "Project: my-project",
-    ref: "Ref: your-project-ref",
-    date: "3 minutes ago",
-  },
-  {
-    status: "201",
-    method: "POST",
-    action: "Gets project's logs from the unified logs stream",
-    target: "Project: my-project",
-    ref: "Ref: your-project-ref",
-    date: "4 minutes ago",
-  },
-  {
-    status: "201",
-    method: "POST",
-    action: "[Beta] Gets project's network bans",
-    target: "Project: my-project",
-    ref: "Ref: your-project-ref",
-    date: "12 minutes ago",
-  },
-  {
-    status: "200",
-    method: "GET",
-    action: "Gets project's API config",
-    target: "Project: my-project",
-    ref: "Ref: your-project-ref",
-    date: "13 minutes ago",
-  },
-  {
-    status: "200",
-    method: "GET",
-    action: "Get project api keys",
-    target: "Project: my-project",
-    ref: "Ref: your-project-ref",
-    date: "14 minutes ago",
-  },
-  {
-    status: "200",
-    method: "GET",
-    action: "Gets project's settings",
-    target: "Project: my-project",
-    ref: "Ref: your-project-ref",
-    date: "15 minutes ago",
-  },
-  {
-    status: "200",
-    method: "GET",
-    action: "Get project api keys",
-    target: "Project: my-project",
-    ref: "Ref: your-project-ref",
-    date: "16 minutes ago",
-  },
-  {
-    status: "201",
-    method: "POST",
-    action: "Logged into account",
-    target: null,
-    ref: null,
-    date: "20 minutes ago",
-  },
-];
+/**
+ * Stays a server component: the table can hold hundreds of rows, and shipping
+ * them through a client boundary just to filter would be wasteful. Filters are
+ * URL searchParams, which also makes them shareable and bookmarkable.
+ */
+export async function AuditLogsTable({ searchParams }: AuditLogsTableProps) {
+  const filters = parseAuditFilters(searchParams);
+  const { rows, total, nextCursor, projects } = await getAuditLogs(filters);
 
-export function AuditLogsTable() {
   return (
     <div className="flex w-full flex-col items-start">
-      <div className="flex w-full flex-wrap items-center justify-between gap-2 pb-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="pr-2 text-xs font-medium text-[#464646]">Filter by</span>
-          <button className="flex h-[26px] items-center gap-2 rounded-md border border-dashed border-black/15 px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4">
-            Projects
-            <ChevronDown className="size-3.5" />
-          </button>
-          <button className="flex h-[26px] items-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4">
-            <Clock className="size-3.5" />
-            Last 24 hours
-          </button>
-          <span className="mx-2 h-5 w-px bg-black/15" />
-          <span className="text-xs font-medium text-[#464646]">
-            Viewing {ROWS.length} logs in total
-          </span>
-        </div>
-        <button className="flex h-[26px] items-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4">
-          <RefreshCw className="size-3.5" />
-          Refresh
-        </button>
-      </div>
+      <AuditLogFilters
+        range={filters.range as AuditRange}
+        projectId={filters.projectId}
+        projects={projects}
+        total={total}
+      />
 
       <div className="w-full overflow-x-auto rounded-md border border-black/8">
         <table className="w-full min-w-[640px] border-collapse text-left">
@@ -125,23 +50,36 @@ export function AuditLogsTable() {
                   <ArrowDown className="size-3.5" />
                 </span>
               </th>
-              <th className="border-b border-black/8 px-4 py-3" />
             </tr>
           </thead>
           <tbody>
-            {ROWS.map((row, i) => {
-              const isLast = i === ROWS.length - 1;
-              const cellBorder = isLast ? "" : "border-b border-black/8";
+            {rows.length === 0 && (
+              <tr className="bg-white">
+                <td
+                  colSpan={3}
+                  className="px-4 py-8 text-center text-[13px] font-medium text-[#696969]"
+                >
+                  No activity in this period.
+                </td>
+              </tr>
+            )}
+            {rows.map((row, i) => {
+              const cellBorder =
+                i === rows.length - 1 ? "" : "border-b border-black/8";
               return (
-                <tr key={i} className="bg-white">
+                <tr key={row.id} className="bg-white">
                   <td className={`${cellBorder} px-4 py-3 align-top`}>
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center rounded border border-black/8 bg-black/[0.03] px-1 font-mono text-xs text-[#6f6f6f]">
-                        {row.status}
-                      </span>
-                      <span className="font-mono text-xs text-[#464646]">
-                        {row.method}
-                      </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {row.statusCode !== null && (
+                        <span className="flex items-center rounded border border-black/8 bg-black/[0.03] px-1 font-mono text-xs text-[#6f6f6f]">
+                          {row.statusCode}
+                        </span>
+                      )}
+                      {row.method && (
+                        <span className="font-mono text-xs text-[#464646]">
+                          {row.method}
+                        </span>
+                      )}
                       <span className="text-[13px] text-[#6f6f6f]">
                         {row.action}
                       </span>
@@ -151,23 +89,24 @@ export function AuditLogsTable() {
                     {row.target ? (
                       <div className="flex flex-col">
                         <span className="text-[13px] font-medium text-[#464646]">
-                          {row.target}
+                          {row.target.label}
                         </span>
-                        <span className="text-xs font-medium text-[#464646]">
-                          {row.ref}
-                        </span>
+                        {row.target.ref && (
+                          <span className="text-xs font-medium text-[#464646]">
+                            Ref: {row.target.ref}
+                          </span>
+                        )}
                       </div>
                     ) : (
-                      <span className="text-[13px] font-medium text-[#464646]">-</span>
+                      <span className="text-[13px] font-medium text-[#464646]">
+                        -
+                      </span>
                     )}
                   </td>
-                  <td className={`${cellBorder} px-4 py-3 align-top text-[13px] text-[#6f6f6f]`}>
-                    {row.date}
-                  </td>
-                  <td className={`${cellBorder} px-4 py-3 text-right align-top`}>
-                    <button className="flex h-[26px] items-center justify-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4">
-                      View details
-                    </button>
+                  <td
+                    className={`${cellBorder} px-4 py-3 align-top text-[13px] text-[#6f6f6f]`}
+                  >
+                    <RelativeTime iso={row.createdAt} />
                   </td>
                 </tr>
               );
@@ -175,6 +114,27 @@ export function AuditLogsTable() {
           </tbody>
         </table>
       </div>
+
+      {nextCursor && (
+        <div className="flex w-full justify-center pt-4">
+          <Link
+            href={buildHref({ ...searchParams, cursor: nextCursor })}
+            className="flex h-[26px] items-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 text-xs font-medium text-[#030303] hover:bg-black/4"
+          >
+            Load older
+          </Link>
+        </div>
+      )}
     </div>
   );
+}
+
+function buildHref(params: Record<string, string | string[] | undefined>) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    const v = Array.isArray(value) ? value[0] : value;
+    if (v) search.set(key, v);
+  }
+  const qs = search.toString();
+  return qs ? `/account/audit-logs?${qs}` : "/account/audit-logs";
 }

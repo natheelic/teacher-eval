@@ -4,8 +4,11 @@ import { AppLogo } from "../dashboard/AppLogo";
 import { AccountMenu } from "./AccountMenu";
 import { SearchTrigger } from "../search/SearchTrigger";
 import { MobileMenuButton } from "../layout/MobileMenuButton";
+import { getWorkspace } from "@/lib/queries/workspace";
 
-export function AccountHeader() {
+export async function AccountHeader() {
+  const { user } = await getWorkspace();
+
   return (
     <header className="flex h-12 items-center border-b border-black/8">
       <div className="flex min-w-0 flex-1 h-[47px] items-center justify-between gap-2 pl-2 pr-3 sm:pl-4">
@@ -27,7 +30,7 @@ export function AccountHeader() {
               <Book className="size-4 text-[#464646]" />
             </button>
           </div>
-          <AccountMenu />
+          <AccountMenu initial={user.initial} />
         </div>
       </div>
     </header>

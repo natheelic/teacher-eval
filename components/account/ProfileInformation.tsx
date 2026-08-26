@@ -1,62 +1,130 @@
-import { ChevronDown } from "lucide-react";
+"use client";
+
+import { useActionState } from "react";
+import { updateProfile, type ActionState } from "@/lib/actions/profile";
 import { SectionHeading, SettingsCard } from "./SettingsPrimitives";
 
-export function ProfileInformation() {
+export type ProfileInformationProps = {
+  user: {
+    firstName: string | null;
+    lastName: string | null;
+    username: string | null;
+    email: string;
+  };
+};
+
+const initialState: ActionState = {};
+
+function Row({
+  label,
+  description,
+  children,
+}: {
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex w-full flex-col items-start gap-6">
+    <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
+      <div className="flex flex-1 flex-col items-start">
+        <label className="text-[13px] font-medium text-[#030303]">{label}</label>
+        {description && (
+          <p className="text-[13px] font-medium text-[#696969]">{description}</p>
+        )}
+      </div>
+      <div className="flex w-full shrink-0 flex-col gap-1 sm:w-[262px]">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const inputClass =
+  "h-[34px] w-full rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30";
+
+export function ProfileInformation({ user }: ProfileInformationProps) {
+  const [state, formAction, pending] = useActionState(
+    updateProfile,
+    initialState,
+  );
+
+  return (
+    <form action={formAction} className="flex w-full flex-col items-start gap-6">
       <SectionHeading title="Profile information" description="" />
       <SettingsCard>
-        <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
-          <div className="flex flex-1 flex-col items-start">
-            <label className="text-[13px] font-medium text-[#030303]">First name</label>
-          </div>
+        <Row label="First name">
           <input
+            name="firstName"
+            defaultValue={user.firstName ?? ""}
             placeholder="First name"
-            className="h-[34px] w-full shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#696969] outline-none focus:border-black/30 sm:w-[262px]"
+            className={inputClass}
           />
-        </div>
-        <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
-          <div className="flex flex-1 flex-col items-start">
-            <label className="text-[13px] font-medium text-[#030303]">Last name</label>
-          </div>
+          {state.fieldErrors?.firstName && (
+            <FieldError message={state.fieldErrors.firstName} />
+          )}
+        </Row>
+
+        <Row label="Last name">
           <input
+            name="lastName"
+            defaultValue={user.lastName ?? ""}
             placeholder="Last name"
-            className="h-[34px] w-full shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#696969] outline-none focus:border-black/30 sm:w-[262px]"
+            className={inputClass}
           />
-        </div>
-        <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
-          <div className="flex flex-1 flex-col items-start">
-            <label className="text-[13px] font-medium text-[#030303]">Primary email</label>
-            <p className="text-[13px] font-medium text-[#696969]">
-              Used for account notifications
-            </p>
-          </div>
-          <button className="flex h-[34px] w-full shrink-0 items-center justify-between rounded-md border border-black/15 px-3 text-[13px] font-medium text-[#030303] hover:bg-black/[0.02] sm:w-[262px]">
-            you@example.com
-            <ChevronDown className="size-4 text-[#696969]" />
-          </button>
-        </div>
-        <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
-          <div className="flex flex-1 flex-col items-start">
-            <label className="text-[13px] font-medium text-[#030303]">Username</label>
-            <p className="text-[13px] font-medium text-[#696969]">
-              Display name used across dashboard
-            </p>
-          </div>
+          {state.fieldErrors?.lastName && (
+            <FieldError message={state.fieldErrors.lastName} />
+          )}
+        </Row>
+
+        <Row
+          label="Primary email"
+          description="Used for account notifications"
+        >
+          {/* Read-only for now: changing the primary email needs a
+              verification flow, and multiple emails are not modelled yet. */}
           <input
-            placeholder="username"
-            className="h-[34px] w-full shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30 sm:w-[262px]"
-          />
-        </div>
-        <div className="flex w-full items-center justify-end p-4">
-          <button
+            value={user.email}
+            readOnly
             disabled
-            className="flex h-[26px] items-center justify-center rounded-md border border-[#16b674]/75 bg-[#72e3ad] px-2.5 py-1 text-xs font-medium text-[#030303] opacity-50"
+            aria-label="Primary email"
+            className={`${inputClass} cursor-not-allowed text-[#696969] opacity-70`}
+          />
+        </Row>
+
+        <Row label="Username" description="Display name used across dashboard">
+          <input
+            name="username"
+            defaultValue={user.username ?? ""}
+            placeholder="username"
+            className={inputClass}
+          />
+          {state.fieldErrors?.username && (
+            <FieldError message={state.fieldErrors.username} />
+          )}
+        </Row>
+
+        <div className="flex w-full items-center justify-end gap-3 p-4">
+          {state.ok && (
+            <span className="text-xs font-medium text-[#16b674]">Saved</span>
+          )}
+          {state.error && (
+            <span className="text-xs font-medium text-[#ab413e]">
+              {state.error}
+            </span>
+          )}
+          <button
+            type="submit"
+            disabled={pending}
+            className="flex h-[26px] items-center justify-center rounded-md border border-[#16b674]/75 bg-[#72e3ad] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-[#62d79f] disabled:opacity-50"
           >
-            Save
+            {pending ? "Saving..." : "Save"}
           </button>
         </div>
       </SettingsCard>
-    </div>
+    </form>
   );
+}
+
+function FieldError({ message }: { message: string }) {
+  return <p className="text-xs font-medium text-[#ab413e]">{message}</p>;
 }

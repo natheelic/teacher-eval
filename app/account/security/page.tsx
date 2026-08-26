@@ -2,8 +2,15 @@ import { AccountHeader } from "@/components/account/AccountHeader";
 import { SettingsSidebar } from "@/components/account/SettingsSidebar";
 import { SecuritySettings } from "@/components/account/SecuritySettings";
 import { NoticeBanner } from "@/components/dashboard/NoticeBanner";
+import { requireUser } from "@/lib/auth/require-session";
+import { getDeviceSessions } from "@/lib/queries/account";
 
-export default function SecurityPage() {
+export default async function SecurityPage() {
+  const [user, sessions] = await Promise.all([
+    requireUser(),
+    getDeviceSessions(),
+  ]);
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
       <AccountHeader />
@@ -21,7 +28,11 @@ export default function SecurityPage() {
             </div>
 
             <div className="flex w-full max-w-[768px] flex-col gap-16 px-4 pb-24 pt-12 sm:px-10">
-              <SecuritySettings />
+              <SecuritySettings
+                hasPassword={user.hasPassword}
+                twoFactorEnabled={user.twoFactorEnabled}
+                sessions={sessions}
+              />
             </div>
           </div>
         </main>

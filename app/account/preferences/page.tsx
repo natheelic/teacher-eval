@@ -9,8 +9,26 @@ import { DashboardSettings } from "@/components/account/DashboardSettings";
 import { AnalyticsMarketing } from "@/components/account/AnalyticsMarketing";
 import { DangerZone } from "@/components/account/DangerZone";
 import { NoticeBanner } from "@/components/dashboard/NoticeBanner";
+import { requireUser } from "@/lib/auth/require-session";
+import {
+  getConnections,
+  getPreferences,
+  getSignInMethods,
+} from "@/lib/queries/account";
+import { toIso } from "@/lib/format";
 
-export default function PreferencesPage() {
+export default async function PreferencesPage() {
+  // One batched fetch for the eight sections below.
+  const [user, methods, connections, preferences] = await Promise.all([
+    requireUser(),
+    getSignInMethods(),
+    getConnections(),
+    getPreferences(),
+  ]);
+
+  // Disconnecting the last remaining sign-in method would lock the account out.
+  const canDisconnect = user.hasPassword || methods.length > 1;
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
       <AccountHeader />
@@ -29,14 +47,28 @@ export default function PreferencesPage() {
             </div>
 
             <div className="flex w-full max-w-[768px] flex-col gap-16 px-4 pb-24 pt-12 sm:px-10">
-              <ProfileInformation />
-              <SignInMethods />
-              <Connections />
-              <AppearanceSettings />
-              <KeyboardShortcuts />
-              <DashboardSettings />
-              <AnalyticsMarketing />
-              <DangerZone />
+              <ProfileInformation user={user} />
+              <SignInMethods
+                methods={methods}
+                hasPassword={user.hasPassword}
+              />
+              <Connections
+                connections={connections}
+                canDisconnect={canDisconnect}
+              />
+              <AppearanceSettings
+                theme={preferences.theme}
+                sidebarBehavior={preferences.sidebarBehavior}
+              />
+              <KeyboardShortcuts shortcuts={preferences.keyboardShortcuts} />
+              <DashboardSettings
+                editEntitiesInCode={preferences.editEntitiesInCode}
+                queueTableOperations={preferences.queueTableOperations}
+              />
+              <AnalyticsMarketing enabled={preferences.telemetryEnabled} />
+              <DangerZone
+                deletionRequestedAt={toIso(user.deletionRequestedAt)}
+              />
             </div>
           </div>
         </main>

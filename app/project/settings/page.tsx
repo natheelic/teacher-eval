@@ -9,8 +9,15 @@ import { ServiceVersions } from "@/components/project-settings/ServiceVersions";
 import { CustomDomains } from "@/components/project-settings/CustomDomains";
 import { TransferProject } from "@/components/project-settings/TransferProject";
 import { DeleteProject } from "@/components/project-settings/DeleteProject";
+import { getProjectSettings, LATEST_DB_VERSION } from "@/lib/queries/project";
 
-export default function ProjectSettingsPage() {
+export default async function ProjectSettingsPage() {
+  const project = await getProjectSettings();
+
+  // Role gates: admins configure, owners transfer and delete.
+  const canEdit = project.viewerRole === "OWNER" || project.viewerRole === "ADMIN";
+  const isOwner = project.viewerRole === "OWNER";
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
       <Header />
@@ -31,13 +38,37 @@ export default function ProjectSettingsPage() {
               </div>
 
               <div className="flex w-full max-w-[768px] flex-col gap-16 px-4 pb-24 pt-12 sm:px-10">
-                <GeneralSettingsForm />
-                <ProjectAccess />
-                <ProjectAvailability />
-                <ServiceVersions />
-                <CustomDomains />
-                <TransferProject />
-                <DeleteProject />
+                <GeneralSettingsForm project={project} canEdit={canEdit} />
+                <ProjectAccess
+                  orgMemberCount={project.orgMemberCount}
+                  members={project.members}
+                />
+                <ProjectAvailability
+                  projectId={project.id}
+                  status={project.status}
+                  canManage={canEdit}
+                />
+                <ServiceVersions
+                  projectId={project.id}
+                  versions={{
+                    authVersion: project.authVersion,
+                    apiVersion: project.apiVersion,
+                    dbVersion: project.dbVersion,
+                  }}
+                  latestDbVersion={LATEST_DB_VERSION}
+                  canUpgrade={canEdit}
+                />
+                <CustomDomains plan={project.plan} domains={project.domains} />
+                <TransferProject
+                  projectId={project.id}
+                  eligibleOrganizations={project.transferTargets}
+                  canTransfer={isOwner}
+                />
+                <DeleteProject
+                  projectId={project.id}
+                  projectName={project.name}
+                  canDelete={isOwner}
+                />
               </div>
             </div>
           </main>

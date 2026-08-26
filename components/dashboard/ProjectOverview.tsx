@@ -1,4 +1,7 @@
-import { Copy, GitFork, GitBranch, Database, Archive, Cpu } from "lucide-react";
+import { GitFork, GitBranch, Database, Archive, Cpu } from "lucide-react";
+import { CopyButton } from "./CopyButton";
+import { formatDate } from "@/lib/format";
+import type { ProjectOverviewData } from "@/lib/queries/workspace";
 
 function StatIconBox({ children }: { children: React.ReactNode }) {
   return (
@@ -8,11 +11,31 @@ function StatIconBox({ children }: { children: React.ReactNode }) {
   );
 }
 
-function StatusDots() {
+type Status = ProjectOverviewData["status"];
+
+const STATUS_LABELS: Record<Status, string> = {
+  ACTIVE: "Healthy",
+  PAUSED: "Paused",
+  RESTARTING: "Restarting",
+  PROVISIONING: "Provisioning",
+  UNHEALTHY: "Unhealthy",
+  DELETING: "Deleting",
+};
+
+const STATUS_DOT: Record<Status, string> = {
+  ACTIVE: "bg-[#3fcf8e]",
+  PAUSED: "bg-[#696969]",
+  RESTARTING: "bg-[#dc7b18]",
+  PROVISIONING: "bg-[#dc7b18]",
+  UNHEALTHY: "bg-[#ab413e]",
+  DELETING: "bg-[#ab413e]",
+};
+
+function StatusDots({ status }: { status: Status }) {
   return (
     <div className="grid grid-cols-3 gap-1">
       {Array.from({ length: 6 }).map((_, i) => (
-        <span key={i} className="size-1.5 rounded-full bg-[#3fcf8e]" />
+        <span key={i} className={`size-1.5 rounded-full ${STATUS_DOT[status]}`} />
       ))}
     </div>
   );
@@ -64,67 +87,70 @@ function StatItem({
   );
 }
 
-export function ProjectOverview() {
+export function ProjectOverview({ project }: { project: ProjectOverviewData }) {
   return (
     <div className="flex w-full max-w-[744px] flex-col items-start">
       <div className="flex w-full items-center">
         <div className="flex flex-col items-start">
           <h1 className="font-display text-[28px] font-semibold tracking-[-0.7px] text-[#030303]">
-            my-project
+            {project.name}
           </h1>
           <div className="flex flex-wrap items-center gap-3 pt-3">
             <p className="break-all text-[15px] font-medium text-[#464646]">
-              https://your-project-ref.{"{{APP_DOMAIN}}"}
+              {project.url}
             </p>
-            <button className="flex h-[26px] items-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4">
-              Copy
-              <Copy className="size-3.5" />
-            </button>
+            <CopyButton value={project.url} />
           </div>
         </div>
       </div>
 
       <div className="grid w-full grid-cols-1 gap-x-6 gap-y-6 pt-8 sm:grid-cols-2">
         <StatItem
-          icon={<StatusDots />}
+          icon={<StatusDots status={project.status} />}
           label="Status"
-          value="Healthy"
+          value={STATUS_LABELS[project.status]}
         />
         <StatItem
           icon={<Cpu className="size-[18px] text-[#464646]" />}
           label="Compute"
           value={
             <span className="flex items-center rounded border border-black/15 bg-white/50 px-[5.5px] py-[3px] font-mono text-[11px] font-medium uppercase tracking-[0.66px] text-[#464646]">
-              nano
+              {project.compute.toLowerCase()}
             </span>
           }
         />
         <StatItem
           icon={<GitFork className="size-[18px] text-[#464646]" />}
           label="GitHub"
-          value="No repository connected"
-          muted
+          value={project.githubRepo ?? "No repository connected"}
+          muted={!project.githubRepo}
           href
         />
         <StatItem
           icon={<GitBranch className="size-[18px] text-[#464646]" />}
           label="Recent branch"
-          value="No branches"
-          muted
+          value={project.recentBranch ?? "No branches"}
+          muted={!project.recentBranch}
           href
         />
         <StatItem
           icon={<Database className="size-[18px] text-[#464646]" />}
           label="Last migration"
-          value="No migrations"
-          muted
+          value={
+            project.lastMigration
+              ? (project.lastMigration.name ?? formatDate(project.lastMigration.at))
+              : "No migrations"
+          }
+          muted={!project.lastMigration}
           href
         />
         <StatItem
           icon={<Archive className="size-[18px] text-[#464646]" />}
           label="Last backup"
-          value="No backups"
-          muted
+          value={
+            project.lastBackupAt ? formatDate(project.lastBackupAt) : "No backups"
+          }
+          muted={!project.lastBackupAt}
           href
         />
       </div>
