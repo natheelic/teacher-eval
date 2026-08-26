@@ -3,7 +3,7 @@ import { SectionHeading, SettingsCard } from "./SettingsPrimitives";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import { UnlinkProviderButton } from "./UnlinkProviderButton";
 import type { SignInMethodView } from "@/lib/queries/account";
-import { appName } from "@/lib/env";
+import { appName } from "@/lib/app-config";
 
 // Icons cannot live in the database, so the provider discriminator picks one.
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {

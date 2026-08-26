@@ -4,7 +4,7 @@ import { useOptimistic, useTransition } from "react";
 import { SectionHeading, SettingsCard, SettingsRow } from "./SettingsPrimitives";
 import { Switch } from "./Switch";
 import { updateTelemetry } from "@/lib/actions/preferences";
-import { appName } from "@/lib/env";
+import { appName } from "@/lib/app-config";
 
 export function AnalyticsMarketing({ enabled }: { enabled: boolean }) {
   const [pending, startTransition] = useTransition();

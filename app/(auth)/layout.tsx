@@ -1,5 +1,5 @@
 import { AppLogo } from "@/components/dashboard/AppLogo";
-import { appName } from "@/lib/env";
+import { appName } from "@/lib/app-config";
 
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (

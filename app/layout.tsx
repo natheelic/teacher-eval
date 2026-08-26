@@ -3,7 +3,7 @@ import { Inter, Manrope, Source_Code_Pro } from "next/font/google";
 import { SearchProvider } from "@/components/search/SearchProvider";
 import { CommandPalette } from "@/components/search/CommandPalette";
 import { MobileNavProvider } from "@/components/layout/MobileNavProvider";
-import { appName } from "@/lib/env";
+import { appName } from "@/lib/app-config";
 import "./globals.css";
 
 const THEME_INIT_SCRIPT = `

@@ -4,7 +4,7 @@ import { SectionHeading, SettingsCard, SettingsRow } from "./SettingsPrimitives"
 import { type ThemeMode } from "../theme/useTheme";
 import { useSyncedTheme } from "../theme/useSyncedTheme";
 import { SidebarBehaviorSelect } from "./SidebarBehaviorSelect";
-import { appName } from "@/lib/env";
+import { appName } from "@/lib/app-config";
 
 type ThemeOption = {
   key: ThemeMode;

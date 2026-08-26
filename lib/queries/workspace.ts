@@ -2,7 +2,7 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/require-session";
-import { appDomain } from "@/lib/env";
+import { appDomain } from "@/lib/app-config";
 import { toIso } from "@/lib/format";
 
 export type WorkspaceContext = {

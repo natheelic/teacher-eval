@@ -2,7 +2,7 @@ import { KeyRound } from "lucide-react";
 import { SectionHeading, SettingsCard } from "./SettingsPrimitives";
 import { ConnectionButton } from "./ConnectionButton";
 import type { ConnectionView } from "@/lib/queries/account";
-import { appName } from "@/lib/env";
+import { appName } from "@/lib/app-config";
 
 const DESCRIPTIONS: Record<string, string> = {
   google: `Use your Google account to sign in to ${appName}.`,

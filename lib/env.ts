@@ -43,6 +43,6 @@ export const googleEnabled = Boolean(
   env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET,
 );
 
-/** Client-safe display values (inlined at build time by Next). */
-export const appName = process.env.NEXT_PUBLIC_APP_NAME || "Portal";
-export const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "portal.local";
+// Client-safe display values (appName / appDomain) intentionally live in
+// lib/app-config.ts — re-exporting them here would let a Client Component pull
+// in this module and throw on the missing server secrets.
