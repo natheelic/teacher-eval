@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserManager } from "@/lib/auth/require-session";
 import { hashPassword, passwordSchema } from "@/lib/auth/password";
+import { softDeleteUser } from "@/lib/auth/deletion";
 import { uniqueUsername } from "@/lib/bootstrap";
 import { logAudit } from "@/lib/audit";
 import {
@@ -258,21 +259,7 @@ export async function deleteUser(userId: string): Promise<void> {
 
   // Soft delete: every query filters on deletedAt, and it keeps audit rows
   // pointing at a real row. The email is released so it can be reused.
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: target.id },
-      data: {
-        deletedAt: new Date(),
-        status: "SUSPENDED",
-        email: `deleted+${target.id}@invalid.local`,
-        username: null,
-      },
-    });
-    await tx.deviceSession.updateMany({
-      where: { userId: target.id, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
-  });
+  await softDeleteUser(target.id);
 
   await logAudit({
     actorId: actor.id,

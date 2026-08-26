@@ -68,6 +68,7 @@ export default async function PreferencesPage() {
               <AnalyticsMarketing enabled={preferences.telemetryEnabled} />
               <DangerZone
                 deletionRequestedAt={toIso(user.deletionRequestedAt)}
+                hasPassword={user.hasPassword}
               />
             </div>
           </div>

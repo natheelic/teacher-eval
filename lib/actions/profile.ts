@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/require-session";
+import { verifyPassword } from "@/lib/auth/password";
 import { logAudit } from "@/lib/audit";
 
 export type ActionState = {
@@ -81,13 +83,38 @@ export async function updateProfile(
   return { ok: true };
 }
 
-export async function requestAccountDeletion(): Promise<ActionState> {
+export async function requestAccountDeletion(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const user = await requireUser();
 
-  await prisma.user.update({
+  const row = await prisma.user.findUnique({
     where: { id: user.id },
-    data: { deletionRequestedAt: new Date() },
+    select: { passwordHash: true },
   });
+
+  // Mirrors changePassword: an OAuth-only account has no password to check.
+  if (row?.passwordHash) {
+    const current = String(formData.get("currentPassword") ?? "");
+    const ok = await verifyPassword(current, row.passwordHash);
+    if (!ok) {
+      return { fieldErrors: { currentPassword: "Incorrect password." } };
+    }
+  }
+
+  // Revoked immediately, including the current session — unlike a password
+  // change, requesting deletion is meant to sign the user out on the spot.
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: user.id },
+      data: { deletionRequestedAt: new Date() },
+    }),
+    prisma.deviceSession.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
 
   await logAudit({
     actorId: user.id,
@@ -99,7 +126,7 @@ export async function requestAccountDeletion(): Promise<ActionState> {
   });
 
   revalidatePath("/account/preferences");
-  return { ok: true };
+  redirect("/signin");
 }
 
 export async function cancelAccountDeletion(): Promise<ActionState> {

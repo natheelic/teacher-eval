@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { canManageUsers } from "@/lib/permissions";
+import { DELETION_GRACE_PERIOD_MS, softDeleteUser } from "@/lib/auth/deletion";
+import { logAudit } from "@/lib/audit";
 import type { Role, UserStatus } from "@/lib/generated/prisma/enums";
 
 export type CurrentUser = {
@@ -55,8 +57,28 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     },
   });
 
+  if (!user) return null;
+
+  // The grace period has no scheduled job behind it — it is enforced lazily,
+  // here, the one place every authenticated request already passes through.
+  if (
+    user.deletionRequestedAt &&
+    Date.now() - user.deletionRequestedAt.getTime() >= DELETION_GRACE_PERIOD_MS
+  ) {
+    await softDeleteUser(user.id);
+    await logAudit({
+      actorId: user.id,
+      targetUserId: user.id,
+      action: "Account deleted after grace period",
+      actionCode: "user.deleted",
+      method: "GET",
+      statusCode: 200,
+    });
+    return null;
+  }
+
   // A suspended account keeps its rows but must not hold a usable session.
-  if (!user || user.deletedAt || user.status === "SUSPENDED") return null;
+  if (user.deletedAt || user.status === "SUSPENDED") return null;
 
   // A revoked device session invalidates the token even though the token
   // itself is still cryptographically valid.

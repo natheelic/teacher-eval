@@ -422,10 +422,16 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
 
 **Account deletion**
 
-- **FR-60** — A user shall be able to request deletion of their own account, setting
-  `deletionRequestedAt`. Audit: `account.deletion.requested` (202).
+- **FR-60** — A user shall be able to request deletion of their own account, confirmed by their
+  current password when one is set. This sets `deletionRequestedAt` and revokes every
+  `DeviceSession` for that user, including the one making the request, signing them out
+  immediately. Audit: `account.deletion.requested` (202).
 - **FR-61** — A user shall be able to cancel a pending deletion request. Audit:
   `account.deletion.cancelled`.
+- **FR-61a** — Thirty days after `deletionRequestedAt`, the account shall be soft-deleted per
+  FR-44. There is no scheduled job; `requireUser()` checks the window on every authenticated
+  request and performs the soft delete lazily, the same chokepoint that already enforces
+  revocation and suspension. Audit: `user.deleted`.
 
 **Two-factor**
 
@@ -635,6 +641,7 @@ required entry is missing or malformed.
 | FR-40 – FR-44 | `lib/actions/users.ts` |
 | FR-45 – FR-49 | `lib/queries/users.ts` |
 | FR-50, FR-60, FR-61 | `lib/actions/profile.ts` |
+| FR-61a | `lib/auth/deletion.ts`, `lib/auth/require-session.ts` |
 | FR-51 – FR-52 | `lib/actions/connections.ts`, `lib/queries/account.ts` |
 | FR-53 – FR-56, FR-62 | `lib/actions/security.ts` |
 | FR-57 – FR-59 | `lib/actions/tokens.ts`, `lib/auth/tokens.ts` |
@@ -658,7 +665,6 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 | D-5 | FR-74, NFR-42 | Only ⌘K is implemented; several shortcut labels name features removed with the tenancy layer. |
 | D-6 | §1.2 | API tokens can be minted but no route consumes them; `scopes`, `expiresAt` and `lastUsedAt` are never written or checked. `tokenPreview()` in `lib/auth/tokens.ts` has no callers. |
 | D-7 | DR-03 | `UserStatus.INVITED` is unreachable; there is no invitation flow. |
-| D-8 | §1.2 | `deletionRequestedAt` is set but no job acts on it. |
 | D-9 | FR-86 | Audit filtering is limited to range and scope; action codes are inline literals with no central definition. |
 | D-10 | §2.1 | `/signup` copy still claims registration "creates your organization and a first project". |
 | D-11 | §3.4 | `Authenticator` and `VerificationToken` are dead models. |

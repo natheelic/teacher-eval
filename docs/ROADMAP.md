@@ -106,10 +106,13 @@ simplified rather than left as a promise.
 - **3.3 — Forgot password.** There is no reset route. Administrators can reset another user's
   password, but a locked-out user with no admin available has no recourse. This shares the
   `VerificationToken` machinery with 3.2.
-- **3.4 — Honour deletion requests.** `deletionRequestedAt` is set and cancellable, but nothing
-  acts on it, so the implied grace-period promise is never kept (D-8). Add a scheduled job that
-  soft-deletes accounts past the window — reusing the soft-delete semantics of FR-44 rather than
-  inventing a second deletion path.
+- ✅ **3.4 — Honour deletion requests.** `deletionRequestedAt` is now enforced: `requireUser()`
+  soft-deletes any account past the 30-day window on its next request (no scheduled job — there is
+  no job runner in this app, so it piggybacks on the same chokepoint that already enforces
+  revocation and suspension), reusing the soft-delete semantics of FR-44 via `softDeleteUser()` in
+  `lib/auth/deletion.ts`. Requesting deletion now also requires a password confirmation and
+  revokes every `DeviceSession`, including the current one, so the request takes effect
+  immediately rather than leaving the session live for up to 30 days. Formerly D-8, now resolved.
 
 **Exit criteria:** a user can be onboarded and can recover access without administrator
 intervention — or the unreachable states have been removed from the schema.

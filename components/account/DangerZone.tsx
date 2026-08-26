@@ -6,8 +6,10 @@ import { appName } from "@/lib/app-config";
 
 export function DangerZone({
   deletionRequestedAt,
+  hasPassword,
 }: {
   deletionRequestedAt: string | null;
+  hasPassword: boolean;
 }) {
   return (
     <div className="flex w-full flex-col items-start gap-6">
@@ -30,7 +32,10 @@ export function DangerZone({
             Deletion requested on {formatDate(deletionRequestedAt)}.
           </p>
         )}
-        <AccountDeletionButton requested={Boolean(deletionRequestedAt)} />
+        <AccountDeletionButton
+          requested={Boolean(deletionRequestedAt)}
+          hasPassword={hasPassword}
+        />
       </div>
     </div>
   );
