@@ -1,16 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Home,
-  Users,
-  Lightbulb,
-  Rocket,
-  ListChecks,
-  Settings,
-  PanelLeft,
-  X,
-} from "lucide-react";
+import { Users, ListChecks, Settings, PanelLeft, X } from "lucide-react";
 import { useMobileNav } from "../layout/MobileNavProvider";
 import { MobileDrawer } from "../layout/MobileDrawer";
 
@@ -85,18 +76,12 @@ export function IconSidebar() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <nav className="flex w-full flex-col">
           <div className="flex flex-col gap-1 p-2">
-            <NavItem icon={Home} label="Home" active onNavigate={close} />
-            <NavItem icon={Users} label="Users" onNavigate={close} />
-          </div>
-          <Divider />
-          <div className="flex flex-col gap-1 p-2">
-            <NavItem icon={Lightbulb} label="Advisors" dot onNavigate={close} />
-            <NavItem icon={Rocket} label="Reports" onNavigate={close} />
-            <NavItem icon={ListChecks} label="Logs" onNavigate={close} />
+            <NavItem icon={Users} label="Users" href="/" active onNavigate={close} />
+            <NavItem icon={ListChecks} label="Audit logs" href="/account/audit-logs" onNavigate={close} />
           </div>
           <Divider />
           <div className="flex flex-col p-2">
-            <NavItem icon={Settings} label="Project settings" href="/project/settings" onNavigate={close} />
+            <NavItem icon={Settings} label="Account settings" href="/account/preferences" onNavigate={close} />
           </div>
         </nav>
       </div>

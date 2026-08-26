@@ -11,5 +11,9 @@ export default defineConfig({
   },
   datasource: {
     url: process.env["DATABASE_URL"],
+    // A scratch database Prisma may freely create, replay migrations into, and
+    // drop. Required by `prisma migrate diff --from-migrations`, and used to
+    // detect schema drift. Never point this at a database holding real data.
+    shadowDatabaseUrl: process.env["SHADOW_DATABASE_URL"],
   },
 });

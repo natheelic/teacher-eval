@@ -7,7 +7,7 @@ import { z } from "zod";
 import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { passwordSchema } from "@/lib/auth/password";
-import { bootstrapTenant } from "@/lib/tenant";
+import { bootstrapUser } from "@/lib/bootstrap";
 import { logAudit } from "@/lib/audit";
 
 export type AuthFormState = {
@@ -102,9 +102,7 @@ export async function signUpAction(
     return { fieldErrors: { email: "An account with this email already exists." } };
   }
 
-  // Signing up is what bootstraps a tenant — the seed is deliberately minimal,
-  // so without this a new account would land on an empty dashboard.
-  const { user, organization } = await bootstrapTenant({
+  const { user, isFirstUser } = await bootstrapUser({
     email,
     firstName,
     lastName,
@@ -113,8 +111,10 @@ export async function signUpAction(
 
   await logAudit({
     actorId: user.id,
-    organizationId: organization.id,
-    action: "Created an account",
+    targetUserId: user.id,
+    action: isFirstUser
+      ? "Created the first account (admin)"
+      : "Created an account",
     actionCode: "account.created",
     method: "POST",
     statusCode: 201,

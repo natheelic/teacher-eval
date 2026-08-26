@@ -11,19 +11,22 @@ const RANGES = [
   { value: "all", label: "All time" },
 ] as const;
 
+const controlClass =
+  "h-[26px] rounded-md border border-black/15 bg-[#fdfdfd] px-2 text-xs font-medium text-[#030303] outline-none hover:bg-black/4 disabled:opacity-50";
+
 /**
  * Filters live in the URL and re-render the server component, so the table
  * itself never has to become a client component.
  */
 export function AuditLogFilters({
   range,
-  projectId,
-  projects,
+  scope,
+  canSeeAll,
   total,
 }: {
   range: string;
-  projectId: string | null;
-  projects: { id: string; name: string }[];
+  scope: string;
+  canSeeAll: boolean;
   total: number;
 }) {
   const router = useRouter();
@@ -41,28 +44,26 @@ export function AuditLogFilters({
     });
   }
 
-  const selectClass =
-    "h-[26px] rounded-md border border-black/15 bg-[#fdfdfd] px-2 text-xs font-medium text-[#030303] outline-none hover:bg-black/4 disabled:opacity-50";
-
   return (
     <div className="flex w-full flex-wrap items-center justify-between gap-2 pb-4">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="pr-2 text-xs font-medium text-[#464646]">Filter by</span>
+        <span className="pr-2 text-xs font-medium text-[#464646]">
+          Filter by
+        </span>
 
-        <select
-          aria-label="Filter by project"
-          value={projectId ?? ""}
-          disabled={pending}
-          onChange={(e) => setParam("project", e.target.value || null)}
-          className={`${selectClass} border-dashed`}
-        >
-          <option value="">All projects</option>
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
-        </select>
+        {/* Only offered to managers and admins; the server enforces it too. */}
+        {canSeeAll && (
+          <select
+            aria-label="Filter by scope"
+            value={scope}
+            disabled={pending}
+            onChange={(e) => setParam("scope", e.target.value)}
+            className={controlClass}
+          >
+            <option value="mine">My activity</option>
+            <option value="all">Everyone</option>
+          </select>
+        )}
 
         <span className="inline-flex items-center gap-1">
           <Clock className="size-3.5 text-[#464646]" />
@@ -71,7 +72,7 @@ export function AuditLogFilters({
             value={range}
             disabled={pending}
             onChange={(e) => setParam("range", e.target.value)}
-            className={selectClass}
+            className={controlClass}
           >
             {RANGES.map((option) => (
               <option key={option.value} value={option.value}>

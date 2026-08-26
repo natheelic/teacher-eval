@@ -1,15 +1,21 @@
+import { redirect } from "next/navigation";
 import { Header } from "@/components/dashboard/Header";
 import { IconSidebar } from "@/components/dashboard/IconSidebar";
-import { ProjectOverview } from "@/components/dashboard/ProjectOverview";
-import { RegionMapCard } from "@/components/dashboard/RegionMapCard";
-import { UsageCharts } from "@/components/dashboard/UsageCharts";
-import { AdvisorPanel } from "@/components/dashboard/AdvisorPanel";
-import { ReportsPanel } from "@/components/dashboard/ReportsPanel";
 import { NoticeBanner } from "@/components/dashboard/NoticeBanner";
-import { getDefaultProject } from "@/lib/queries/workspace";
+import { UsersTable } from "@/components/users/UsersTable";
+import { getCurrentUser } from "@/lib/auth/require-session";
+import { canManageUsers } from "@/lib/permissions";
 
-export default async function Home() {
-  const project = await getDefaultProject();
+export default async function Home({ searchParams }: PageProps<"/">) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/signin");
+
+  // Members and viewers have no business here; send them to their own account
+  // rather than showing an empty or forbidden table.
+  if (!canManageUsers(user.role)) redirect("/account/preferences");
+
+  // Next 16: searchParams is a Promise.
+  const params = await searchParams;
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
@@ -17,29 +23,17 @@ export default async function Home() {
       <div className="flex min-w-0 flex-1">
         <IconSidebar />
         <main className="flex-1 min-w-0 overflow-x-auto">
-          <div className="mx-auto max-w-[1600px] px-4 pt-8 pb-8 sm:px-[72px] sm:pt-12 sm:pb-12">
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-              <div className="self-center">
-                {project ? (
-                  <ProjectOverview project={project} />
-                ) : (
-                  <p className="text-[15px] font-medium text-[#696969]">
-                    This organization has no projects yet.
-                  </p>
-                )}
-              </div>
-              <div className="self-center">
-                <RegionMapCard />
-              </div>
+          <div className="mx-auto flex max-w-[1200px] flex-col px-4 pb-24 pt-8 sm:px-10 sm:pt-12">
+            <div className="flex flex-col gap-1 pb-8">
+              <h1 className="font-display text-[22px] font-semibold tracking-[-0.55px] text-[#030303]">
+                Users
+              </h1>
+              <p className="text-[15px] font-medium text-[#464646]">
+                Manage accounts, roles, and access.
+              </p>
             </div>
-          </div>
 
-          <div className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-[72px] sm:pb-24">
-            <div className="flex flex-col gap-10 sm:gap-[56px]">
-              <UsageCharts />
-              <AdvisorPanel />
-              <ReportsPanel />
-            </div>
+            <UsersTable searchParams={params} />
           </div>
         </main>
       </div>

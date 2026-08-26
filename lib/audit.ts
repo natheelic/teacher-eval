@@ -4,19 +4,16 @@ import { clientIpFrom } from "@/lib/auth/device";
 
 export type AuditInput = {
   actorId?: string | null;
-  organizationId?: string | null;
-  projectId?: string | null;
+  /** The user this action was performed on, when it targets someone. */
+  targetUserId?: string | null;
   /** Human-readable sentence shown in the Action column. */
   action: string;
-  /** Stable machine key used for filtering, e.g. "project.updated". */
+  /** Stable machine key used for filtering, e.g. "user.role.changed". */
   actionCode: string;
   method?: string;
   statusCode?: number;
-  targetType?: string;
-  targetId?: string;
   /** Denormalised so the row still reads correctly after the target is gone. */
   targetLabel?: string;
-  targetRef?: string;
   metadata?: Record<string, unknown>;
 };
 
@@ -42,16 +39,12 @@ export async function logAudit(input: AuditInput): Promise<void> {
     await prisma.auditLog.create({
       data: {
         actorId: input.actorId ?? null,
-        organizationId: input.organizationId ?? null,
-        projectId: input.projectId ?? null,
+        targetUserId: input.targetUserId ?? null,
         action: input.action,
         actionCode: input.actionCode,
         method: input.method ?? null,
         statusCode: input.statusCode ?? null,
-        targetType: input.targetType ?? null,
-        targetId: input.targetId ?? null,
         targetLabel: input.targetLabel ?? null,
-        targetRef: input.targetRef ?? null,
         ipAddress,
         userAgent,
         metadata: input.metadata ? (input.metadata as object) : undefined,

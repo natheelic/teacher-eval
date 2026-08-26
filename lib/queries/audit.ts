@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/require-session";
+import { canManageUsers } from "@/lib/permissions";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 export type AuditLogView = {
@@ -7,24 +8,26 @@ export type AuditLogView = {
   statusCode: number | null;
   method: string | null;
   action: string;
-  target: { label: string; ref: string | null } | null;
+  target: string | null;
+  actor: string | null;
   createdAt: string;
 };
 
 export type AuditRange = "24h" | "7d" | "30d" | "all";
+export type AuditScope = "mine" | "all";
 
 export type AuditFilters = {
   range: AuditRange;
-  projectId: string | null;
+  scope: AuditScope;
   cursor: string | null;
 };
 
 export type AuditLogPage = {
   rows: AuditLogView[];
-  /** A real count, not rows.length — the header claims a total. */
   total: number;
   nextCursor: string | null;
-  projects: { id: string; name: string }[];
+  /** Whether the viewer is allowed to see everyone's activity. */
+  canSeeAll: boolean;
 };
 
 const PAGE_SIZE = 25;
@@ -37,7 +40,7 @@ const RANGE_MS: Record<Exclude<AuditRange, "all">, number> = {
 
 export function parseAuditFilters(params: {
   range?: string | string[];
-  project?: string | string[];
+  scope?: string | string[];
   cursor?: string | string[];
 }): AuditFilters {
   const first = (v: string | string[] | undefined) =>
@@ -51,7 +54,7 @@ export function parseAuditFilters(params: {
 
   return {
     range,
-    projectId: first(params.project) ?? null,
+    scope: first(params.scope) === "all" ? "all" : "mine",
     cursor: first(params.cursor) ?? null,
   };
 }
@@ -59,49 +62,38 @@ export function parseAuditFilters(params: {
 export async function getAuditLogs(
   filters: AuditFilters,
 ): Promise<AuditLogPage> {
-  const user = await requireUser();
+  const viewer = await requireUser();
+  const canSeeAll = canManageUsers(viewer.role);
 
-  const where: Prisma.AuditLogWhereInput = { actorId: user.id };
+  const where: Prisma.AuditLogWhereInput = {};
+
+  // Scope is enforced here, not trusted from the URL: a member asking for
+  // scope=all still only ever sees their own rows.
+  if (!canSeeAll || filters.scope === "mine") {
+    where.actorId = viewer.id;
+  }
 
   if (filters.range !== "all") {
     where.createdAt = { gte: new Date(Date.now() - RANGE_MS[filters.range]) };
   }
-  if (filters.projectId) {
-    where.projectId = filters.projectId;
-  }
 
-  const [rows, total, memberships] = await Promise.all([
+  const [rows, total] = await Promise.all([
     prisma.auditLog.findMany({
       where,
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: PAGE_SIZE + 1,
-      ...(filters.cursor
-        ? { cursor: { id: filters.cursor }, skip: 1 }
-        : {}),
+      ...(filters.cursor ? { cursor: { id: filters.cursor }, skip: 1 } : {}),
       select: {
         id: true,
         statusCode: true,
         method: true,
         action: true,
         targetLabel: true,
-        targetRef: true,
         createdAt: true,
+        actor: { select: { name: true, email: true } },
       },
     }),
     prisma.auditLog.count({ where }),
-    prisma.organizationMember.findMany({
-      where: { userId: user.id },
-      select: {
-        organization: {
-          select: {
-            projects: {
-              where: { deletedAt: null },
-              select: { id: true, name: true },
-            },
-          },
-        },
-      },
-    }),
   ]);
 
   const hasMore = rows.length > PAGE_SIZE;
@@ -113,13 +105,12 @@ export async function getAuditLogs(
       statusCode: row.statusCode,
       method: row.method,
       action: row.action,
-      target: row.targetLabel
-        ? { label: row.targetLabel, ref: row.targetRef }
-        : null,
+      target: row.targetLabel,
+      actor: row.actor ? (row.actor.name?.trim() || row.actor.email) : null,
       createdAt: row.createdAt.toISOString(),
     })),
     total,
     nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null,
-    projects: memberships.flatMap((m) => m.organization.projects),
+    canSeeAll,
   };
 }
