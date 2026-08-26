@@ -318,7 +318,14 @@ database query.
   granting `MANAGER` or `ADMIN`. 15 tests, all passing; `pnpm typecheck` and `pnpm lint` unaffected.
   Config file uses `.mts` rather than `.ts` to avoid Vite's CJS/ESM ambiguity warning without
   setting `"type": "module"` in `package.json`, which could affect Next.js's own module handling.
-- **5.2** **Add CI** running `pnpm lint`, `pnpm typecheck` and `pnpm build` on every push.
+- **5.2** ✅ **Added CI.** `.github/workflows/ci.yml` runs on every push and pull request:
+  `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (5.1's Vitest suite —
+  added here too since it now exists, cheap to run, and the roadmap's own ordering principle is
+  "close gaps," not "match the plan verbatim"), then `pnpm build`. No Postgres service container is
+  needed: `lib/env.ts` only validates that `DATABASE_URL`/`AUTH_SECRET`/`NEXT_PUBLIC_APP_NAME`/
+  `NEXT_PUBLIC_APP_DOMAIN` are present and well-formed, and `next build` never opens a connection
+  during page-data collection — verified locally by running `pnpm build` with dummy env values and
+  no reachable database, which succeeded (21 routes generated, no Prisma connection error).
 - **5.3** **Delete `package-lock.json`.** It coexists with the authoritative `pnpm-lock.yaml` and
   invites a wrong-package-manager install (D-14).
 - **5.4** **Document `SHADOW_DATABASE_URL` in `.env.example`.** It is read by `prisma.config.ts`

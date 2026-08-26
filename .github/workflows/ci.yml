@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      # Values only needed to satisfy lib/env.ts's boot-time validation and to
+      # let `next build` collect page data — no live database is required
+      # (see docs/ROADMAP.md 5.2: `pnpm build` succeeds against these dummy
+      # values with no reachable Postgres instance).
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      AUTH_SECRET: "ci-only-secret-not-used-anywhere-real"
+      NEXT_PUBLIC_APP_NAME: "Portal"
+      NEXT_PUBLIC_APP_DOMAIN: "portal.local"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - run: pnpm build
