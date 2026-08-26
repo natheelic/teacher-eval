@@ -1,7 +1,6 @@
 import { AccountHeader } from "@/components/account/AccountHeader";
 import { SettingsSidebar } from "@/components/account/SettingsSidebar";
 import { AuditLogsTable } from "@/components/account/AuditLogsTable";
-import { NoticeBanner } from "@/components/dashboard/NoticeBanner";
 
 export default async function AuditLogsPage({
   searchParams,
@@ -31,7 +30,6 @@ export default async function AuditLogsPage({
           </div>
         </main>
       </div>
-      <NoticeBanner />
     </div>
   );
 }

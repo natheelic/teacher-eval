@@ -1,7 +1,6 @@
 import { AccountHeader } from "@/components/account/AccountHeader";
 import { SettingsSidebar } from "@/components/account/SettingsSidebar";
 import { SecuritySettings } from "@/components/account/SecuritySettings";
-import { NoticeBanner } from "@/components/dashboard/NoticeBanner";
 import { requireUser } from "@/lib/auth/require-session";
 import { getDeviceSessions } from "@/lib/queries/account";
 
@@ -37,7 +36,6 @@ export default async function SecurityPage() {
           </div>
         </main>
       </div>
-      <NoticeBanner />
     </div>
   );
 }

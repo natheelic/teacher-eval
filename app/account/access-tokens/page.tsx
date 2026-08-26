@@ -1,7 +1,6 @@
 import { AccountHeader } from "@/components/account/AccountHeader";
 import { SettingsSidebar } from "@/components/account/SettingsSidebar";
 import { AccessTokensTable } from "@/components/account/AccessTokensTable";
-import { NoticeBanner } from "@/components/dashboard/NoticeBanner";
 import { getApiTokens } from "@/lib/queries/account";
 
 export default async function AccessTokensPage() {
@@ -29,7 +28,6 @@ export default async function AccessTokensPage() {
           </div>
         </main>
       </div>
-      <NoticeBanner />
     </div>
   );
 }

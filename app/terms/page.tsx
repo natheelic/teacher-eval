@@ -6,8 +6,8 @@ import { appName } from "@/lib/app-config";
 export const metadata: Metadata = { title: "Terms of Service" };
 
 // Public: listed in auth.config's PUBLIC_EXACT, so anonymous visitors and
-// signed-in users alike can reach it (linked from NoticeBanner on every
-// signed-in page, and conventionally a ToS page shouldn't require sign-in).
+// signed-in users alike can reach it — conventionally a ToS page shouldn't
+// require sign-in.
 
 const SECTIONS = [
   {

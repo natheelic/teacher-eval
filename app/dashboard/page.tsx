@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Users, ListChecks, Settings } from "lucide-react";
 import { Header } from "@/components/dashboard/Header";
 import { IconSidebar } from "@/components/dashboard/IconSidebar";
-import { NoticeBanner } from "@/components/dashboard/NoticeBanner";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { getCurrentUser } from "@/lib/auth/require-session";
@@ -66,7 +65,6 @@ export default async function DashboardPage() {
           </div>
         </main>
       </div>
-      <NoticeBanner />
     </div>
   );
 }

@@ -86,7 +86,7 @@ These are persisted-but-inert, and the UI implies otherwise. Don't mistake them 
 - **API tokens** — mintable and revocable, but no route authenticates with them; `scopes`, `expiresAt` and `lastUsedAt` are never written or checked.
 - **`UserStatus.INVITED`** — a filter option no code path can produce; `createUser` hardcodes `ACTIVE`.
 - **`Authenticator` and `VerificationToken`** — dead models. No WebAuthn, no email verification, no password-reset flow.
-- **`NoticeBanner`** — hardcoded copy with a dead button, rendered on every page. The Feedback/Docs/Bell buttons in the headers and the sidebar collapse control are likewise non-functional.
+- **`Header`'s Feedback/Docs/Bell buttons and the sidebar collapse control** — non-functional. (`AccountHeader`'s Feedback/Docs buttons are wired to real destinations; `Header`'s standalone copies are not.)
 
 ### Data flow
 
@@ -112,11 +112,9 @@ Each route in `app/` is a thin composition of layout chrome + section components
 
 `app/layout.tsx` also wraps everything in `MobileNavProvider` → `SearchProvider` and renders `CommandPalette`, alongside the paint-blocking theme script.
 
-`NoticeBanner` (dashboard) is rendered at the bottom of every page as a dismissible toast-like element.
-
 ### Component organization (by route family, not by type)
 
-- `components/dashboard/` — app chrome (`Header`, `IconSidebar`, `AppLogo`, `CopyButton`, `NoticeBanner`, `FeedbackDialog`). `FeedbackDialog` is used from `AccountHeader`, not `Header` — `Header.tsx`'s own Feedback/Docs/Bell buttons are still inert (out of scope of the cleanup pass that fixed `AccountHeader`'s; a good next target for consistency).
+- `components/dashboard/` — app chrome (`Header`, `IconSidebar`, `AppLogo`, `CopyButton`, `FeedbackDialog`). `FeedbackDialog` is used from `AccountHeader`, not `Header` — `Header.tsx`'s own Feedback/Docs/Bell buttons are still inert (out of scope of the cleanup pass that fixed `AccountHeader`'s; a good next target for consistency). `NoticeBanner` (a hardcoded, non-persistently-dismissible Terms-of-Service notice rendered on 7 pages) was deleted rather than fixed — no notices infrastructure exists to make it real, the same reasoning as the Phase 6 admin-panel deferrals.
 - `components/users/` — the user-management screen (`UsersTable` server component; `UserFilters`, `UserRowActions`, `CreateUserDialog`, `ResetPasswordDialog` client leaves).
 - `components/account/` — account/preferences pages (`AccountHeader`, `SettingsSidebar`, plus each settings section as its own component: `ProfileInformation`, `Connections`, `AppearanceSettings` (theme only), `DangerZone`, `SecuritySettings` (password + `TwoFactorSettings` + active sessions), `AccessTokensTable`, `AuditLogsTable`). `SettingsPrimitives.tsx` exports the shared `SectionHeading` / `SettingsCard` / `SettingsRow` building blocks used across the settings sections, and `Switch.tsx` is the shared toggle control (supports controlled `checked` + `onCheckedChange` as well as uncontrolled `defaultChecked`). Password change has exactly one UI: the inline form in `SecuritySettings.tsx` on `/account/security`, reachable from `/account/preferences` only via `SettingsSidebar`'s nav — there used to be a `SignInMethods` section on Preferences duplicating both that (via a `ChangePasswordDialog` modal) and provider linking (`Connections`/`ConnectionButton` already does that); both `SignInMethods.tsx` and `UnlinkProviderButton.tsx`, and the `getSignInMethods()` query, were deleted as redundant. `KeyboardShortcuts.tsx`, `DashboardSettings.tsx`, `AnalyticsMarketing.tsx` and `SidebarBehaviorSelect.tsx` were deleted the same way — all four were stored-but-unread `UserPreferences` toggles (the DB columns are dropped too); `UserPreferences` now has only `theme`. Don't reintroduce any of it.
 - `components/auth/` — sign-in/sign-up forms and their shared `AuthPrimitives`, plus `GoogleButton`.

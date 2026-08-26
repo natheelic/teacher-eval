@@ -4,7 +4,6 @@ import { ProfileInformation } from "@/components/account/ProfileInformation";
 import { Connections } from "@/components/account/Connections";
 import { AppearanceSettings } from "@/components/account/AppearanceSettings";
 import { DangerZone } from "@/components/account/DangerZone";
-import { NoticeBanner } from "@/components/dashboard/NoticeBanner";
 import { requireUser } from "@/lib/auth/require-session";
 import { getConnections, getPreferences } from "@/lib/queries/account";
 import { toIso } from "@/lib/format";
@@ -53,7 +52,6 @@ export default async function PreferencesPage() {
           </div>
         </main>
       </div>
-      <NoticeBanner />
     </div>
   );
 }

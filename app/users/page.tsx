@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { Header } from "@/components/dashboard/Header";
 import { IconSidebar } from "@/components/dashboard/IconSidebar";
-import { NoticeBanner } from "@/components/dashboard/NoticeBanner";
 import { UsersTable } from "@/components/users/UsersTable";
 import { getCurrentUser } from "@/lib/auth/require-session";
 import { canManageUsers } from "@/lib/permissions";
@@ -39,7 +38,6 @@ export default async function UsersPage({
           </div>
         </main>
       </div>
-      <NoticeBanner />
     </div>
   );
 }

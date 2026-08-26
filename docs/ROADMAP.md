@@ -58,7 +58,7 @@ misleads. None of it is large work.
 | 1.4 | ✅ **`telemetryEnabled`, `editEntitiesInCode`, `queueTableOperations` removed** | Three inert switches (D-4), dropped rather than implemented — no telemetry client, no code-editor mode, no batched edits exist anywhere in the app to wire them to. | — |
 | 1.5 | ✅ **Keyboard shortcuts section removed** | The list was hardcoded, several entries named features deleted with the tenancy layer ("New project", "Publish OAuth app", "Add project connection"), and none of the 13 toggles — including the one for ⌘K — were ever read; ⌘K itself is hardcoded in `CommandPalette.tsx` independent of the toggle and is unaffected (D-5). | — |
 | 1.6 | ✅ **Fixed stale copy on `/signup`** — no longer promises the account "creates your organization and a first project" | Directly contradicted what the product does; replaced with neutral copy (D-10, resolved). | `app/(auth)/signup/page.tsx` |
-| 1.7 | **Replace or remove the hardcoded `NoticeBanner`** | It shows fixed marketing copy about a Terms of Service update, with a "Learn more" button that goes nowhere, on every page (D-15). Either make it data-driven or delete it. | `components/dashboard/NoticeBanner.tsx` |
+| 1.7 | ✅ **`NoticeBanner` removed** | It showed fixed marketing copy claiming an in-progress Terms of Service update, forever, on every page — and its dismissal wasn't persisted, so it reappeared on every navigation. This is properly an admin-authored-announcement feature, which needs the same admin panel the logo-upload and feedback-viewing items are waiting on — deferred there as 6.3 rather than rebuilt as a one-off. Deleted the hardcoded version now rather than leave it lying to users in the meantime. | — |
 | 1.8 | **Remove or wire the dead chrome** — Feedback, Docs and Notifications buttons in the headers; the decorative sidebar collapse control; the unconditionally-active "Users" nav item | Non-functional affordances (D-15). | `components/dashboard/{Header,IconSidebar}.tsx`, `components/account/AccountHeader.tsx` |
 
 **Exit criteria:** no control in the interface persists state that nothing reads, and no copy
@@ -191,6 +191,14 @@ feature asks for it first.
   request) has no admin-facing read UI yet — rows are only inspectable via `psql`/Prisma Studio.
   Once 6.1's admin route exists, add a simple list view here rather than building a second,
   separate admin surface for it.
+- **6.3 — Admin-authored announcements.** The old `NoticeBanner` (deleted in 1.7) was really this
+  feature attempted without the infrastructure it needs: an `ADMIN`-authored message shown to
+  users until they dismiss it, not a hardcoded client component. Needs a Prisma model (message,
+  active flag, created/updated timestamps — a `Dismissal` join table or a
+  `dismissedAnnouncementIds` column on `User` so "dismissed" actually persists instead of
+  resetting on every navigation like the old banner did), a create/edit/deactivate Server Action
+  reachable from the same admin route as 6.1/6.2, and a read-side query gating which page shells
+  render it. Build after 6.1 exists rather than standing up a separate admin surface for it.
 
 ---
 

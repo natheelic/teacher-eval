@@ -3,7 +3,6 @@ import path from "node:path";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AccountHeader } from "@/components/account/AccountHeader";
-import { NoticeBanner } from "@/components/dashboard/NoticeBanner";
 
 /**
  * Reads docs/SRS.md from disk at request time. Works because this app runs
@@ -23,7 +22,6 @@ export default async function DocsPage() {
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         </article>
       </main>
-      <NoticeBanner />
     </div>
   );
 }
