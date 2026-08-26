@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Documentation
+
+- **`docs/SRS.md`** — the requirements specification (IEEE-830). What the system must do, every rule traced to the file that implements it, and an explicit list of what is deliberately out of scope. **Read it before changing authorization, auth, or the data model.**
+- **`docs/ROADMAP.md`** — what is shipped versus what is a shell, and in what order the gaps should close.
+- **`README.md`** — setup and orientation for humans.
+
+Several toggles in this app persist state that nothing reads (see [Known shells](#known-shells)). Before "fixing" one, check `docs/ROADMAP.md` — the gap is usually known and sometimes the intended resolution is deletion, not implementation.
+
 ## Commands
 
 Package manager is pnpm (see `pnpm-lock.yaml` / `pnpm-workspace.yaml`); a `package-lock.json` also exists but should not be treated as authoritative.
@@ -14,7 +22,9 @@ Package manager is pnpm (see `pnpm-lock.yaml` / `pnpm-workspace.yaml`); a `packa
 - `pnpm db:up` / `pnpm db:down` — start/stop Postgres + pgAdmin via `docker-compose.yml`
 - `pnpm db:migrate` — `prisma migrate dev`; `pnpm db:studio`, `pnpm db:seed`, `pnpm db:reset`
 
-Destructive schema changes make `prisma migrate dev` prompt, which fails in a non-interactive shell. Generate the SQL with `prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --script` (needs `SHADOW_DATABASE_URL`), **check its statement order**, then apply with `prisma migrate deploy`.
+Destructive schema changes make `prisma migrate dev` prompt, which fails in a non-interactive shell. Generate the SQL with `prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --script` (needs `SHADOW_DATABASE_URL`), **check its statement order**, then apply with `prisma migrate deploy`. Note that `SHADOW_DATABASE_URL` is read by `prisma.config.ts` but is **not** listed in `.env.example` — you have to add it yourself.
+
+`pnpm db:seed` inserts nothing; it only reports row counts. A fresh database is populated by signing up.
 
 There is no test suite/framework configured in this repo.
 
@@ -29,12 +39,13 @@ Next.js App Router (`app/`), React 19, Tailwind CSS v4 (via `@tailwindcss/postcs
 ### Backend layout
 
 - `prisma/schema.prisma` + `prisma.config.ts` — **Prisma 7**: the datasource URL lives in `prisma.config.ts` (not the schema), `.env` is loaded there via `dotenv`, the generator is `prisma-client` (not `prisma-client-js`) emitting TypeScript to `lib/generated/prisma`, and queries go through the `@prisma/adapter-pg` driver adapter. Import the client from `@/lib/prisma`.
-- `auth.config.ts` — edge-safe Auth.js config (providers minus Credentials, `pages`, `authorized`). **Must not import Prisma or bcrypt.**
+- `auth.config.ts` — edge-safe Auth.js config (providers minus Credentials, `pages`, `authorized`, `isPublicPath`). **Must not import Prisma or bcrypt.**
 - `auth.ts` — Node-side: Prisma adapter, Credentials + Google, JWT callbacks, `DeviceSession` lifecycle.
 - `proxy.ts` — **Next 16 renamed `middleware.ts` to `proxy.ts`** (exports `proxy` + `config.matcher`, defaults to the Node runtime, and setting `runtime` there throws). It is a *redirect* layer only — it sees just the decoded JWT.
 - `lib/auth/require-session.ts` — the real authorization layer. Every protected page and Server Action calls `requireUser()`; it is the only place revocation and account deletion are enforced.
+- `lib/auth/{device,password,tokens}.ts` — user-agent parsing for `DeviceSession` labels, bcrypt hash/verify, and API-token minting/hashing. `tokenPreview()` in `tokens.ts` currently has no callers; the preview string is re-inlined in `lib/queries/account.ts`.
 - `lib/permissions.ts` — the single source of truth for who may act on whom. Pure functions, no Prisma, no request context.
-- `lib/queries/*` (read, `React.cache`d), `lib/actions/*` (`"use server"` mutations), `lib/audit.ts`, `lib/bootstrap.ts` (sign-up).
+- `lib/queries/*` (read, `React.cache`d), `lib/actions/*` (`"use server"` mutations), `lib/audit.ts`, `lib/bootstrap.ts` (sign-up), `lib/format.ts` (display formatting).
 
 ### Roles
 
@@ -47,21 +58,40 @@ Rules enforced in `lib/permissions.ts` and applied by every action in `lib/actio
 - Deleting is **admin-only**; managers may suspend instead.
 - `assertNotLastAdmin` blocks demoting, suspending or deleting the final active admin — otherwise the users table becomes permanently unreachable.
 
+Every action in `lib/actions/users.ts` routes through the private `loadActionable(targetId)` helper, which runs `requireUserManager()` + `canActOnUser()` in one place. New administrative actions should use it rather than re-deriving the check.
+
 **The first account created (via `/signup`) becomes `ADMIN`**; everyone after is a `MEMBER`. That is what makes a fresh database usable.
 
 Suspension and password resets revoke the target's `DeviceSession` rows, and `requireUser()` rejects `SUSPENDED`, so both take effect on the very next request.
+
+Deletion is a **soft delete**: `deletedAt` is set, status becomes `SUSPENDED`, the email is rewritten to `deleted+<id>@invalid.local` and the username is nulled — so audit history survives and the address is freed without violating the unique constraint.
 
 ### Auth invariants
 
 - The Credentials provider **forces `session.strategy: "jwt"`**, so the adapter's `Session` table stays permanently empty. The UI's session list is the separate `DeviceSession` model, keyed by the JWT's `sid`.
 - Because a JWT is self-contained, revocation only bites where the DB is read — i.e. in `requireUser()`. Changing a password revokes all other `DeviceSession`s.
 - Never unlink a user's last remaining sign-in method.
+- Auditing must never be the reason a user-visible operation fails — `logAudit` swallows its own errors by design. Don't add a code path that depends on it having succeeded.
+
+### Known shells
+
+These are persisted-but-inert, and the UI implies otherwise. Don't mistake them for working features, and don't assume the gap is an oversight — `docs/ROADMAP.md` Phase 1 covers each, and for some the intended resolution is removal:
+
+- **Two-factor auth** — `setTwoFactorEnabled` flips a boolean; `twoFactorSecret` is never written and sign-in has no second-factor step.
+- **`User.lastLoginAt`** — selected and rendered in `UsersTable`, never written.
+- **`sidebarBehavior`** — stored and selectable; no sidebar reads it.
+- **`telemetryEnabled`, `editEntitiesInCode`, `queueTableOperations`** — stored; nothing consults them.
+- **Keyboard shortcuts** — toggles persist, but only ⌘K is implemented, and several labels name features removed with the tenancy layer.
+- **API tokens** — mintable and revocable, but no route authenticates with them; `scopes`, `expiresAt` and `lastUsedAt` are never written or checked.
+- **`UserStatus.INVITED`** — a filter option no code path can produce; `createUser` hardcodes `ACTIVE`.
+- **`Authenticator` and `VerificationToken`** — dead models. No WebAuthn, no email verification, no password-reset flow.
+- **`NoticeBanner`** — hardcoded copy with a dead button, rendered on every page. The Feedback/Docs/Bell buttons in the headers and the sidebar collapse control are likewise non-functional.
 
 ### Data flow
 
 Pages are `async` server components that fetch and pass props down; sections take props. Two exceptions fetch directly (both `cache`d): `Header`/`AccountHeader` (used by five pages) and `AuditLogsTable` (owns its filters and cursor). Mutations are Server Actions ending in `revalidatePath`; route handlers are reserved for `[...nextauth]`, machine APIs, and webhooks. Audit-log filters are URL `searchParams`, not client fetches.
 
-The pattern throughout: **server shell owns layout and copy, a small client leaf owns the interactivity** (`DeleteProjectButton`, `CopyButton`, `ConnectionButton`, …), which keeps `SettingsCard`/`SettingsRow` composition intact.
+The pattern throughout: **server shell owns layout and copy, a small client leaf owns the interactivity** (`UserRowActions`, `CopyButton`, `ConnectionButton`, `AccountDeletionButton`, …), which keeps `SettingsCard`/`SettingsRow` composition intact.
 
 Dates: render absolute strings from the server; `RelativeTime` upgrades to "2 minutes ago" only after hydration (via `useSyncExternalStore`) to avoid mismatches. Theme has two stores — `UserPreferences.theme` is authoritative, `localStorage` is the paint-blocking cache read by the inline script in `app/layout.tsx`; `useSyncedTheme` writes localStorage first, then the DB.
 
@@ -70,8 +100,10 @@ Dates: render absolute strings from the server; `RelativeTime` upgrades to "2 mi
 Each route in `app/` is a thin composition of layout chrome + section components pulled from `components/`. There's no shared root layout beyond fonts/global CSS in `app/layout.tsx` — every page independently composes its own header + sidebar:
 
 - `app/page.tsx` — the users table (`Header` + `IconSidebar` + `components/users/UsersTable`). This is the app's main screen.
-- `app/account/{preferences,security,access-tokens,audit-logs}/page.tsx` — account section: `AccountHeader` + `SettingsSidebar` (from `components/account/`), with an `active` prop identifying the current nav item.
+- `app/account/{preferences,security,access-tokens,audit-logs}/page.tsx` — account section: `AccountHeader` + `SettingsSidebar` (from `components/account/`), with an `active` prop identifying the current nav item. There is **no** `app/account/layout.tsx`.
 - `app/(auth)/{signin,signup}/page.tsx` — the only route group; gives auth pages a bare layout with no dashboard chrome without changing their URLs.
+
+`app/layout.tsx` also wraps everything in `MobileNavProvider` → `SearchProvider` and renders `CommandPalette`, alongside the paint-blocking theme script.
 
 `NoticeBanner` (dashboard) is rendered at the bottom of every page as a dismissible toast-like element.
 
@@ -79,7 +111,11 @@ Each route in `app/` is a thin composition of layout chrome + section components
 
 - `components/dashboard/` — app chrome (`Header`, `IconSidebar`, `AppLogo`, `CopyButton`, `NoticeBanner`).
 - `components/users/` — the user-management screen (`UsersTable` server component; `UserFilters`, `UserRowActions`, `CreateUserDialog`, `ResetPasswordDialog` client leaves).
-- `components/account/` — account/preferences pages (`AccountHeader`, `SettingsSidebar`, plus each settings section as its own component: `ProfileInformation`, `SignInMethods`, `Connections`, `AppearanceSettings`, `KeyboardShortcuts`, `DashboardSettings`, `AnalyticsMarketing`, `DangerZone`, `AuditLogsTable`). `SettingsPrimitives.tsx` exports the shared `SectionHeading` / `SettingsCard` / `SettingsRow` building blocks used across the settings sections, and `Switch.tsx` is the shared toggle control (supports controlled `checked` + `onCheckedChange` as well as uncontrolled `defaultChecked`).
+- `components/account/` — account/preferences pages (`AccountHeader`, `SettingsSidebar`, plus each settings section as its own component: `ProfileInformation`, `SignInMethods`, `Connections`, `AppearanceSettings`, `KeyboardShortcuts`, `DashboardSettings`, `AnalyticsMarketing`, `DangerZone`, `SecuritySettings`, `AccessTokensTable`, `AuditLogsTable`). `SettingsPrimitives.tsx` exports the shared `SectionHeading` / `SettingsCard` / `SettingsRow` building blocks used across the settings sections, and `Switch.tsx` is the shared toggle control (supports controlled `checked` + `onCheckedChange` as well as uncontrolled `defaultChecked`).
+- `components/auth/` — sign-in/sign-up forms and their shared `AuthPrimitives`, plus `GoogleButton`.
+- `components/layout/` — mobile navigation: `MobileNavProvider` (context), `MobileMenuButton`, `MobileDrawer`.
+- `components/search/` — the ⌘K `CommandPalette`, its `SearchProvider` and `SearchTrigger`. `search-data.ts` is a hardcoded nav list, not a live index.
+- `components/theme/` — `useTheme` (reads) and `useSyncedTheme` (writes localStorage, then the DB).
 
 When adding a new settings-style section, compose it from `SettingsPrimitives` (`SectionHeading` + `SettingsCard` + `SettingsRow`) rather than rebuilding card/row markup, to stay visually consistent with existing sections.
 

@@ -1,36 +1,224 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Portal
 
-## Getting Started
+A self-hosted **user management application**. One screen for administering accounts, roles and
+access; one self-service area where every user manages their own profile, password, sessions and
+API tokens; and an audit log recording all of it.
 
-First, run the development server:
+Built on Next.js 16 (App Router), React 19, Prisma 7 and Auth.js v5, against a local PostgreSQL
+instance.
+
+> This project descends from a Supabase-style hosting-console template. The multi-tenant layer —
+> organizations, projects, domains — was deliberately removed. The app now does exactly one job.
+
+---
+
+## Features
+
+**Authentication**
+- Email + password, with case-insensitive lookup and no account-existence disclosure on failure
+- Optional Google OAuth, enabled only when credentials are configured
+- 30-day JWT sessions, plus a separate per-device session record you can list and revoke
+
+**Roles and access**
+- Four roles: `ADMIN` > `MANAGER` > `MEMBER` > `VIEWER`
+- Privilege-escalation guards enforced in one pure module (`lib/permissions.ts`)
+- The last active admin cannot be demoted, suspended or deleted
+
+**User administration** *(admins and managers)*
+- Create users, change roles, suspend and reactivate, reset passwords
+- Soft delete that preserves audit history
+- Search, role and status filters, cursor pagination, population stats
+
+**Self-service** *(everyone)*
+- Profile and username
+- Password change — which revokes every *other* device session
+- Linked sign-in methods, with a hard guarantee you can never unlink your last one
+- Personal API tokens, shown in plaintext exactly once
+- Theme, sidebar and notification preferences
+- Account deletion request, cancellable
+
+**Audit**
+- 18 recorded action codes with actor, target, IP and user agent
+- Non-managers see only their own entries, regardless of the requested scope
+- Logging is best-effort and can never fail the operation it records
+
+---
+
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 16.3.2 (App Router, Turbopack) |
+| UI | React 19.2.8, Tailwind CSS v4 via `@tailwindcss/postcss`, `lucide-react` icons |
+| Auth | Auth.js v5 (`next-auth@5.0.0-beta.32`) + `@auth/prisma-adapter` |
+| Database | PostgreSQL, via Prisma 7.9.1 with the `@prisma/adapter-pg` driver adapter |
+| Validation | zod 4 |
+| Hashing | `bcryptjs` (passwords), SHA-256 (API tokens) |
+| Language | TypeScript 5 |
+| Package manager | pnpm 11.17.0 |
+
+---
+
+## Quick start
+
+**Prerequisites:** Node.js, pnpm, and Docker (for the local database).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# 1. Install dependencies
+pnpm install
+
+# 2. Create your environment file
+cp .env.example .env
+
+# 3. Generate an auth secret and paste it into AUTH_SECRET
+npx auth secret
+
+# 4. Start PostgreSQL + pgAdmin
+pnpm db:up
+
+# 5. Apply migrations
+pnpm db:migrate
+
+# 6. Run the dev server
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open <http://localhost:3000/signup>.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> **The first account you create becomes `ADMIN`.** Every account after it is a `MEMBER`. This is
+> what makes a fresh database usable — there is no seeded user. `pnpm db:seed` intentionally
+> inserts nothing; it only reports row counts.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Optional: Google sign-in
 
-## Learn More
+Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`, and register
+`http://localhost:3000/api/auth/callback/google` as an authorised redirect URI. The Google button
+appears only when both variables are present.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environment variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`lib/env.ts` validates these with zod **at import time** and throws on anything missing or
+malformed, so a bad `.env` fails at boot rather than deep inside a query.
 
-## Deploy on Vercel
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | ✅ | PostgreSQL connection string |
+| `AUTH_SECRET` | ✅ | `npx auth secret` |
+| `AUTH_URL` | — | Required in production; leave unset in development |
+| `AUTH_GOOGLE_ID` | — | Google provider registers only if this *and* the secret are set |
+| `AUTH_GOOGLE_SECRET` | — | |
+| `NEXT_PUBLIC_APP_NAME` | ✅ | Product name used throughout the UI |
+| `NEXT_PUBLIC_APP_DOMAIN` | ✅ | Must be a **bare hostname** — no scheme, no path |
+| `SHADOW_DATABASE_URL` | — | Only for `prisma migrate diff`; not in `.env.example` yet |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Two config modules, and the split matters: **`lib/app-config.ts`** is client-safe
+(`NEXT_PUBLIC_*` only) and **`lib/env.ts`** is server-only and must never be imported from a
+Client Component.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Scripts
+
+| Command | Does |
+|---|---|
+| `pnpm dev` | Dev server (Turbopack) |
+| `pnpm build` / `pnpm start` | Production build / run it |
+| `pnpm lint` | ESLint (`eslint-config-next`, core-web-vitals + TypeScript) |
+| `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm db:up` / `pnpm db:down` | Start / stop PostgreSQL + pgAdmin |
+| `pnpm db:migrate` | `prisma migrate dev` |
+| `pnpm db:studio` | Prisma Studio |
+| `pnpm db:seed` | Reports counts only — creates nothing |
+| `pnpm db:reset` | Drop, recreate and re-migrate |
+
+There is **no test suite configured**. See [`docs/ROADMAP.md`](docs/ROADMAP.md) Phase 5.
+
+---
+
+## Roles and permissions
+
+| Role | Lands on | Can do |
+|---|---|---|
+| `ADMIN` | `/` | Everything. The only role that may **delete** a user or assign `ADMIN`. |
+| `MANAGER` | `/` | Act on `MEMBER` and `VIEWER` only; assign only roles below `MANAGER`; suspend but never delete. |
+| `MEMBER` | `/account/preferences` | Self-service only. |
+| `VIEWER` | `/account/preferences` | Self-service only. |
+
+The rules, all enforced in `lib/permissions.ts`:
+
+- **Nobody may act on themselves** through the admin surface — self-service lives under `/account`.
+- A manager may act only on **strictly lower** ranks, **and** may assign only roles below their
+  own. Either rule alone leaves an escalation path open; together they close it.
+- **Deleting is admin-only.** Managers suspend instead.
+- The **final active admin** cannot be demoted, suspended or deleted — otherwise the users table
+  becomes permanently unreachable.
+
+Suspension and password resets revoke the target's device sessions, and every protected page and
+action calls `requireUser()`, which rejects suspended and deleted accounts. Both therefore take
+effect on the very next request.
+
+---
+
+## Project layout
+
+```
+app/
+  page.tsx                     Users table — the main screen
+  (auth)/{signin,signup}/      Bare-layout auth pages
+  account/{preferences,security,access-tokens,audit-logs}/
+  api/auth/[...nextauth]/      Auth.js handlers (Node runtime)
+components/
+  dashboard/   App chrome (Header, IconSidebar, NoticeBanner)
+  users/       The user-management screen
+  account/     Settings sections + shared SettingsPrimitives
+  auth/        Sign-in / sign-up forms
+  layout/      Mobile navigation
+  search/      Command palette
+  theme/       Theme hooks
+lib/
+  permissions.ts               Who may act on whom — pure, no Prisma
+  auth/require-session.ts      The real authorization boundary
+  actions/                     "use server" mutations
+  queries/                     React.cache'd reads
+  audit.ts, bootstrap.ts       Audit writes, sign-up
+  env.ts, app-config.ts        Server / client configuration split
+prisma/
+  schema.prisma, migrations/, seed.ts
+auth.ts, auth.config.ts, proxy.ts, prisma.config.ts
+```
+
+A note on the boundaries: **`proxy.ts` is a redirect layer only** — it sees just the decoded JWT
+and is not an authorization boundary. `requireUser()` is. And `auth.config.ts` must stay
+edge-safe: no Prisma, no bcrypt.
+
+---
+
+## Documentation
+
+| Document | Covers |
+|---|---|
+| [`docs/SRS.md`](docs/SRS.md) | Full requirements specification (IEEE-830) — every rule, traced to the file that implements it |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | What is shipped, what is a shell, and what comes next |
+| [`CLAUDE.md`](CLAUDE.md) | Architecture guide for coding agents |
+
+---
+
+## Development notes
+
+**Mutations are Server Actions**, ending in `revalidatePath`. Route handlers are reserved for
+`[...nextauth]`, machine APIs and webhooks. List filters are URL `searchParams`, resolved on the
+server.
+
+**The composition pattern throughout:** a server shell owns layout and copy; a small client leaf
+owns the interactivity. When adding a settings section, compose it from `SettingsPrimitives`
+(`SectionHeading` + `SettingsCard` + `SettingsRow`) rather than rebuilding card markup.
+
+**Destructive schema changes** make `prisma migrate dev` prompt, which fails in a non-interactive
+shell. Generate the SQL with
+`prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --script`
+(needs `SHADOW_DATABASE_URL`), **check the statement order**, then apply with
+`prisma migrate deploy`.
+
+**Package manager:** pnpm. A `package-lock.json` exists in the tree but is not authoritative.
