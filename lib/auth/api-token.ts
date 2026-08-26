@@ -52,6 +52,8 @@ export async function authenticateApiToken(
   if (token.expiresAt && token.expiresAt < new Date()) return null;
   if (token.user.deletedAt || token.user.status === "SUSPENDED") return null;
 
+  void touchLastUsed(token.id);
+
   return {
     token: { id: token.id, scopes: token.scopes },
     user: {
@@ -61,4 +63,17 @@ export async function authenticateApiToken(
       status: token.user.status,
     },
   };
+}
+
+/**
+ * Fired without awaiting so a timestamp write never adds latency to (or, on
+ * failure, ever breaks) the request the token is authenticating. Mirrors
+ * touchDeviceSession()'s best-effort pattern in require-session.ts.
+ */
+async function touchLastUsed(tokenId: string) {
+  await prisma.apiToken
+    .update({ where: { id: tokenId }, data: { lastUsedAt: new Date() } })
+    .catch(() => {
+      // Best effort — an API call must never fail over a timestamp.
+    });
 }

@@ -446,8 +446,9 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
   presented value and look it up by `tokenHash`, and shall reject it — uniformly, as a 401, without
   distinguishing the reason — if it is unknown, revoked, expired, or belongs to a deleted or
   suspended account. `GET /api/me` is the first such route, returning the token holder's identity.
-  `scopes` are carried through but not yet enforced by any route (see `ROADMAP.md` 2.5), and
-  `lastUsedAt` is not yet written on a successful authentication (2.3).
+  A successful authentication stamps `ApiToken.lastUsedAt`, fired without awaiting so the write
+  cannot add latency to or fail the request it authenticates. `scopes` are carried through but not
+  yet enforced by any route (see `ROADMAP.md` 2.5).
 
 **Account deletion**
 
@@ -716,7 +717,7 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 
 | # | Requirement | Deviation |
 |---|---|---|
-| D-6 | §1.2 | `GET /api/me` now authenticates with a minted token (`lib/auth/api-token.ts`), but it's the only route so far; `scopes` and `expiresAt` are returned/checked but never written by the UI, and `lastUsedAt` is still never written. `tokenPreview()` in `lib/auth/tokens.ts` has no callers. |
+| D-6 | §1.2 | `GET /api/me` now authenticates with a minted token (`lib/auth/api-token.ts`) and stamps `lastUsedAt`, but it's the only route so far; `scopes` and `expiresAt` are returned/checked but never written by the UI. `tokenPreview()` in `lib/auth/tokens.ts` has no callers. |
 | D-7 | DR-03 | `UserStatus.INVITED` is unreachable; there is no invitation flow. |
 | D-9 | FR-86 | Audit filtering is limited to range and scope; action codes are inline literals with no central definition. |
 | D-11 | §3.4 | `Authenticator` and `VerificationToken` are dead models. |

@@ -83,7 +83,7 @@ These are persisted-but-inert, and the UI implies otherwise. Don't mistake them 
 - **`sidebarBehavior`** — stored and selectable; no sidebar reads it.
 - **`telemetryEnabled`, `editEntitiesInCode`, `queueTableOperations`** — stored; nothing consults them.
 - **Keyboard shortcuts** — toggles persist, but only ⌘K is implemented, and several labels name features removed with the tenancy layer.
-- **API tokens** — mintable and revocable, but no route authenticates with them; `scopes`, `expiresAt` and `lastUsedAt` are never written or checked.
+- **API tokens** — mintable, revocable, and now authenticate `GET /api/me` (`lib/auth/api-token.ts`), which also stamps `lastUsedAt`; but that's the only route so far, and `scopes`/`expiresAt` are checked on the read side but never written by the UI.
 - **`UserStatus.INVITED`** — a filter option no code path can produce; `createUser` hardcodes `ACTIVE`.
 - **`Authenticator` and `VerificationToken`** — dead models. No WebAuthn, no email verification, no password-reset flow.
 - **`Header`'s Feedback/Docs/Bell buttons and the sidebar collapse control** — non-functional. (`AccountHeader`'s Feedback/Docs buttons are wired to real destinations; `Header`'s standalone copies are not.)
@@ -92,7 +92,7 @@ These are persisted-but-inert, and the UI implies otherwise. Don't mistake them 
 
 Pages are `async` server components that fetch and pass props down; sections take props. Two exceptions fetch directly (both `cache`d): `Header`/`AccountHeader` (used by five pages) and `AuditLogsTable` (owns its filters and cursor). Mutations are Server Actions ending in `revalidatePath`; route handlers are reserved for `[...nextauth]`, machine APIs, and webhooks. Audit-log filters are URL `searchParams`, not client fetches.
 
-`app/api/*` is excluded from the proxy's session-redirect gate (`PUBLIC_PREFIXES` in `auth.config.ts` includes `/api`) — every route handler under it owns its own authentication and its own error response, since redirecting a machine client to an HTML sign-in page makes no sense. `app/api/me/route.ts` is the first such route: `GET`, protected by `lib/auth/api-token.ts`'s `authenticateApiToken()` (bearer-token lookup by `ApiToken.tokenHash`, rejecting revoked/expired/deleted-or-suspended-owner the same way `getCurrentUser()` does for sessions).
+`app/api/*` is excluded from the proxy's session-redirect gate (`PUBLIC_PREFIXES` in `auth.config.ts` includes `/api`) — every route handler under it owns its own authentication and its own error response, since redirecting a machine client to an HTML sign-in page makes no sense. `app/api/me/route.ts` is the first such route: `GET`, protected by `lib/auth/api-token.ts`'s `authenticateApiToken()` (bearer-token lookup by `ApiToken.tokenHash`, rejecting revoked/expired/deleted-or-suspended-owner the same way `getCurrentUser()` does for sessions, and stamping `ApiToken.lastUsedAt` without awaiting it — same fire-and-forget, error-swallowing shape as `touchDeviceSession()`).
 
 The pattern throughout: **server shell owns layout and copy, a small client leaf owns the interactivity** (`UserRowActions`, `CopyButton`, `ConnectionButton`, `AccountDeletionButton`, …), which keeps `SettingsCard`/`SettingsRow` composition intact.
 

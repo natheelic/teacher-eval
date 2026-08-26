@@ -90,8 +90,12 @@ feature currently produces secrets that do nothing (D-6).
   confirmed a request with no token or a garbage token gets 401 (not a redirect), and confirmed
   revoking the token immediately breaks it. Session-gated pages (e.g. `/dashboard`) still redirect
   to `/signin` as before — only `/api/*` changed.
-- **2.3** Write `ApiToken.lastUsedAt` on each successful authentication, so the token list shows
-  which tokens are live.
+- **2.3** ✅ `authenticateApiToken()` now writes `ApiToken.lastUsedAt` on each successful
+  authentication, fired without awaiting so the write never adds latency to (or, on failure, ever
+  breaks) the request it's authenticating — mirroring `touchDeviceSession()`'s best-effort pattern
+  in `require-session.ts`. The `/account/access-tokens` list already read this column (it was one
+  of the stored-but-never-written fields), so it now shows "Last used: just now" without any UI
+  change needed.
 - **2.4** Honour `expiresAt` — and expose an expiry field in the creation form, which currently
   offers only a name.
 - **2.5** Define and enforce `scopes`. The column is `String[]` with a default of `[]` and is
