@@ -23,9 +23,18 @@ export function buildOtpAuthUrl(secret: string, email: string): string {
 
 const PENDING_ENROLLMENT_TTL_MS = 10 * 60 * 1000;
 
-/** Derived from AUTH_SECRET — already a trusted, high-entropy secret in this app. */
+/**
+ * Derived from AUTH_SECRET — already a trusted, high-entropy secret in this
+ * app. A distinct label per purpose so the pending-enrollment key and the
+ * at-rest key are cryptographically separate, even though both ultimately
+ * derive from the same root secret.
+ */
+function deriveKey(label: string): Buffer {
+  return createHash("sha256").update(`${env.AUTH_SECRET}:${label}`).digest();
+}
+
 function encryptionKey(): Buffer {
-  return createHash("sha256").update(`${env.AUTH_SECRET}:2fa-pending`).digest();
+  return deriveKey("2fa-pending");
 }
 
 type PendingPayload = { secret: string; userId: string; iat: number };
@@ -73,4 +82,44 @@ export function decryptPendingSecret(token: string, userId: string): string | nu
   } catch {
     return null;
   }
+}
+
+/**
+ * `User.twoFactorSecret` at rest (ROADMAP 5.9). Unlike the pending-enrollment
+ * token above, this has no expiry or user binding baked in — it's a
+ * long-lived value, decrypted fresh on every sign-in, not a short-lived
+ * handoff between two steps of one flow. It must stay decryptable (unlike a
+ * password hash, which only ever needs comparing), so encryption — not
+ * hashing — is the only option.
+ */
+function atRestKey(): Buffer {
+  return deriveKey("2fa-secret-at-rest");
+}
+
+export function encryptTwoFactorSecret(secret: string): string {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", atRestKey(), iv);
+  const ciphertext = Buffer.concat([cipher.update(secret, "utf8"), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return [iv, authTag, ciphertext].map((b) => b.toString("base64url")).join(".");
+}
+
+/** Throws on a malformed or tampered value — a stored secret failing to
+ * decrypt is a real integrity problem, not a normal "try again" case. */
+export function decryptTwoFactorSecret(ciphertext: string): string {
+  const [ivB64, tagB64, dataB64] = ciphertext.split(".");
+  if (!ivB64 || !tagB64 || !dataB64) {
+    throw new Error("Malformed encrypted twoFactorSecret");
+  }
+
+  const decipher = createDecipheriv(
+    "aes-256-gcm",
+    atRestKey(),
+    Buffer.from(ivB64, "base64url"),
+  );
+  decipher.setAuthTag(Buffer.from(tagB64, "base64url"));
+  return Buffer.concat([
+    decipher.update(Buffer.from(dataB64, "base64url")),
+    decipher.final(),
+  ]).toString("utf8");
 }

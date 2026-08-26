@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
 import { parseDevice, clientIpFrom } from "@/lib/auth/device";
 import { cancelPendingDeletion } from "@/lib/auth/deletion";
-import { verifyTotpCode } from "@/lib/auth/totp";
+import { verifyTotpCode, decryptTwoFactorSecret } from "@/lib/auth/totp";
 
 /**
  * Thrown by authorize() instead of returning null when the password is
@@ -71,7 +71,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!user || !ok || user.deletedAt) return null;
 
         if (user.twoFactorEnabled && user.twoFactorSecret) {
-          if (!code || !(await verifyTotpCode(user.twoFactorSecret, code))) {
+          const secret = decryptStoredSecret(user.twoFactorSecret);
+          if (!code || !secret || !(await verifyTotpCode(secret, code))) {
             throw new TwoFactorRequired();
           }
         }
@@ -177,6 +178,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+/**
+ * Fails closed rather than throwing: a stored secret that won't decrypt
+ * (corruption, a wrong/rotated AUTH_SECRET) must block sign-in the same way
+ * a wrong code does, never crash the request or silently skip the check.
+ */
+function decryptStoredSecret(ciphertext: string): string | null {
+  try {
+    return decryptTwoFactorSecret(ciphertext);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Records the device a session was opened from. Header access is wrapped

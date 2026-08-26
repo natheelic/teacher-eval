@@ -51,7 +51,6 @@ model User {
 
   accounts       Account[]
   sessions       Session[]
-  authenticators Authenticator[]
 
   preferences    UserPreferences?
   deviceSessions DeviceSession[]
@@ -107,21 +106,6 @@ model VerificationToken {
   expires    DateTime
 
   @@id([identifier, token])
-}
-
-model Authenticator {
-  credentialID         String  @unique
-  userId               String
-  providerAccountId    String
-  credentialPublicKey  String
-  counter              Int
-  credentialDeviceType String
-  credentialBackedUp   Boolean
-  transports           String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([userId, credentialID])
 }
 
 // ---------------------------------------------------------------------------

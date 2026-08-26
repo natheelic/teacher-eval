@@ -18,6 +18,14 @@ const initialState: CreateTokenState = {};
 
 export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  // The specific plaintext already shown-and-dismissed, not just a boolean —
+  // comparing by value (not "has any reveal ever been dismissed") is what
+  // lets a *second* Generate flow show its own reveal panel. A plain
+  // `!state.plaintext` check here was the bug (ROADMAP 5.10): state.plaintext
+  // never goes back to undefined on its own, since useActionState only
+  // updates on the next dispatch — so once one token had been created, the
+  // dialog could never show again for the rest of the session.
+  const [dismissedToken, setDismissedToken] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [optimistic, removeOptimistic] = useOptimistic(
     tokens,
@@ -28,9 +36,14 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
     initialState,
   );
 
-  // Derived rather than closed from an effect: once a token exists, the reveal
-  // panel takes over from the dialog.
-  const showDialog = dialogOpen && !state.plaintext;
+  const showReveal = Boolean(state.plaintext) && state.plaintext !== dismissedToken;
+  // Once a token exists, the reveal panel takes over from the dialog.
+  const showDialog = dialogOpen && !showReveal;
+
+  function dismissReveal() {
+    setDismissedToken(state.plaintext ?? null);
+    setDialogOpen(false);
+  }
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
@@ -49,8 +62,12 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
         </button>
       </div>
 
-      {state.plaintext && (
-        <RevealPanel name={state.tokenName ?? "New token"} token={state.plaintext} />
+      {showReveal && (
+        <RevealPanel
+          name={state.tokenName ?? "New token"}
+          token={state.plaintext!}
+          onDismiss={dismissReveal}
+        />
       )}
 
       <SettingsCard>
@@ -258,11 +275,18 @@ function ExpiryLabel({ iso }: { iso: string | null }) {
 
 /**
  * The plaintext token is never stored, so this is the only chance to copy it.
+ * Controlled by the parent (`showReveal`/`dismissReveal`) rather than owning
+ * its own dismissed flag — see AccessTokensTable's `dismissedToken` comment.
  */
-function RevealPanel({ name, token }: { name: string; token: string }) {
-  const [dismissed, setDismissed] = useState(false);
-  if (dismissed) return null;
-
+function RevealPanel({
+  name,
+  token,
+  onDismiss,
+}: {
+  name: string;
+  token: string;
+  onDismiss: () => void;
+}) {
   return (
     <div className="flex w-full max-w-[688px] flex-col gap-3 rounded-lg border border-[#16b674]/40 bg-[#3fcf8e]/5 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -277,7 +301,7 @@ function RevealPanel({ name, token }: { name: string; token: string }) {
         </div>
         <button
           type="button"
-          onClick={() => setDismissed(true)}
+          onClick={onDismiss}
           aria-label="Dismiss"
           className="flex size-7 shrink-0 items-center justify-center rounded-md hover:bg-black/4"
         >

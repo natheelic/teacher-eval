@@ -11,6 +11,7 @@ import {
   buildOtpAuthUrl,
   decryptPendingSecret,
   encryptPendingSecret,
+  encryptTwoFactorSecret,
   generateTotpSecret,
   verifyTotpCode,
 } from "@/lib/auth/totp";
@@ -68,7 +69,10 @@ export async function confirmTwoFactorEnrollment(
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { twoFactorSecret: secret, twoFactorEnabled: true },
+    data: {
+      twoFactorSecret: encryptTwoFactorSecret(secret),
+      twoFactorEnabled: true,
+    },
   });
 
   await logAudit({

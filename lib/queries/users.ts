@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { requireUserManager } from "@/lib/auth/require-session";
+import { getCurrentUser, requireUserManager } from "@/lib/auth/require-session";
 import { DELETION_GRACE_PERIOD_MS } from "@/lib/auth/deletion";
+import { canManageUsers } from "@/lib/permissions";
 import { toIso } from "@/lib/format";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { Role, UserStatus } from "@/lib/generated/prisma/enums";
@@ -129,6 +130,44 @@ export async function getUsers(filters: UserFilters): Promise<UserPage> {
     nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null,
     stats,
   };
+}
+
+export type UserSearchHit = { id: string; label: string; email: string };
+
+/**
+ * For the ⌘K command palette — a short, live list, not the full users table.
+ * Uses getCurrentUser() rather than requireUserManager(): the palette is
+ * reachable by any signed-in role, and a member typing in it should just get
+ * no user results, not a redirect() thrown mid-keystroke.
+ */
+export async function searchUsersForPalette(
+  query: string,
+): Promise<UserSearchHit[]> {
+  const viewer = await getCurrentUser();
+  if (!viewer || !canManageUsers(viewer.role)) return [];
+
+  const q = query.trim().slice(0, 100);
+  if (q.length < 2) return [];
+
+  const rows = await prisma.user.findMany({
+    where: {
+      deletedAt: null,
+      OR: [
+        { email: { contains: q, mode: "insensitive" } },
+        { name: { contains: q, mode: "insensitive" } },
+        { username: { contains: q, mode: "insensitive" } },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: { id: true, name: true, email: true },
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    label: row.name?.trim() || row.email,
+    email: row.email,
+  }));
 }
 
 export type UserStats = { total: number; active: number; suspended: number; admins: number };

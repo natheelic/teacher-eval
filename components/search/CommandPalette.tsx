@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { CornerDownLeft, Search } from "lucide-react";
 import { useSearch } from "./SearchProvider";
 import { SEARCH_ITEMS } from "./search-data";
+import { searchPalette } from "@/lib/actions/search";
+
+type Result = { key: string; label: string; sublabel?: string; href: string };
 
 export function CommandPalette() {
   const { open, setOpen } = useSearch();
@@ -30,6 +33,7 @@ export function CommandPalette() {
 function CommandPaletteDialog({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(0);
+  const [userHits, setUserHits] = useState<Result[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -37,11 +41,56 @@ function CommandPaletteDialog({ onClose }: { onClose: () => void }) {
     inputRef.current?.focus();
   }, []);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return SEARCH_ITEMS;
-    return SEARCH_ITEMS.filter((item) => item.label.toLowerCase().includes(q));
+  // Debounced: a live query per keystroke would hit the DB far more than a
+  // ⌘K palette warrants. Users with no manage-users permission always get an
+  // empty list back (searchUsersForPalette enforces that server-side too).
+  useEffect(() => {
+    const q = query.trim();
+    const timer = setTimeout(() => {
+      if (q.length < 2) {
+        setUserHits([]);
+        return;
+      }
+      searchPalette(q).then((hits) => {
+        setUserHits(
+          hits.map((hit) => ({
+            key: `user:${hit.id}`,
+            label: hit.label,
+            sublabel: hit.email,
+            href: `/users?q=${encodeURIComponent(hit.email)}`,
+          })),
+        );
+        setHighlight(0);
+      });
+    }, 200);
+    return () => clearTimeout(timer);
   }, [query]);
+
+  const navResults = useMemo<Result[]>(() => {
+    const q = query.trim().toLowerCase();
+    const items = q
+      ? SEARCH_ITEMS.filter((item) => item.label.toLowerCase().includes(q))
+      : SEARCH_ITEMS;
+    return items.map((item) => ({
+      key: `nav:${item.href}`,
+      label: item.label,
+      href: item.href,
+    }));
+  }, [query]);
+
+  const auditResult = useMemo<Result[]>(() => {
+    const q = query.trim();
+    if (!q) return [];
+    return [
+      {
+        key: "audit",
+        label: `Search audit logs for "${q}"`,
+        href: `/account/audit-logs?target=${encodeURIComponent(q)}`,
+      },
+    ];
+  }, [query]);
+
+  const results = [...navResults, ...userHits, ...auditResult];
 
   function handleQueryChange(value: string) {
     setQuery(value);
@@ -91,7 +140,7 @@ function CommandPaletteDialog({ onClose }: { onClose: () => void }) {
           ) : (
             results.map((item, i) => (
               <button
-                key={item.href}
+                key={item.key}
                 onClick={() => navigate(item.href)}
                 onMouseEnter={() => setHighlight(i)}
                 className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-[13px] font-medium ${
@@ -100,9 +149,16 @@ function CommandPaletteDialog({ onClose }: { onClose: () => void }) {
                     : "text-[#464646]"
                 }`}
               >
-                <span>{item.label}</span>
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate">{item.label}</span>
+                  {item.sublabel && (
+                    <span className="truncate text-xs font-medium text-[#696969]">
+                      {item.sublabel}
+                    </span>
+                  )}
+                </span>
                 {i === highlight && (
-                  <CornerDownLeft className="size-3.5 text-[#696969]" />
+                  <CornerDownLeft className="size-3.5 shrink-0 text-[#696969]" />
                 )}
               </button>
             ))

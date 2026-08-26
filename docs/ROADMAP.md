@@ -309,10 +309,15 @@ database query.
 
 **Why:** low urgency, but each item raises the cost of every future change while it remains.
 
-- **5.1** **Choose a test framework.** None is configured (D-12, NFR-25). Start with
-  `lib/permissions.ts` — it is pure, has no Prisma or request context, and encodes the rules
-  where a regression is most dangerous. The escalation guards (FR-32 – FR-37) are the highest-value
-  tests in the codebase and are trivially unit-testable.
+- **5.1** ✅ **Chose a test framework: Vitest.** `pnpm test` runs `vitest run`. No Vite/webpack
+  plugin needed since the first suite has zero DOM/React surface — `vitest.config.mts` just aliases
+  `@/*` to match `tsconfig.json`'s path mapping. `lib/permissions.test.ts` covers every escalation
+  guard (FR-32 – FR-37): no self-action for any role, admin acts on anyone but themselves, a
+  manager only acts on strictly lower ranks (not a peer manager, not upward on an admin), members
+  and viewers can act on no one, and `assignableRolesFor`/`canAssignRole` block a manager from
+  granting `MANAGER` or `ADMIN`. 15 tests, all passing; `pnpm typecheck` and `pnpm lint` unaffected.
+  Config file uses `.mts` rather than `.ts` to avoid Vite's CJS/ESM ambiguity warning without
+  setting `"type": "module"` in `package.json`, which could affect Next.js's own module handling.
 - **5.2** **Add CI** running `pnpm lint`, `pnpm typecheck` and `pnpm build` on every push.
 - **5.3** **Delete `package-lock.json`.** It coexists with the authoritative `pnpm-lock.yaml` and
   invites a wrong-package-manager install (D-14).
