@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useOptimistic, useState, useTransition } from "react";
+import { useActionState, useOptimistic, useState, useSyncExternalStore, useTransition } from "react";
 import { KeyRound, Plus, Trash2, X } from "lucide-react";
 import { SectionHeading, SettingsCard } from "./SettingsPrimitives";
 import { RelativeTime } from "./RelativeTime";
@@ -96,6 +96,7 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
                       "Never"
                     )}
                   </p>
+                  <ExpiryLabel iso={token.expiresAt} />
                 </div>
                 <button
                   type="button"
@@ -150,6 +151,22 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
                 </span>
               )}
             </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[13px] font-medium text-[#030303]">
+                Expiration
+              </span>
+              <select
+                name="expiresIn"
+                defaultValue=""
+                className="h-[34px] w-full rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30"
+              >
+                <option value="">No expiration</option>
+                <option value="7">7 days</option>
+                <option value="30">30 days</option>
+                <option value="90">90 days</option>
+                <option value="365">1 year</option>
+              </select>
+            </label>
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
@@ -170,6 +187,41 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
         </div>
       )}
     </div>
+  );
+}
+
+// Never changes, so the store never notifies — mirrors RelativeTime.tsx.
+const subscribe = () => () => {};
+const getSnapshot = () => true;
+const getServerSnapshot = () => false;
+
+/**
+ * "Expired" depends on comparing against `new Date()`, which — like relative
+ * time — can differ between the server render and the client's hydration
+ * pass. Renders the neutral "Expires <date>" / "No expiration" form until
+ * hydrated, then upgrades to "Expired" if the date has passed.
+ */
+function ExpiryLabel({ iso }: { iso: string | null }) {
+  const hydrated = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
+
+  if (!iso) {
+    return (
+      <p className="text-xs font-medium text-[#696969]">No expiration</p>
+    );
+  }
+
+  const expired = hydrated && new Date(iso) < new Date();
+
+  return (
+    <p
+      className={`text-xs font-medium ${expired ? "text-[#ab413e]" : "text-[#696969]"}`}
+    >
+      {expired ? "Expired" : "Expires"} {formatDate(iso)}
+    </p>
   );
 }
 

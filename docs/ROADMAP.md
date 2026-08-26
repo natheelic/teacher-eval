@@ -96,8 +96,15 @@ feature currently produces secrets that do nothing (D-6).
   in `require-session.ts`. The `/account/access-tokens` list already read this column (it was one
   of the stored-but-never-written fields), so it now shows "Last used: just now" without any UI
   change needed.
-- **2.4** Honour `expiresAt` — and expose an expiry field in the creation form, which currently
-  offers only a name.
+- **2.4** ✅ The creation form (`AccessTokensTable.tsx`) now offers an "Expiration" `<select>`
+  (No expiration / 7 / 30 / 90 / 365 days) alongside the name field; `createApiToken()` resolves it
+  server-side to an `expiresAt` timestamp (an unrecognized or missing value — including a tampered
+  request — falls back to "never expires" rather than erroring, since it's a closed set driven by
+  a `<select>`, not free text). `authenticateApiToken()` already enforced `expiresAt` from 2.1; the
+  token list now also renders it ("Expires 2 Sept 2026" / "No expiration" / "Expired 25 Aug 2026"
+  in red), with the expired/not-expired comparison deferred to after hydration
+  (`useSyncExternalStore`, the same pattern `RelativeTime` uses) so the server render and the
+  client's hydration pass can't disagree about whether "now" has crossed the threshold.
 - **2.5** Define and enforce `scopes`. The column is `String[]` with a default of `[]` and is
   never written; decide the vocabulary before it accumulates ad-hoc values.
 - **2.6** Adopt `tokenPreview()` in `lib/auth/tokens.ts` — it has zero callers because the preview

@@ -83,7 +83,7 @@ These are persisted-but-inert, and the UI implies otherwise. Don't mistake them 
 - **`sidebarBehavior`** — stored and selectable; no sidebar reads it.
 - **`telemetryEnabled`, `editEntitiesInCode`, `queueTableOperations`** — stored; nothing consults them.
 - **Keyboard shortcuts** — toggles persist, but only ⌘K is implemented, and several labels name features removed with the tenancy layer.
-- **API tokens** — mintable, revocable, and now authenticate `GET /api/me` (`lib/auth/api-token.ts`), which also stamps `lastUsedAt`; but that's the only route so far, and `scopes`/`expiresAt` are checked on the read side but never written by the UI.
+- **API tokens** — mintable (with a user-chosen expiration, resolved server-side), revocable, and now authenticate `GET /api/me` (`lib/auth/api-token.ts`), which also stamps `lastUsedAt`; but that's the only route so far, and `scopes` are checked on the read side but never written by the UI.
 - **`UserStatus.INVITED`** — a filter option no code path can produce; `createUser` hardcodes `ACTIVE`.
 - **`Authenticator` and `VerificationToken`** — dead models. No WebAuthn, no email verification, no password-reset flow.
 - **`Header`'s Feedback/Docs/Bell buttons and the sidebar collapse control** — non-functional. (`AccountHeader`'s Feedback/Docs buttons are wired to real destinations; `Header`'s standalone copies are not.)

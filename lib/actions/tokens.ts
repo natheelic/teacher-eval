@@ -22,6 +22,23 @@ const nameSchema = z
   .min(1, "Give the token a name")
   .max(80, "Name is too long");
 
+/**
+ * A closed set driven by the creation form's <select>, so an unrecognized or
+ * missing value (including a tampered request) just falls back to "never
+ * expires" rather than being treated as a validation error.
+ */
+const EXPIRY_DAYS: Record<string, number> = {
+  "7": 7,
+  "30": 30,
+  "90": 90,
+  "365": 365,
+};
+
+function resolveExpiresAt(raw: FormDataEntryValue | null): Date | null {
+  const days = typeof raw === "string" ? EXPIRY_DAYS[raw] : undefined;
+  return days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
+}
+
 export async function createApiToken(
   _prev: CreateTokenState,
   formData: FormData,
@@ -34,6 +51,7 @@ export async function createApiToken(
   }
 
   const token = mintToken();
+  const expiresAt = resolveExpiresAt(formData.get("expiresIn"));
 
   await prisma.apiToken.create({
     data: {
@@ -42,6 +60,7 @@ export async function createApiToken(
       prefix: token.prefix,
       last4: token.last4,
       tokenHash: token.tokenHash,
+      expiresAt,
     },
   });
 

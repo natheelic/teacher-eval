@@ -449,6 +449,10 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
   A successful authentication stamps `ApiToken.lastUsedAt`, fired without awaiting so the write
   cannot add latency to or fail the request it authenticates. `scopes` are carried through but not
   yet enforced by any route (see `ROADMAP.md` 2.5).
+- **FR-59b** — A user minting a token shall be able to choose an expiration (no expiration, 7, 30,
+  90, or 365 days) from the creation form; the system shall resolve this to `ApiToken.expiresAt` at
+  creation time and never accept an absolute date from the client directly. The token list shall
+  display each token's expiration state (no expiration, upcoming, or already expired).
 
 **Account deletion**
 
@@ -703,6 +707,7 @@ required entry is missing or malformed.
 | FR-62 | `lib/auth/totp.ts`, `lib/actions/twoFactor.ts`, `auth.ts` |
 | FR-57 – FR-59 | `lib/actions/tokens.ts`, `lib/auth/tokens.ts` |
 | FR-59a | `lib/auth/api-token.ts`, `app/api/me/route.ts` |
+| FR-59b | `lib/actions/tokens.ts`, `components/account/AccessTokensTable.tsx` |
 | FR-70, FR-75 | `lib/actions/preferences.ts`, `lib/queries/account.ts` |
 | FR-80 – FR-82, FR-85 | `lib/audit.ts` + call sites |
 | FR-83 – FR-84, FR-86 | `lib/queries/audit.ts` |
@@ -717,7 +722,7 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 
 | # | Requirement | Deviation |
 |---|---|---|
-| D-6 | §1.2 | `GET /api/me` now authenticates with a minted token (`lib/auth/api-token.ts`) and stamps `lastUsedAt`, but it's the only route so far; `scopes` and `expiresAt` are returned/checked but never written by the UI. `tokenPreview()` in `lib/auth/tokens.ts` has no callers. |
+| D-6 | §1.2 | `GET /api/me` now authenticates with a minted token (`lib/auth/api-token.ts`), stamps `lastUsedAt`, and honours a user-chosen `expiresAt`, but it's the only route so far, and `scopes` are checked on the read side but never written by the UI. `tokenPreview()` in `lib/auth/tokens.ts` has no callers. |
 | D-7 | DR-03 | `UserStatus.INVITED` is unreachable; there is no invitation flow. |
 | D-9 | FR-86 | Audit filtering is limited to range and scope; action codes are inline literals with no central definition. |
 | D-11 | §3.4 | `Authenticator` and `VerificationToken` are dead models. |
