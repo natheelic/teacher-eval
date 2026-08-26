@@ -224,10 +224,13 @@ intervention — or the unreachable states have been removed from the schema.
 `method`, `statusCode`, `ipAddress`, `userAgent` and `metadata` are all written and none are
 filterable; the view offers only range and scope (D-9).
 
-- **4.1** **Centralise the action codes.** The 18 codes in FR-85 are inline string literals at
-  every call site with no shared constant, so a typo produces a silently unfilterable row. Extract
-  them to a single `const`/union in `lib/audit.ts` and type `AuditInput.actionCode` against it.
-  *Do this before 4.2* — filtering by action code is only safe once the vocabulary is closed.
+- **4.1** ✅ **Centralised the action codes.** `lib/audit.ts` now exports `ACTION_CODES` (22
+  codes — grown from FR-85's original 18 as Phase 3 added invitation/reset lifecycle events) as a
+  `const` tuple plus the derived `ActionCode` union, and `AuditInput.actionCode` is typed against
+  it instead of `string`. Every existing call site's literal matched the vocabulary exactly
+  (`pnpm typecheck` passed with zero changes needed elsewhere) — verified the guard is real, not
+  just quiet, by deliberately typo-ing one call site (`"user.role.change"`) and confirming `tsc`
+  rejected it with a "Did you mean" pointing at the correct code, then reverting.
 - **4.2** Add filters for action code and target user.
 - **4.3** Surface IP, user agent and `metadata` in an expandable row detail.
 - **4.4** Add CSV export for a filtered range.

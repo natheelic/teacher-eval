@@ -47,6 +47,7 @@ Next.js App Router (`app/`), React 19, Tailwind CSS v4 (via `@tailwindcss/postcs
 - `lib/email.ts` — `nodemailer` transport, gated behind `emailEnabled` (`lib/env.ts`). `lib/url.ts` — `absoluteUrl()` for building links that leave the app (invitation emails today).
 - `lib/permissions.ts` — the single source of truth for who may act on whom. Pure functions, no Prisma, no request context.
 - `lib/queries/*` (read, `React.cache`d), `lib/actions/*` (`"use server"` mutations, including `invitations.ts`, `email-verification.ts` and `password-reset.ts` for their respective unauthenticated/self-service flows), `lib/audit.ts`, `lib/bootstrap.ts` (sign-up), `lib/format.ts` (display formatting).
+- `lib/audit.ts`'s `ACTION_CODES` is the closed vocabulary for `logAudit()`'s `actionCode` — add a new code there before using it anywhere; `AuditInput.actionCode` is typed against the derived `ActionCode` union, so an unlisted string fails to typecheck instead of silently writing an unfilterable row.
 
 ### Roles
 

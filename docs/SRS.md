@@ -588,28 +588,36 @@ deleted with the old multi-tenancy layer. `UserPreferences` now has only `theme`
 - **FR-84** — The audit view shall support a scope of `mine` or `all`. A viewer who cannot manage
   users shall be constrained to their own rows **even when they request `scope=all`**:
   `if (!canSeeAll || filters.scope === "mine") where.actorId = viewer.id;`
-- **FR-85** — The system shall record the following action codes:
+- **FR-85** — The system shall record only a code drawn from the closed vocabulary
+  `ACTION_CODES` (`lib/audit.ts`) — `AuditInput.actionCode` is typed against it, so a call site
+  passing anything outside the list fails to typecheck rather than silently writing an
+  unfilterable row:
 
   | Code | Meaning |
   |---|---|
   | `account.created` | Registration (annotated as the first/admin account when applicable) |
   | `account.profile.updated` | Name or username changed |
-  | `account.password.changed` | Own password changed |
+  | `account.password.changed` | Own password changed (or set, for an OAuth-only account) |
+  | `account.password.reset_requested` / `account.password.reset_completed` | Self-service forgot-password lifecycle (FR-16d – FR-16e) |
   | `account.2fa.enabled` / `account.2fa.disabled` | Two-factor flag flipped |
   | `account.session.revoked` | One device session revoked |
   | `account.session.revoked_all` | All other device sessions revoked |
   | `account.connection.removed` | OAuth provider unlinked |
   | `account.token.created` / `account.token.revoked` | API token lifecycle |
   | `account.deletion.requested` / `account.deletion.cancelled` | Self-deletion request lifecycle |
-  | `user.created` | Account created via the admin surface |
+  | `user.invited` | Account invited via the admin surface (FR-40) |
+  | `user.invitation.accepted` | Invitee activated their account (FR-40b) |
+  | `user.invitation.resent` | An admin resent an invitation (FR-40d) |
   | `user.role.changed` | Target's role changed |
   | `user.suspended` / `user.reactivated` | Target's status changed |
   | `user.password.reset` | Target's password reset by an administrator |
   | `user.deleted` | Target soft-deleted |
 
-- **FR-86** — **[NOT IMPLEMENTED]** Filtering by `actionCode`, target, method, status code, IP or
-  user agent. These columns are written but neither surfaced nor filterable. There is also no
-  central constant for the codes in FR-85 — they are inline string literals at each call site.
+- **FR-86** — **[PARTIALLY IMPLEMENTED]** `actionCode` is now a closed, centrally-typed
+  vocabulary (FR-85) — the precondition ROADMAP 4.1 called out before filtering by it could be
+  safe. Filtering by `actionCode`, target, method, status code, IP or user agent is still not
+  surfaced in the UI (ROADMAP 4.2); those columns are written but not yet queryable from
+  `/account/audit-logs`.
 
 #### FR-9x — Feedback
 
