@@ -630,6 +630,18 @@ deleted with the old multi-tenancy layer. `UserPreferences` now has only `theme`
   yet — the detail view renders it (pretty-printed JSON) whenever a future one does, without
   needing UI changes. *Implementation:* `AuditLogRow.tsx`, `getAuditLogs()` in
   `lib/queries/audit.ts`.
+- **FR-87** — An "Export CSV" control shall download the audit log matching the **current
+  filters** (range, scope, action code, target) as RFC 4180 CSV — one column each for date
+  (formatted, not raw ISO), action code, the human action sentence, method, status, actor, target,
+  IP address and user agent. Export is capped at 5,000 rows (newest first) and is not paginated —
+  it always covers the whole filtered range in one file, not just the loaded page. Authorization
+  and scope enforcement are identical to the paginated view (`getAuditLogsForExport()` shares
+  `getAuditLogs()`'s `requireUser()` + scope-clamping logic, not just its shape).
+  *Implementation:* `GET app/account/audit-logs/export/route.ts`, `lib/csv.ts`.
+  *Route placement note:* deliberately **not** under `app/api/` — this route needs the
+  session-cookie protection the proxy already gives every non-public page, not the bearer-token
+  model `app/api/` routes use (`PUBLIC_PREFIXES` excludes it, so an unauthenticated request is
+  redirected to `/signin` before the handler runs, verified with `curl`).
 
 #### FR-9x — Feedback
 
@@ -806,6 +818,7 @@ required entry is missing or malformed.
 | FR-70, FR-75 | `lib/actions/preferences.ts`, `lib/queries/account.ts` |
 | FR-80 – FR-82, FR-85 | `lib/audit.ts` + call sites |
 | FR-83 – FR-84a, FR-86 | `lib/queries/audit.ts`, `lib/action-codes.ts`, `components/account/{AuditLogFilters,AuditLogRow}.tsx` |
+| FR-87 | `app/account/audit-logs/export/route.ts`, `lib/csv.ts` |
 | FR-90 | `lib/actions/feedback.ts`, `components/dashboard/FeedbackDialog.tsx` |
 | NFR-30 – NFR-32 | `lib/env.ts`, `lib/app-config.ts` |
 | DR-01 – DR-04 | `prisma/schema.prisma` |

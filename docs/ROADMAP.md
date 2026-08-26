@@ -264,7 +264,28 @@ filterable; the view offers only range and scope (D-9).
     localhost) and user agent (this session's actual Chrome/Mac string) rendered correctly;
     collapsed it back; expanded two different rows simultaneously to confirm state is per-row, not
     shared.
-- **4.4** Add CSV export for a filtered range.
+- **4.4** ✅ **CSV export for a filtered range.** "Export CSV" on `/account/audit-logs` mirrors the
+  current filters (range/scope/actionCode/target, minus pagination) into
+  `GET /account/audit-logs/export`, which returns an RFC 4180 CSV covering the whole filtered
+  range in one file (capped at 5,000 newest rows) rather than just the loaded page.
+  - **Refactored `lib/queries/audit.ts` rather than duplicating its where-clause:** extracted
+    `buildAuditWhere()` and a shared `toView()` mapper, used by both the existing paginated
+    `getAuditLogs()` and the new unpaginated `getAuditLogsForExport()` — same authorization
+    (`requireUser()`) and scope-clamping logic in one place, not copy-pasted.
+  - **Route placement was a real decision, not default:** the export route is `GET
+    app/account/audit-logs/export/route.ts`, deliberately *not* under `app/api/` — that prefix is
+    public (skips the proxy's session-redirect gate, per Phase 2's bearer-token routes), which is
+    wrong for a route that needs the ordinary session-cookie protection every other page gets.
+    Verified with `curl`: an unauthenticated request to the export URL gets the same 307 to
+    `/signin` as any other protected page.
+  - **New `lib/csv.ts`:** minimal RFC 4180 serialization (quote a field only when it contains a
+    comma/quote/newline, double embedded quotes) — no library needed for nine columns.
+  - **Verified live:** rather than trust a browser file download (Chrome's automation profile
+    didn't surface it in `~/Downloads` — plausibly restricted in that context), exercised the
+    authenticated route directly via `fetch()` from the page's own JS console: `200`, correct CSV
+    header row, real DB rows, proper quoting on fields containing commas (formatted dates,
+    user-agent strings), and exactly 20 lines (header + 19 rows) matching the UI's "Viewing 19
+    logs in total".
 - **4.5** Consider a retention policy. `AuditLog` grows without bound and has no archival path.
 
 **Exit criteria:** an administrator can answer "what did this user do, and from where" without a

@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
-import { Clock, RefreshCw, Search } from "lucide-react";
+import { Clock, Download, RefreshCw, Search } from "lucide-react";
 import { ACTION_CODES } from "@/lib/action-codes";
 
 const RANGES = [
@@ -60,6 +60,14 @@ export function AuditLogFilters({
   }
 
   const hasFilters = Boolean(actionCode || target);
+
+  // Mirrors the current filter, minus pagination — export always covers the
+  // whole filtered range, not just the loaded page.
+  const exportHref = (() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("cursor");
+    return `/account/audit-logs/export?${params.toString()}`;
+  })();
 
   return (
     <form
@@ -146,6 +154,13 @@ export function AuditLogFilters({
       </div>
 
       <div className="flex items-center gap-2">
+        <a
+          href={exportHref}
+          className="flex h-[26px] items-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4"
+        >
+          <Download className="size-3.5" />
+          Export CSV
+        </a>
         {hasFilters && (
           <button
             type="button"

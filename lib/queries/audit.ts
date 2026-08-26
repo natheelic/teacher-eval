@@ -6,6 +6,7 @@ import type { Prisma } from "@/lib/generated/prisma/client";
 
 export type AuditLogView = {
   id: string;
+  actionCode: string;
   statusCode: number | null;
   method: string | null;
   action: string;
@@ -78,18 +79,20 @@ export function parseAuditFilters(params: {
   };
 }
 
-export async function getAuditLogs(
+/**
+ * Shared by the paginated view and the export: scope is enforced here, not
+ * trusted from the URL — a member asking for scope=all still only ever sees
+ * their own rows.
+ */
+function buildAuditWhere(
   filters: AuditFilters,
-): Promise<AuditLogPage> {
-  const viewer = await requireUser();
-  const canSeeAll = canManageUsers(viewer.role);
-
+  viewerId: string,
+  canSeeAll: boolean,
+): Prisma.AuditLogWhereInput {
   const where: Prisma.AuditLogWhereInput = {};
 
-  // Scope is enforced here, not trusted from the URL: a member asking for
-  // scope=all still only ever sees their own rows.
   if (!canSeeAll || filters.scope === "mine") {
-    where.actorId = viewer.id;
+    where.actorId = viewerId;
   }
 
   if (filters.range !== "all") {
@@ -104,24 +107,55 @@ export async function getAuditLogs(
     where.targetLabel = { contains: filters.target, mode: "insensitive" };
   }
 
+  return where;
+}
+
+const AUDIT_SELECT = {
+  id: true,
+  actionCode: true,
+  statusCode: true,
+  method: true,
+  action: true,
+  targetLabel: true,
+  createdAt: true,
+  ipAddress: true,
+  userAgent: true,
+  metadata: true,
+  actor: { select: { name: true, email: true } },
+} as const satisfies Prisma.AuditLogSelect;
+
+type AuditRow = Prisma.AuditLogGetPayload<{ select: typeof AUDIT_SELECT }>;
+
+function toView(row: AuditRow): AuditLogView {
+  return {
+    id: row.id,
+    actionCode: row.actionCode,
+    statusCode: row.statusCode,
+    method: row.method,
+    action: row.action,
+    target: row.targetLabel,
+    actor: row.actor ? (row.actor.name?.trim() || row.actor.email) : null,
+    createdAt: row.createdAt.toISOString(),
+    ipAddress: row.ipAddress,
+    userAgent: row.userAgent,
+    metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+  };
+}
+
+export async function getAuditLogs(
+  filters: AuditFilters,
+): Promise<AuditLogPage> {
+  const viewer = await requireUser();
+  const canSeeAll = canManageUsers(viewer.role);
+  const where = buildAuditWhere(filters, viewer.id, canSeeAll);
+
   const [rows, total] = await Promise.all([
     prisma.auditLog.findMany({
       where,
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: PAGE_SIZE + 1,
       ...(filters.cursor ? { cursor: { id: filters.cursor }, skip: 1 } : {}),
-      select: {
-        id: true,
-        statusCode: true,
-        method: true,
-        action: true,
-        targetLabel: true,
-        createdAt: true,
-        ipAddress: true,
-        userAgent: true,
-        metadata: true,
-        actor: { select: { name: true, email: true } },
-      },
+      select: AUDIT_SELECT,
     }),
     prisma.auditLog.count({ where }),
   ]);
@@ -130,20 +164,29 @@ export async function getAuditLogs(
   const page = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
 
   return {
-    rows: page.map((row) => ({
-      id: row.id,
-      statusCode: row.statusCode,
-      method: row.method,
-      action: row.action,
-      target: row.targetLabel,
-      actor: row.actor ? (row.actor.name?.trim() || row.actor.email) : null,
-      createdAt: row.createdAt.toISOString(),
-      ipAddress: row.ipAddress,
-      userAgent: row.userAgent,
-      metadata: (row.metadata as Record<string, unknown> | null) ?? null,
-    })),
+    rows: page.map(toView),
     total,
     nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null,
     canSeeAll,
   };
+}
+
+/** Capped, not paginated — for CSV export. No cursor: always the newest EXPORT_LIMIT rows matching the filter. */
+const EXPORT_LIMIT = 5000;
+
+export async function getAuditLogsForExport(
+  filters: Omit<AuditFilters, "cursor">,
+): Promise<AuditLogView[]> {
+  const viewer = await requireUser();
+  const canSeeAll = canManageUsers(viewer.role);
+  const where = buildAuditWhere({ ...filters, cursor: null }, viewer.id, canSeeAll);
+
+  const rows = await prisma.auditLog.findMany({
+    where,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: EXPORT_LIMIT,
+    select: AUDIT_SELECT,
+  });
+
+  return rows.map(toView);
 }
