@@ -5,6 +5,7 @@ import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
 import { signIn, signOut } from "@/auth";
+import { DEFAULT_SIGNED_IN_PATH } from "@/auth.config";
 import { prisma } from "@/lib/prisma";
 import { passwordSchema } from "@/lib/auth/password";
 import { bootstrapUser } from "@/lib/bootstrap";
@@ -32,7 +33,9 @@ const signUpSchema = z
 /** Safe relative redirect target — never allow an absolute URL from the query. */
 function safeCallbackUrl(raw: FormDataEntryValue | null): string {
   const value = typeof raw === "string" ? raw : "";
-  return value.startsWith("/") && !value.startsWith("//") ? value : "/";
+  return value.startsWith("/") && !value.startsWith("//")
+    ? value
+    : DEFAULT_SIGNED_IN_PATH;
 }
 
 function fieldErrorsOf(error: z.ZodError): Record<string, string> {

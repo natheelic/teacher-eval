@@ -99,7 +99,10 @@ Dates: render absolute strings from the server; `RelativeTime` upgrades to "2 mi
 
 Each route in `app/` is a thin composition of layout chrome + section components pulled from `components/`. There's no shared root layout beyond fonts/global CSS in `app/layout.tsx` — every page independently composes its own header + sidebar:
 
-- `app/page.tsx` — the users table (`Header` + `IconSidebar` + `components/users/UsersTable`). This is the app's main screen.
+- `app/page.tsx` — the **public landing page**. Reads no session (it must stay renderable for
+  anonymous visitors); `/` is public via `PUBLIC_EXACT` in `auth.config.ts`, which is separate
+  from `PUBLIC_PREFIXES` because a `/` prefix would make every path public.
+- `app/users/page.tsx` — the users table (`Header` + `IconSidebar` + `components/users/UsersTable`). This is the signed-in main screen; `DEFAULT_SIGNED_IN_PATH` in `auth.config.ts` points here and is the fallback for every `callbackUrl`.
 - `app/account/{preferences,security,access-tokens,audit-logs}/page.tsx` — account section: `AccountHeader` + `SettingsSidebar` (from `components/account/`), with an `active` prop identifying the current nav item. There is **no** `app/account/layout.tsx`.
 - `app/(auth)/{signin,signup}/page.tsx` — the only route group; gives auth pages a bare layout with no dashboard chrome without changing their URLs.
 

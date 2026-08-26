@@ -31,7 +31,7 @@ export function UserFilters({
     next.delete("cursor"); // paging is relative to the filter
     startTransition(() => {
       const qs = next.toString();
-      router.replace(qs ? `/?${qs}` : "/");
+      router.replace(qs ? `/users?${qs}` : "/users");
     });
   }
 

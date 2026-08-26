@@ -1,6 +1,10 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
-import { authConfig, isPublicPath } from "@/auth.config";
+import {
+  authConfig,
+  isPublicPath,
+  DEFAULT_SIGNED_IN_PATH,
+} from "@/auth.config";
 
 // Next 16 renamed the `middleware` file convention to `proxy`. This file
 // imports only auth.config.ts — never ./auth.ts — so no Prisma or bcrypt is
@@ -17,7 +21,7 @@ export const proxy = auth((req) => {
   if (isPublicPath(pathname)) {
     // Someone already signed in has no business on /signin or /signup.
     if (signedIn && (pathname === "/signin" || pathname === "/signup")) {
-      return NextResponse.redirect(new URL("/", req.nextUrl));
+      return NextResponse.redirect(new URL(DEFAULT_SIGNED_IN_PATH, req.nextUrl));
     }
     return NextResponse.next();
   }

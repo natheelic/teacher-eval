@@ -49,10 +49,27 @@ export const authConfig = {
   },
 } satisfies NextAuthConfig;
 
+/**
+ * Where a freshly signed-in user lands when nothing else was requested. `/` is
+ * the public landing page now, so it cannot be the default — `/users` is the
+ * signed-in home, and it forwards members and viewers on to their own account.
+ */
+export const DEFAULT_SIGNED_IN_PATH = "/users";
+
 const PUBLIC_PREFIXES = ["/signin", "/signup", "/api/auth"];
 
+/**
+ * Paths that are public but must match exactly. `/` cannot go in
+ * PUBLIC_PREFIXES: the `startsWith(`${prefix}/`)` test below would then make
+ * every path in the app public.
+ */
+const PUBLIC_EXACT = ["/"];
+
 export function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  return (
+    PUBLIC_EXACT.includes(pathname) ||
+    PUBLIC_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    )
   );
 }

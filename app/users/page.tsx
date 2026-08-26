@@ -6,7 +6,9 @@ import { UsersTable } from "@/components/users/UsersTable";
 import { getCurrentUser } from "@/lib/auth/require-session";
 import { canManageUsers } from "@/lib/permissions";
 
-export default async function Home({ searchParams }: PageProps<"/">) {
+export default async function UsersPage({
+  searchParams,
+}: PageProps<"/users">) {
   const user = await getCurrentUser();
   if (!user) redirect("/signin");
 

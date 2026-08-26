@@ -8,6 +8,7 @@ import {
   OrDivider,
 } from "@/components/auth/AuthPrimitives";
 import { googleEnabled } from "@/lib/env";
+import { DEFAULT_SIGNED_IN_PATH } from "@/auth.config";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -24,7 +25,9 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 function safePath(value: string | string[] | undefined): string {
   const raw = Array.isArray(value) ? value[0] : value;
-  return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+  return raw && raw.startsWith("/") && !raw.startsWith("//")
+    ? raw
+    : DEFAULT_SIGNED_IN_PATH;
 }
 
 export default async function SignInPage({

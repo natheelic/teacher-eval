@@ -76,7 +76,7 @@ export function IconSidebar() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <nav className="flex w-full flex-col">
           <div className="flex flex-col gap-1 p-2">
-            <NavItem icon={Users} label="Users" href="/" active onNavigate={close} />
+            <NavItem icon={Users} label="Users" href="/users" active onNavigate={close} />
             <NavItem icon={ListChecks} label="Audit logs" href="/account/audit-logs" onNavigate={close} />
           </div>
           <Divider />

@@ -125,7 +125,7 @@ export async function createUser(
     statusCode: 201,
   });
 
-  revalidatePath("/");
+  revalidatePath("/users");
   return { ok: true };
 }
 
@@ -165,7 +165,7 @@ export async function changeUserRole(
     statusCode: 200,
   });
 
-  revalidatePath("/");
+  revalidatePath("/users");
 }
 
 export async function setUserSuspended(
@@ -204,7 +204,7 @@ export async function setUserSuspended(
     statusCode: 200,
   });
 
-  revalidatePath("/");
+  revalidatePath("/users");
 }
 
 export async function resetUserPassword(
@@ -244,7 +244,7 @@ export async function resetUserPassword(
     statusCode: 200,
   });
 
-  revalidatePath("/");
+  revalidatePath("/users");
   return { ok: true };
 }
 
@@ -284,7 +284,7 @@ export async function deleteUser(userId: string): Promise<void> {
     statusCode: 200,
   });
 
-  revalidatePath("/");
+  revalidatePath("/users");
 }
 
 /**

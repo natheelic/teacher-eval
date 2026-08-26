@@ -141,8 +141,8 @@ There is **no test suite configured**. See [`docs/ROADMAP.md`](docs/ROADMAP.md) 
 
 | Role | Lands on | Can do |
 |---|---|---|
-| `ADMIN` | `/` | Everything. The only role that may **delete** a user or assign `ADMIN`. |
-| `MANAGER` | `/` | Act on `MEMBER` and `VIEWER` only; assign only roles below `MANAGER`; suspend but never delete. |
+| `ADMIN` | `/users` | Everything. The only role that may **delete** a user or assign `ADMIN`. |
+| `MANAGER` | `/users` | Act on `MEMBER` and `VIEWER` only; assign only roles below `MANAGER`; suspend but never delete. |
 | `MEMBER` | `/account/preferences` | Self-service only. |
 | `VIEWER` | `/account/preferences` | Self-service only. |
 

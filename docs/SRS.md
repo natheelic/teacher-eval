@@ -70,7 +70,7 @@ self-service account area for every authenticated user.
 | **`uid`** | The user identifier carried inside the JWT. |
 | **Bootstrap admin** | The first account ever created, which is promoted to `ADMIN` so a fresh database is usable. |
 | **Soft delete** | Marking `User.deletedAt`, suspending the account and rewriting its email, rather than removing the row. |
-| **Admin surface** | The users table at `/`, as opposed to the self-service area under `/account`. |
+| **Admin surface** | The users table at `/users`, as opposed to the self-service area under `/account`. |
 | **Server Action** | A Next.js `"use server"` function invoked directly from a component; this system's mutation mechanism. |
 | **Audit action code** | A stable machine-readable key such as `user.role.changed`, stored in `AuditLog.actionCode`. |
 
@@ -150,8 +150,8 @@ map in `lib/permissions.ts`.
 
 | Role | Rank | Landing page | Capabilities |
 |---|---|---|---|
-| `ADMIN` | 3 | `/` | Everything. The only role that may delete users or assign `ADMIN`. |
-| `MANAGER` | 2 | `/` | May act on `MEMBER` and `VIEWER` only; may assign only `MEMBER`/`VIEWER`; may suspend but never delete. |
+| `ADMIN` | 3 | `/users` | Everything. The only role that may delete users or assign `ADMIN`. |
+| `MANAGER` | 2 | `/users` | May act on `MEMBER` and `VIEWER` only; may assign only `MEMBER`/`VIEWER`; may suspend but never delete. |
 | `MEMBER` | 1 | `/account/preferences` | Self-service only. |
 | `VIEWER` | 0 | `/account/preferences` | Self-service only. Functionally identical to `MEMBER` today. |
 
@@ -219,7 +219,8 @@ the point of the change.
 
 | Route | File | Access | Content |
 |---|---|---|---|
-| `/` | `app/page.tsx` | `ADMIN`, `MANAGER` | Users table. Anonymous ⇒ `/signin`; `MEMBER`/`VIEWER` ⇒ `/account/preferences`. |
+| `/` | `app/page.tsx` | Anonymous and authenticated | Public landing page: product summary and links to `/signin` and `/signup`. Reads no session. |
+| `/users` | `app/users/page.tsx` | `ADMIN`, `MANAGER` | Users table. Anonymous ⇒ `/signin`; `MEMBER`/`VIEWER` ⇒ `/account/preferences`. |
 | `/signin` | `app/(auth)/signin/page.tsx` | Anonymous | Credentials form, optional Google button, mapped error copy. |
 | `/signup` | `app/(auth)/signup/page.tsx` | Anonymous | Registration form, optional Google button. |
 | `/account/preferences` | `app/account/preferences/page.tsx` | All | Profile, sign-in methods, connections, appearance, shortcuts, dashboard, analytics, danger zone. |
@@ -294,8 +295,10 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
 - **FR-19** — Signing out shall revoke the current `DeviceSession`. Failure to revoke shall not
   prevent sign-out.
 - **FR-20** — An unauthenticated request to a non-public path shall redirect to
-  `/signin?callbackUrl=<pathname+search>`. Public prefixes are `/signin`, `/signup`, `/api/auth`.
-- **FR-21** — An authenticated request to `/signin` or `/signup` shall redirect to `/`.
+  `/signin?callbackUrl=<pathname+search>`. Public prefixes are `/signin`, `/signup`, `/api/auth`;
+  `/` is public as an exact match only.
+- **FR-21** — An authenticated request to `/signin` or `/signup` shall redirect to
+  `DEFAULT_SIGNED_IN_PATH` (`/users`), which is also the fallback when no `callbackUrl` is given.
 - **FR-22** — `callbackUrl` shall be sanitised before use, so that a crafted value cannot redirect
   the user off-site after sign-in.
 - **FR-23** — Failed credential authentication shall report exactly `"Incorrect email or

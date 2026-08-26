@@ -226,5 +226,5 @@ function buildHref(params: Record<string, string | string[] | undefined>) {
     if (v) search.set(key, v);
   }
   const qs = search.toString();
-  return qs ? `/?${qs}` : "/";
+  return qs ? `/users?${qs}` : "/users";
 }
