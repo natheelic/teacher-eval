@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireUserManager } from "@/lib/auth/require-session";
+import { DELETION_GRACE_PERIOD_MS } from "@/lib/auth/deletion";
 import { toIso } from "@/lib/format";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { Role, UserStatus } from "@/lib/generated/prisma/enums";
@@ -16,6 +17,8 @@ export type UserRow = {
   lastLoginAt: string | null;
   createdAt: string;
   isYou: boolean;
+  /** When set, the account is soft-deleted at this instant unless cancelled first. */
+  deletionDeadline: string | null;
 };
 
 export type UserFilters = {
@@ -92,6 +95,7 @@ export async function getUsers(filters: UserFilters): Promise<UserPage> {
         passwordHash: true,
         lastLoginAt: true,
         createdAt: true,
+        deletionRequestedAt: true,
       },
     }),
     prisma.user.count({ where }),
@@ -115,6 +119,11 @@ export async function getUsers(filters: UserFilters): Promise<UserPage> {
       lastLoginAt: toIso(row.lastLoginAt),
       createdAt: row.createdAt.toISOString(),
       isYou: row.id === viewer.id,
+      deletionDeadline: row.deletionRequestedAt
+        ? new Date(
+            row.deletionRequestedAt.getTime() + DELETION_GRACE_PERIOD_MS,
+          ).toISOString()
+        : null,
     })),
     total,
     nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null,

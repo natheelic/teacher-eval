@@ -8,6 +8,7 @@ import { authConfig } from "@/auth.config";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
 import { parseDevice, clientIpFrom } from "@/lib/auth/device";
+import { cancelPendingDeletion } from "@/lib/auth/deletion";
 
 const credentialsSchema = z.object({
   email: z.email(),
@@ -67,12 +68,45 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
 
+    /**
+     * The Credentials provider already refuses a deleted/suspended account in
+     * `authorize()`. An OAuth provider has no equivalent step in Auth.js core
+     * — it resolves a returning sign-in by `providerAccountId`, not email, so
+     * without this a soft-deleted user's Google identity would silently sign
+     * back in as that same dead row (`requireUser()` would then bounce it
+     * right back to `/signin` with no explanation). `softDeleteUser()` also
+     * deletes the `Account` row itself, so this is defense-in-depth for
+     * anything created before that existed.
+     */
+    async signIn({ account }) {
+      if (!account || account.provider === "credentials") return true;
+
+      const existing = await prisma.account.findUnique({
+        where: {
+          provider_providerAccountId: {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+          },
+        },
+        select: { user: { select: { deletedAt: true, status: true } } },
+      });
+
+      if (existing?.user.deletedAt || existing?.user.status === "SUSPENDED") {
+        return false;
+      }
+      return true;
+    },
+
     async jwt({ token, user, trigger }) {
       // Initial sign-in: stamp the user id and open a DeviceSession whose id
       // becomes the token's `sid`, so the security page can list and revoke it.
       if (user?.id) {
         token.uid = user.id;
         token.sid = await createDeviceSession(user.id);
+        // Successfully signing back in — Credentials or OAuth — cancels a
+        // pending self-deletion request automatically, without requiring a
+        // separate trip to /account/preferences to click Cancel.
+        await cancelPendingDeletion(user.id);
       }
 
       if (trigger === "update" && token.uid) {

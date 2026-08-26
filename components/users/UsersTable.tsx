@@ -116,6 +116,12 @@ export async function UsersTable({ searchParams }: UsersTableProps) {
                         <span className="truncate text-[13px] font-medium text-[#696969]">
                           {row.email}
                         </span>
+                        {row.deletionDeadline && (
+                          <span className="truncate text-[13px] font-medium text-[#ab413e]">
+                            Deletion requested · deletes{" "}
+                            <RelativeTime iso={row.deletionDeadline} />
+                          </span>
+                        )}
                       </div>
                     </div>
                   </td>

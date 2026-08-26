@@ -7,6 +7,7 @@ import { signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/require-session";
 import { verifyPassword } from "@/lib/auth/password";
+import { cancelPendingDeletion } from "@/lib/auth/deletion";
 import { logAudit } from "@/lib/audit";
 
 export type ActionState = {
@@ -139,19 +140,7 @@ export async function requestAccountDeletion(
 export async function cancelAccountDeletion(): Promise<ActionState> {
   const user = await requireUser();
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { deletionRequestedAt: null },
-  });
-
-  await logAudit({
-    actorId: user.id,
-    action: "Cancelled account deletion request",
-    actionCode: "account.deletion.cancelled",
-    method: "POST",
-    statusCode: 200,
-    targetUserId: user.id,
-  });
+  await cancelPendingDeletion(user.id);
 
   revalidatePath("/account/preferences");
   return { ok: true };

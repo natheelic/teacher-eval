@@ -64,7 +64,7 @@ Every action in `lib/actions/users.ts` routes through the private `loadActionabl
 
 Suspension and password resets revoke the target's `DeviceSession` rows, and `requireUser()` rejects `SUSPENDED`, so both take effect on the very next request.
 
-Deletion is a **soft delete**: `deletedAt` is set, status becomes `SUSPENDED`, the email is rewritten to `deleted+<id>@invalid.local` and the username is nulled — so audit history survives and the address is freed without violating the unique constraint.
+Deletion is a **soft delete** (`softDeleteUser()` in `lib/auth/deletion.ts`, shared by the admin delete action and the self-service grace-period expiry): `deletedAt` is set, status becomes `SUSPENDED`, the email is rewritten to `deleted+<id>@invalid.local`, the username is nulled, and every linked OAuth `Account` row is deleted — so audit history survives, and both the email and the OAuth identity are freed for reuse. The `Account` deletion matters because Google resolves a returning sign-in by `providerAccountId`, not email; without it, a soft-deleted user's Google identity stays bound to the dead row and a later "Sign in with Google" silently resolves back to it instead of creating a fresh account (Auth.js has no status check on that path — `auth.ts`'s `signIn()` callback is defense-in-depth for that, mirroring the check the Credentials provider already does in `authorize()`).
 
 ### Auth invariants
 
@@ -73,6 +73,7 @@ Deletion is a **soft delete**: `deletedAt` is set, status becomes `SUSPENDED`, t
 - Never unlink a user's last remaining sign-in method.
 - **Every account must have a password**, even a Google-only one: `requireUser()` redirects anyone with no `passwordHash` to `/account/set-password` before anything else, since that's currently the only account-recovery path (no email-based reset exists). The proxy forwards the request path as an `x-pathname` header so that page — and its own `changePassword` Server Action — can be exempted from the very check that sends people there; nothing else is. Google's `profile()` mapping in `auth.config.ts` also splits `given_name`/`family_name` into `firstName`/`lastName` so a Google sign-up isn't left with an unset name the way it otherwise would be.
 - Auditing must never be the reason a user-visible operation fails — `logAudit` swallows its own errors by design. Don't add a code path that depends on it having succeeded.
+- **Signing back in cancels a pending self-deletion request**, the same as clicking "Cancel deletion request" — `cancelPendingDeletion()` in `lib/auth/deletion.ts` runs from the `jwt()` callback's initial-sign-in branch in `auth.ts` (both Credentials and OAuth pass through it), and is also what the explicit Cancel action calls. It's a conditional `updateMany`, so signing in on an account with no pending request never writes a spurious audit row.
 
 ### Known shells
 

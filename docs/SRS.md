@@ -371,10 +371,19 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
 - **FR-43** — An authorised actor shall be able to reset a target's password. This shall rehash
   the password and revoke all of the target's device sessions. Audit: `user.password.reset`.
 - **FR-44** — Deletion shall be a **soft delete**: set `deletedAt`, set `status: SUSPENDED`,
-  rewrite the email to `deleted+<id>@invalid.local`, null the username, and revoke all device
-  sessions. The row shall be retained. Audit: `user.deleted`.
-  *Rationale:* audit history references users; hard deletion would orphan it. Rewriting the email
-  frees the address for reuse without violating the unique constraint.
+  rewrite the email to `deleted+<id>@invalid.local`, null the username, revoke all device
+  sessions, and delete every linked OAuth `Account` row. The `User` row shall be retained.
+  Audit: `user.deleted`. *Implementation:* `softDeleteUser()` in `lib/auth/deletion.ts`.
+  *Rationale:* audit history references users; hard deletion would orphan it. Rewriting the
+  email frees the address for reuse without violating the unique constraint — the `Account`
+  deletion does the same for the OAuth identity, since a provider like Google resolves a
+  returning sign-in by `providerAccountId`, not email. Without it, a soft-deleted user's Google
+  identity would stay bound to the dead row forever, and a later Google sign-in would silently
+  resolve back to it rather than creating a fresh account.
+- **FR-44a** — Sign-in via an OAuth provider shall be refused for any account whose `deletedAt`
+  is set or whose `status` is `SUSPENDED`, mirroring FR-12's guarantee for the Credentials
+  provider — the OAuth path has no equivalent check in Auth.js core.
+  *Implementation:* the `signIn()` callback in `auth.ts`.
 - **FR-45** — The users list shall exclude soft-deleted users (`deletedAt: null`).
 - **FR-46** — The users list shall support a free-text query (≤ 100 characters), a role filter, a
   status filter, and cursor-based pagination at 25 rows per page.
@@ -438,8 +447,13 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
   current password when one is set. This sets `deletionRequestedAt` and revokes every
   `DeviceSession` for that user, including the one making the request, signing them out
   immediately. Audit: `account.deletion.requested` (202).
-- **FR-61** — A user shall be able to cancel a pending deletion request. Audit:
-  `account.deletion.cancelled`.
+- **FR-61** — A user shall be able to cancel a pending deletion request, explicitly via
+  `/account/preferences` or implicitly by successfully signing back in — either Credentials or
+  OAuth. Signing in is the same trust bar as clicking Cancel, so it is treated the same way; the
+  sign-in path only writes the audit row when a request was actually pending. Audit:
+  `account.deletion.cancelled`. *Implementation:* `cancelPendingDeletion()` in
+  `lib/auth/deletion.ts`, called from `cancelAccountDeletion()` and from the `jwt()` callback in
+  `auth.ts`.
 - **FR-61a** — Thirty days after `deletionRequestedAt`, the account shall be soft-deleted per
   FR-44. There is no scheduled job; `requireUser()` checks the window on every authenticated
   request and performs the soft delete lazily, the same chokepoint that already enforces
@@ -651,9 +665,12 @@ required entry is missing or malformed.
 | FR-30 – FR-36 | `lib/permissions.ts` |
 | FR-37, FR-38 | `lib/actions/users.ts` (`assertNotLastAdmin`, `loadActionable`) |
 | FR-39, FR-39a | `lib/auth/require-session.ts`, `proxy.ts` |
-| FR-40 – FR-44 | `lib/actions/users.ts` |
+| FR-40 – FR-43 | `lib/actions/users.ts` |
+| FR-44 | `lib/auth/deletion.ts` |
+| FR-44a | `auth.ts` (`signIn` callback) |
 | FR-45 – FR-49 | `lib/queries/users.ts` |
-| FR-50, FR-60, FR-61 | `lib/actions/profile.ts` |
+| FR-50, FR-60 | `lib/actions/profile.ts` |
+| FR-61 | `lib/auth/deletion.ts`, `lib/actions/profile.ts`, `auth.ts` |
 | FR-61a | `lib/auth/deletion.ts`, `lib/auth/require-session.ts` |
 | FR-51 – FR-52 | `lib/actions/connections.ts`, `lib/queries/account.ts` |
 | FR-53 – FR-56, FR-62 | `lib/actions/security.ts` |
