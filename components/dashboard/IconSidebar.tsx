@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Users, ListChecks, Settings, PanelLeft, X } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { LayoutDashboard, Users, ListChecks, Settings, PanelLeft, X } from "lucide-react";
 import { useMobileNav } from "../layout/MobileNavProvider";
 import { MobileDrawer } from "../layout/MobileDrawer";
 
@@ -63,6 +64,7 @@ function Divider() {
 
 export function IconSidebar() {
   const { open, setOpen } = useMobileNav();
+  const pathname = usePathname();
   const close = () => setOpen(false);
 
   return (
@@ -76,8 +78,27 @@ export function IconSidebar() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <nav className="flex w-full flex-col">
           <div className="flex flex-col gap-1 p-2">
-            <NavItem icon={Users} label="Users" href="/users" active onNavigate={close} />
-            <NavItem icon={ListChecks} label="Audit logs" href="/account/audit-logs" onNavigate={close} />
+            <NavItem
+              icon={LayoutDashboard}
+              label="Dashboard"
+              href="/dashboard"
+              active={pathname === "/dashboard"}
+              onNavigate={close}
+            />
+            <NavItem
+              icon={Users}
+              label="Users"
+              href="/users"
+              active={pathname.startsWith("/users")}
+              onNavigate={close}
+            />
+            <NavItem
+              icon={ListChecks}
+              label="Audit logs"
+              href="/account/audit-logs"
+              active={pathname === "/account/audit-logs"}
+              onNavigate={close}
+            />
           </div>
           <Divider />
           <div className="flex flex-col p-2">

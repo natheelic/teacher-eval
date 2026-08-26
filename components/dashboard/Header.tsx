@@ -23,7 +23,7 @@ export async function Header() {
         <div className="flex min-w-0 items-center gap-2">
           <MobileMenuButton />
           <Link
-            href="/users"
+            href="/dashboard"
             className="hidden shrink-0 items-center justify-center lg:flex"
           >
             <AppLogo className="h-[18px] w-auto" />

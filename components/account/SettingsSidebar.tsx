@@ -50,7 +50,7 @@ export function SettingsSidebar({
       <div className="flex h-full w-full flex-col">
         <div className="flex h-12 items-center justify-between border-b border-black/8 px-6">
           <Link
-            href="/users"
+            href="/dashboard"
             onClick={close}
             className="flex items-center gap-2 text-[13px] font-medium text-[#696969] hover:text-[#030303]"
           >

@@ -51,10 +51,11 @@ export const authConfig = {
 
 /**
  * Where a freshly signed-in user lands when nothing else was requested. `/` is
- * the public landing page now, so it cannot be the default — `/users` is the
- * signed-in home, and it forwards members and viewers on to their own account.
+ * the public landing page now, so it cannot be the default — `/dashboard` is
+ * the signed-in home for every role; `/users` is the user-management screen
+ * reachable from there for managers and admins only.
  */
-export const DEFAULT_SIGNED_IN_PATH = "/users";
+export const DEFAULT_SIGNED_IN_PATH = "/dashboard";
 
 const PUBLIC_PREFIXES = ["/signin", "/signup", "/api/auth"];
 

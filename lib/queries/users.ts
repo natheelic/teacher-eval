@@ -122,7 +122,11 @@ export async function getUsers(filters: UserFilters): Promise<UserPage> {
   };
 }
 
-async function getUserStats() {
+export type UserStats = { total: number; active: number; suspended: number; admins: number };
+
+/** Standalone for the dashboard overview; getUsers() also calls it internally. */
+export async function getUserStats(): Promise<UserStats> {
+  await requireUserManager();
   const [total, active, suspended, admins] = await Promise.all([
     prisma.user.count({ where: { deletedAt: null } }),
     prisma.user.count({ where: { deletedAt: null, status: "ACTIVE" } }),

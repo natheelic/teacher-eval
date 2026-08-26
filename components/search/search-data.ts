@@ -5,6 +5,7 @@ export type SearchItem = {
 };
 
 export const SEARCH_ITEMS: SearchItem[] = [
+  { label: "Dashboard", group: "Navigate", href: "/dashboard" },
   { label: "Users", group: "Navigate", href: "/users" },
   { label: "Account Preferences", group: "Navigate", href: "/account/preferences" },
   { label: "Access Tokens", group: "Navigate", href: "/account/access-tokens" },

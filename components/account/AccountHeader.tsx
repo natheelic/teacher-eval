@@ -18,7 +18,7 @@ export async function AccountHeader() {
       <div className="flex min-w-0 flex-1 h-[47px] items-center justify-between gap-2 pl-2 pr-3 sm:pl-4">
         <div className="flex min-w-0 items-center gap-2">
           <MobileMenuButton />
-          <Link href="/users" className="hidden shrink-0 items-center justify-center sm:flex">
+          <Link href="/dashboard" className="hidden shrink-0 items-center justify-center sm:flex">
             <AppLogo className="h-[18px] w-auto" />
           </Link>
           <span className="truncate text-[13px] font-medium text-[#030303]">Account</span>
