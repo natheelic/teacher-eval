@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/require-session";
 import { verifyPassword } from "@/lib/auth/password";
@@ -126,7 +126,14 @@ export async function requestAccountDeletion(
   });
 
   revalidatePath("/account/preferences");
-  redirect("/signin");
+
+  // redirect("/signin") would leave the session cookie itself intact — the
+  // proxy only ever decodes the JWT, so it would still see "signed in" and
+  // bounce the next /signin visit straight back to a page that immediately
+  // redirects away again (the DB now rejects the revoked session). signOut()
+  // clears the cookie for real.
+  await signOut({ redirectTo: "/signin" });
+  return {};
 }
 
 export async function cancelAccountDeletion(): Promise<ActionState> {
