@@ -28,7 +28,7 @@ export default async function SignUpPage({
     <AuthCard>
       <AuthHeading
         title="Create an account"
-        description="Signing up creates your organization and a first project."
+        description="Create an account to get started."
       />
 
       <SignUpForm callbackUrl={callbackUrl} />

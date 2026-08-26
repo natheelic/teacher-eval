@@ -711,7 +711,6 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 | D-6 | §1.2 | API tokens can be minted but no route consumes them; `scopes`, `expiresAt` and `lastUsedAt` are never written or checked. `tokenPreview()` in `lib/auth/tokens.ts` has no callers. |
 | D-7 | DR-03 | `UserStatus.INVITED` is unreachable; there is no invitation flow. |
 | D-9 | FR-86 | Audit filtering is limited to range and scope; action codes are inline literals with no central definition. |
-| D-10 | §2.1 | `/signup` copy still claims registration "creates your organization and a first project". |
 | D-11 | §3.4 | `Authenticator` and `VerificationToken` are dead models. |
 | D-12 | NFR-25 | No test framework, no CI. |
 | D-13 | Appendix A | `SHADOW_DATABASE_URL` is read by `prisma.config.ts` but absent from `.env.example`. |
