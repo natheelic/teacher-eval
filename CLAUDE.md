@@ -80,7 +80,6 @@ Deletion is a **soft delete** (`softDeleteUser()` in `lib/auth/deletion.ts`, sha
 
 These are persisted-but-inert, and the UI implies otherwise. Don't mistake them for working features, and don't assume the gap is an oversight — `docs/ROADMAP.md` Phase 1 covers each, and for some the intended resolution is removal:
 
-- **`User.lastLoginAt`** — selected and rendered in `UsersTable`, never written.
 - **`sidebarBehavior`** — stored and selectable; no sidebar reads it.
 - **`telemetryEnabled`, `editEntitiesInCode`, `queueTableOperations`** — stored; nothing consults them.
 - **Keyboard shortcuts** — toggles persist, but only ⌘K is implemented, and several labels name features removed with the tenancy layer.

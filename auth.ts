@@ -127,7 +127,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Successfully signing back in — Credentials or OAuth — cancels a
         // pending self-deletion request automatically, without requiring a
         // separate trip to /account/preferences to click Cancel.
-        await cancelPendingDeletion(user.id);
+        await Promise.all([
+          cancelPendingDeletion(user.id),
+          prisma.user.update({
+            where: { id: user.id },
+            data: { lastLoginAt: new Date() },
+          }),
+        ]);
       }
 
       if (trigger === "update" && token.uid) {

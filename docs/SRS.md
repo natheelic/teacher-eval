@@ -637,8 +637,10 @@ SidebarBehavior OPEN | CLOSED | EXPAND_ON_HOVER
 - **DR-02** — `AuditLog` shall be treated as append-only. No code path may update or delete a row.
 - **DR-03** — `UserStatus.INVITED` is defined and filterable but **never assigned** by any code
   path; `createUser` hardcodes `ACTIVE`.
-- **DR-04** — `User.lastLoginAt` is selected and rendered but **never written**, so the column
-  always displays its empty state.
+- **DR-04** — `User.lastLoginAt` shall be stamped with the current time on every successful
+  sign-in (Credentials and OAuth alike), from the `jwt` callback's initial-sign-in branch in
+  `auth.ts` — the same place `DeviceSession` creation and pending-deletion cancellation already
+  run, so it fires exactly once per new session rather than once per request.
 
 **Migrations**
 
@@ -706,7 +708,6 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 
 | # | Requirement | Deviation |
 |---|---|---|
-| D-2 | DR-04 | `lastLoginAt` is displayed but never written. |
 | D-6 | §1.2 | API tokens can be minted but no route consumes them; `scopes`, `expiresAt` and `lastUsedAt` are never written or checked. `tokenPreview()` in `lib/auth/tokens.ts` has no callers. |
 | D-7 | DR-03 | `UserStatus.INVITED` is unreachable; there is no invitation flow. |
 | D-9 | FR-86 | Audit filtering is limited to range and scope; action codes are inline literals with no central definition. |

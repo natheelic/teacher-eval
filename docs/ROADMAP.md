@@ -52,7 +52,7 @@ misleads. None of it is large work.
 
 | # | Item | Why | Files |
 |---|---|---|---|
-| 1.1 | **Write `lastLoginAt`** on successful authentication | The users table renders this column, so administrators currently see an empty value for every account and cannot tell an abandoned account from an active one (D-2). One write in the `signIn` event or the Credentials `authorize`. | `auth.ts` |
+| 1.1 | ✅ **`lastLoginAt` written** on successful authentication | The users table renders this column; administrators can now tell an abandoned account from an active one. Stamped in the `jwt` callback's initial-sign-in branch (Credentials and OAuth alike), alongside `DeviceSession` creation. | `auth.ts` |
 | 1.2 | ✅ **Two-factor authentication implemented for real** — TOTP enrollment (QR + manual key + confirm code before anything is persisted), a sign-in challenge step on the Credentials path, and a password-confirmed disable flow | Done — see FR-62. Google sign-in is deliberately not gated by this. | `lib/auth/totp.ts`, `lib/actions/twoFactor.ts`, `components/account/TwoFactorSettings.tsx`, `auth.ts` |
 | 1.3 | ✅ **`sidebarBehavior` removed** — dropped rather than wired up | Nothing ever read it (D-3, FR-71); the `UserPreferences` column and `SidebarBehavior` enum are gone. | — |
 | 1.4 | ✅ **`telemetryEnabled`, `editEntitiesInCode`, `queueTableOperations` removed** | Three inert switches (D-4), dropped rather than implemented — no telemetry client, no code-editor mode, no batched edits exist anywhere in the app to wire them to. | — |
