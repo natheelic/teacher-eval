@@ -119,8 +119,9 @@ feature currently produces secrets that do nothing (D-6).
   a session, since `useActionState`'s `state.plaintext` only clears when the action runs again —
   which it can't, because the dialog won't show. A page reload works around it. Pre-existing, not
   introduced by 2.1–2.5; worth its own item.
-- **2.6** Adopt `tokenPreview()` in `lib/auth/tokens.ts` — it has zero callers because the preview
-  string is re-inlined in `lib/queries/account.ts`. One of the two should go.
+- **2.6** ✅ `lib/queries/account.ts` now calls `tokenPreview()` instead of re-inlining its exact
+  logic (`` `${prefix}_${"•".repeat(8)}${last4}` ``); the duplicate expression is gone, output is
+  unchanged.
 
 **Exit criteria:** a token minted in the UI can authenticate a request, and its `lastUsedAt`
 updates.

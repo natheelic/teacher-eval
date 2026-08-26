@@ -43,7 +43,7 @@ Next.js App Router (`app/`), React 19, Tailwind CSS v4 (via `@tailwindcss/postcs
 - `auth.ts` — Node-side: Prisma adapter, Credentials + Google, JWT callbacks, `DeviceSession` lifecycle.
 - `proxy.ts` — **Next 16 renamed `middleware.ts` to `proxy.ts`** (exports `proxy` + `config.matcher`, defaults to the Node runtime, and setting `runtime` there throws). It is a *redirect* layer only — it sees just the decoded JWT.
 - `lib/auth/require-session.ts` — the real authorization layer. Every protected page and Server Action calls `requireUser()`; it is the only place revocation and account deletion are enforced.
-- `lib/auth/{device,password,tokens}.ts` — user-agent parsing for `DeviceSession` labels, bcrypt hash/verify, and API-token minting/hashing. `tokenPreview()` in `tokens.ts` currently has no callers; the preview string is re-inlined in `lib/queries/account.ts`.
+- `lib/auth/{device,password,tokens,api-token,scopes}.ts` — user-agent parsing for `DeviceSession` labels, bcrypt hash/verify, API-token minting/hashing (`tokens.ts`, including `tokenPreview()`, called from `lib/queries/account.ts`), bearer-token authentication (`api-token.ts`), and the API-token scope vocabulary (`scopes.ts`).
 - `lib/permissions.ts` — the single source of truth for who may act on whom. Pure functions, no Prisma, no request context.
 - `lib/queries/*` (read, `React.cache`d), `lib/actions/*` (`"use server"` mutations), `lib/audit.ts`, `lib/bootstrap.ts` (sign-up), `lib/format.ts` (display formatting).
 

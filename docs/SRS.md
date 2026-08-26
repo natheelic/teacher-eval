@@ -730,7 +730,6 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 
 | # | Requirement | Deviation |
 |---|---|---|
-| D-6 | §1.2 | `tokenPreview()` in `lib/auth/tokens.ts` has no callers — the preview string is re-inlined in `lib/queries/account.ts` (ROADMAP 2.6). Otherwise resolved: `GET /api/me` authenticates with a minted token, honours `expiresAt`, stamps `lastUsedAt`, and enforces `scopes` (FR-59a – FR-59c) — it remains the only route, which is expected until a second one exists to need it. |
 | D-7 | DR-03 | `UserStatus.INVITED` is unreachable; there is no invitation flow. |
 | D-9 | FR-86 | Audit filtering is limited to range and scope; action codes are inline literals with no central definition. |
 | D-11 | §3.4 | `Authenticator` and `VerificationToken` are dead models. |

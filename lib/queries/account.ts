@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/require-session";
+import { tokenPreview } from "@/lib/auth/tokens";
 import { toIso } from "@/lib/format";
 
 export type ConnectionView = {
@@ -128,7 +129,7 @@ export const getApiTokens = cache(async (): Promise<ApiTokenView[]> => {
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
-    preview: `${row.prefix}_${"•".repeat(8)}${row.last4}`,
+    preview: tokenPreview(row.prefix, row.last4),
     createdAt: row.createdAt.toISOString(),
     lastUsedAt: toIso(row.lastUsedAt),
     expiresAt: toIso(row.expiresAt),
