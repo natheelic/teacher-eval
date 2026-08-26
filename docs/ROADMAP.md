@@ -131,16 +131,37 @@ updates.
 ## Phase 3 — Account lifecycle 🟡
 
 **Why:** three schema features describe a lifecycle the code does not implement. Each requires
-email transport, which the system does not have — so **the first decision in this phase is
-whether to add a mail dependency at all.** If the answer is no, the corresponding schema should be
-simplified rather than left as a promise.
+email transport, which the system did not have — the first decision in this phase was whether to
+add a mail dependency at all. **Decided: yes** (3.1's implementation). 3.2 and 3.3 can now build
+on the same transport rather than re-litigating the question.
 
-- **3.1 — Invitations.** `UserStatus.INVITED` is a filter option that no code path can produce;
-  `createUser` hardcodes `ACTIVE` and sets a password directly, though it does record
-  `invitedById` (D-7). Implement invite-by-email with a one-time acceptance link, or remove
-  `INVITED` from the enum and the filter.
-- **3.2 — Email verification.** `User.emailVerified` is never written and the `VerificationToken`
-  model is dead (D-11). Either activate it or drop the model.
+- **3.1** ✅ **Invitations.** `createUser()` now invites rather than creates directly: it sets
+  `status: INVITED` with **no password** (the admin never sees or sets one) and emails a one-time
+  acceptance link. Accepting it (`/invite/accept`, public) sets the invitee's own password, flips
+  `status` to `ACTIVE`, and signs them in immediately — mirroring sign-up's create-then-`signIn()`
+  shape. A manager/admin can resend the invite to any still-`INVITED` row from the row actions
+  menu, which correctly shows "Resend invite" there instead of "Reset password" (there's no
+  password yet to reset). `D-7` resolved (FR-40, FR-40a – FR-40d).
+  - **Email transport chosen:** `nodemailer` against SMTP, gated behind `emailEnabled`
+    (`SMTP_HOST`/`SMTP_PORT`/`SMTP_FROM`, mirroring how `googleEnabled` gates Google) rather than a
+    hosted-API provider (Resend, Postmark, …) — this app runs as a long-lived Node server, not a
+    serverless/edge target, so there's no runtime constraint pushing toward a fetch-based API, and
+    plain SMTP means local dev needs no third-party account: `docker-compose.yml` runs Mailpit,
+    caught mail viewable at `http://localhost:8025`. Swapping to a hosted provider later is a
+    `lib/email.ts` change, not an application-wide one.
+  - **Token storage:** reused the Auth.js adapter's existing `VerificationToken` model
+    (`identifier`/`token`/`expires`) rather than a new table — it already exists, unused, in the
+    schema (no Email provider is registered). Stored as a `hashToken()` hash, one-time (deleted on
+    consumption), 7-day expiry.
+  - **Verified end-to-end in Chrome + Mailpit:** invited a real address, confirmed the `INVITED`
+    badge (previously unreachable) rendered, opened the actual sent email, followed its link,
+    activated the account, landed auto-signed-in on `/dashboard` with the audit trail correct on
+    both sides (`user.invited` for the inviter, `user.invitation.accepted` for the invitee).
+    Re-visiting the same link afterward correctly showed "This invitation link is invalid or has
+    expired." Resending produced a second, independent email.
+- **3.2 — Email verification.** `User.emailVerified` is never written (D-11's remaining half).
+  Either activate it — `VerificationToken` is no longer a dead model, invitations already prove
+  the send/consume path works — or drop the field.
 - **3.3 — Forgot password.** There is no reset route. Administrators can reset another user's
   password, but a locked-out user with no admin available has no recourse. This shares the
   `VerificationToken` machinery with 3.2.

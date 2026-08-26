@@ -25,7 +25,8 @@ instance.
 - The last active admin cannot be demoted, suspended or deleted
 
 **User administration** *(admins and managers)*
-- Create users, change roles, suspend and reactivate, reset passwords
+- Invite users by email (one-time acceptance link, resendable), change roles, suspend and
+  reactivate, reset passwords
 - Soft delete that preserves audit history
 - Search, role and status filters, cursor pagination, population stats
 
@@ -73,7 +74,7 @@ cp .env.example .env
 # 3. Generate an auth secret and paste it into AUTH_SECRET
 npx auth secret
 
-# 4. Start PostgreSQL + pgAdmin
+# 4. Start PostgreSQL + pgAdmin + Mailpit
 pnpm db:up
 
 # 5. Apply migrations
@@ -94,6 +95,13 @@ Then open <http://localhost:3000/signup>.
 Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`, and register
 `http://localhost:3000/api/auth/callback/google` as an authorised redirect URI. The Google button
 appears only when both variables are present.
+
+### Optional: Email (needed to invite users)
+
+`.env.example`'s defaults already point `SMTP_HOST`/`SMTP_PORT`/`SMTP_FROM` at the Mailpit
+container `pnpm db:up` starts — no real mail account needed locally. Sent mail (invitations today)
+never leaves the machine; view it at <http://localhost:8025>. Point the same three variables at a
+real SMTP provider in production. Inviting a user fails with a clear error until all three are set.
 
 ---
 
@@ -127,7 +135,7 @@ Client Component.
 | `pnpm build` / `pnpm start` | Production build / run it |
 | `pnpm lint` | ESLint (`eslint-config-next`, core-web-vitals + TypeScript) |
 | `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm db:up` / `pnpm db:down` | Start / stop PostgreSQL + pgAdmin |
+| `pnpm db:up` / `pnpm db:down` | Start / stop PostgreSQL + pgAdmin + Mailpit |
 | `pnpm db:migrate` | `prisma migrate dev` |
 | `pnpm db:studio` | Prisma Studio |
 | `pnpm db:seed` | Reports counts only — creates nothing |

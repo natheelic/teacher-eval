@@ -5,14 +5,21 @@ import { MoreHorizontal } from "lucide-react";
 import {
   changeUserRole,
   deleteUser,
+  resendInvitation,
   setUserSuspended,
 } from "@/lib/actions/users";
 import { ROLE_LABELS } from "@/lib/permissions";
-import type { Role } from "@/lib/generated/prisma/enums";
+import type { Role, UserStatus } from "@/lib/generated/prisma/enums";
 import { ResetPasswordDialog } from "./ResetPasswordDialog";
 
 export type UserRowActionsProps = {
-  user: { id: string; label: string; role: Role; suspended: boolean };
+  user: {
+    id: string;
+    label: string;
+    role: Role;
+    status: UserStatus;
+    suspended: boolean;
+  };
   assignableRoles: Role[];
   canDelete: boolean;
 };
@@ -99,17 +106,28 @@ export function UserRowActions({
             </>
           )}
 
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => {
-              setOpen(false);
-              setResetting(true);
-            }}
-            className={itemClass}
-          >
-            Reset password
-          </button>
+          {user.status === "INVITED" ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => run(() => resendInvitation(user.id))}
+              className={itemClass}
+            >
+              Resend invite
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                setOpen(false);
+                setResetting(true);
+              }}
+              className={itemClass}
+            >
+              Reset password
+            </button>
+          )}
 
           <button
             type="button"

@@ -156,6 +156,7 @@ export async function UsersTable({ searchParams }: UsersTableProps) {
                           id: row.id,
                           label: row.name?.trim() || row.email,
                           role: row.role,
+                          status: row.status,
                           suspended: row.status === "SUSPENDED",
                         }}
                         assignableRoles={assignable}

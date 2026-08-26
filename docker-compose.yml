@@ -35,6 +35,14 @@ services:
       - portal-pgadmin-data:/var/lib/pgadmin
       - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: portal-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP — matches SMTP_HOST/SMTP_PORT in .env.example
+      - "8025:8025" # Web UI — view sent mail at http://localhost:8025
+
 volumes:
   portal-db-data:
   portal-pgadmin-data:

@@ -34,14 +34,14 @@ export function CreateUserDialog({
         className="flex h-[26px] shrink-0 items-center gap-2 rounded-md border border-[#16b674]/75 bg-[#72e3ad] px-2.5 py-1 text-xs font-medium text-[#030303] hover:brightness-95"
       >
         <Plus className="size-3.5" />
-        Add user
+        Invite user
       </button>
 
       {showDialog && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Add user"
+          aria-label="Invite user"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setOpen(false);
@@ -52,8 +52,18 @@ export function CreateUserDialog({
             className="flex w-full max-w-[420px] flex-col gap-4 rounded-lg border border-black/8 bg-white p-6 text-left shadow-lg"
           >
             <h2 className="font-display text-lg font-semibold text-[#030303]">
-              Add user
+              Invite user
             </h2>
+            <p className="text-[13px] font-medium text-[#696969]">
+              They&apos;ll receive an email with a link to set their own
+              password and activate the account.
+            </p>
+
+            {state.error && (
+              <p className="text-xs font-medium text-[#ab413e]">
+                {state.error}
+              </p>
+            )}
 
             <div className="flex gap-3">
               <Field
@@ -103,14 +113,6 @@ export function CreateUserDialog({
               )}
             </label>
 
-            <Field
-              label="Temporary password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              error={state.fieldErrors?.password}
-            />
-
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
@@ -124,7 +126,7 @@ export function CreateUserDialog({
                 disabled={pending}
                 className="flex h-[26px] items-center rounded-md border border-[#16b674]/75 bg-[#72e3ad] px-2.5 text-xs font-medium text-[#030303] hover:brightness-95 disabled:opacity-50"
               >
-                {pending ? "Creating..." : "Create user"}
+                {pending ? "Sending..." : "Send invite"}
               </button>
             </div>
           </form>

@@ -8,6 +8,8 @@ import { requireUserManager } from "@/lib/auth/require-session";
 import { hashPassword, passwordSchema } from "@/lib/auth/password";
 import { softDeleteUser } from "@/lib/auth/deletion";
 import { uniqueUsername } from "@/lib/bootstrap";
+import { sendInvitationEmail } from "@/lib/auth/invitations";
+import { emailEnabled } from "@/lib/env";
 import { logAudit } from "@/lib/audit";
 import {
   ROLE_LABELS,
@@ -54,21 +56,34 @@ const createSchema = z.object({
   lastName: z.string().trim().max(100).optional(),
   email: z.email("Enter a valid email address"),
   role: roleEnum,
-  password: passwordSchema,
 });
 
+/**
+ * Invites a user by email rather than setting a password on their behalf —
+ * the account is created with status INVITED and no passwordHash, an
+ * invitation link is emailed, and the invitee sets their own password when
+ * they accept it (lib/actions/invitations.ts). Requires email to be
+ * configured (ROADMAP 3.1); with none, this fails before creating anything
+ * rather than leaving a stuck INVITED row nobody can activate.
+ */
 export async function createUser(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
   const actor = await requireUserManager();
 
+  if (!emailEnabled) {
+    return {
+      error:
+        "Email isn't configured — set SMTP_HOST, SMTP_PORT and SMTP_FROM to invite users.",
+    };
+  }
+
   const parsed = createSchema.safeParse({
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName") || undefined,
     email: formData.get("email"),
     role: formData.get("role"),
-    password: formData.get("password"),
   });
 
   if (!parsed.success) {
@@ -79,7 +94,7 @@ export async function createUser(
     return { fieldErrors };
   }
 
-  const { firstName, lastName, role, password } = parsed.data;
+  const { firstName, lastName, role } = parsed.data;
   const email = parsed.data.email.toLowerCase();
 
   // A manager must not be able to mint a role at or above their own.
@@ -95,8 +110,6 @@ export async function createUser(
     return { fieldErrors: { email: "An account with this email already exists." } };
   }
 
-  const passwordHash = await hashPassword(password);
-
   const created = await prisma.$transaction(async (tx) =>
     tx.user.create({
       data: {
@@ -105,10 +118,8 @@ export async function createUser(
         firstName,
         lastName: lastName ?? null,
         username: await uniqueUsername(tx, email),
-        passwordHash,
-        passwordUpdatedAt: new Date(),
         role,
-        status: "ACTIVE",
+        status: "INVITED",
         invitedById: actor.id,
         preferences: { create: {} },
       },
@@ -116,18 +127,52 @@ export async function createUser(
     }),
   );
 
+  await sendInvitationEmail(email, labelOf(actor));
+
   await logAudit({
     actorId: actor.id,
     targetUserId: created.id,
     targetLabel: labelOf(created),
-    action: `Created user with role ${ROLE_LABELS[role]}`,
-    actionCode: "user.created",
+    action: `Invited user with role ${ROLE_LABELS[role]}`,
+    actionCode: "user.invited",
     method: "POST",
     statusCode: 201,
   });
 
   revalidatePath("/users");
   return { ok: true };
+}
+
+/**
+ * Re-sends the invitation email with a fresh token (the original may have
+ * expired, or the email may simply have gone unnoticed). The prior token
+ * isn't explicitly revoked — it's already single-use via
+ * consumeInvitationToken() and expires on its own — so there's nothing to
+ * clean up beyond leaving an unused, eventually-expired row.
+ */
+export async function resendInvitation(userId: string): Promise<void> {
+  const { actor, target } = await loadActionable(userId);
+
+  if (target.status !== "INVITED") {
+    throw new Error("This user has already accepted their invitation.");
+  }
+  if (!emailEnabled) {
+    throw new Error(
+      "Email isn't configured — set SMTP_HOST, SMTP_PORT and SMTP_FROM to resend invitations.",
+    );
+  }
+
+  await sendInvitationEmail(target.email, labelOf(actor));
+
+  await logAudit({
+    actorId: actor.id,
+    targetUserId: target.id,
+    targetLabel: labelOf(target),
+    action: "Resent the invitation email",
+    actionCode: "user.invitation.resent",
+    method: "POST",
+    statusCode: 200,
+  });
 }
 
 // --- update ----------------------------------------------------------------

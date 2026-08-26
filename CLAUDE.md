@@ -19,7 +19,7 @@ Package manager is pnpm (see `pnpm-lock.yaml` / `pnpm-workspace.yaml`); a `packa
 - `pnpm start` — run the production build
 - `pnpm lint` — run ESLint (`eslint-config-next` core-web-vitals + typescript rules)
 - `pnpm typecheck` — `tsc --noEmit`
-- `pnpm db:up` / `pnpm db:down` — start/stop Postgres + pgAdmin via `docker-compose.yml`
+- `pnpm db:up` / `pnpm db:down` — start/stop Postgres + pgAdmin + Mailpit via `docker-compose.yml`
 - `pnpm db:migrate` — `prisma migrate dev`; `pnpm db:studio`, `pnpm db:seed`, `pnpm db:reset`
 
 Destructive schema changes make `prisma migrate dev` prompt, which fails in a non-interactive shell. Generate the SQL with `prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --script` (needs `SHADOW_DATABASE_URL`), **check its statement order**, then apply with `prisma migrate deploy`. Note that `SHADOW_DATABASE_URL` is read by `prisma.config.ts` but is **not** listed in `.env.example` — you have to add it yourself.
@@ -43,9 +43,10 @@ Next.js App Router (`app/`), React 19, Tailwind CSS v4 (via `@tailwindcss/postcs
 - `auth.ts` — Node-side: Prisma adapter, Credentials + Google, JWT callbacks, `DeviceSession` lifecycle.
 - `proxy.ts` — **Next 16 renamed `middleware.ts` to `proxy.ts`** (exports `proxy` + `config.matcher`, defaults to the Node runtime, and setting `runtime` there throws). It is a *redirect* layer only — it sees just the decoded JWT.
 - `lib/auth/require-session.ts` — the real authorization layer. Every protected page and Server Action calls `requireUser()`; it is the only place revocation and account deletion are enforced.
-- `lib/auth/{device,password,tokens,api-token,scopes}.ts` — user-agent parsing for `DeviceSession` labels, bcrypt hash/verify, API-token minting/hashing (`tokens.ts`, including `tokenPreview()`, called from `lib/queries/account.ts`), bearer-token authentication (`api-token.ts`), and the API-token scope vocabulary (`scopes.ts`).
+- `lib/auth/{device,password,tokens,api-token,scopes,invitations}.ts` — user-agent parsing for `DeviceSession` labels, bcrypt hash/verify, API-token minting/hashing (`tokens.ts`, including `tokenPreview()`, called from `lib/queries/account.ts`), bearer-token authentication (`api-token.ts`), the API-token scope vocabulary (`scopes.ts`), and invitation-token issuance/consumption/email (`invitations.ts`).
+- `lib/email.ts` — `nodemailer` transport, gated behind `emailEnabled` (`lib/env.ts`). `lib/url.ts` — `absoluteUrl()` for building links that leave the app (invitation emails today).
 - `lib/permissions.ts` — the single source of truth for who may act on whom. Pure functions, no Prisma, no request context.
-- `lib/queries/*` (read, `React.cache`d), `lib/actions/*` (`"use server"` mutations), `lib/audit.ts`, `lib/bootstrap.ts` (sign-up), `lib/format.ts` (display formatting).
+- `lib/queries/*` (read, `React.cache`d), `lib/actions/*` (`"use server"` mutations, including `invitations.ts` for the unauthenticated accept flow), `lib/audit.ts`, `lib/bootstrap.ts` (sign-up), `lib/format.ts` (display formatting).
 
 ### Roles
 
@@ -66,6 +67,8 @@ Suspension and password resets revoke the target's `DeviceSession` rows, and `re
 
 Deletion is a **soft delete** (`softDeleteUser()` in `lib/auth/deletion.ts`, shared by the admin delete action and the self-service grace-period expiry): `deletedAt` is set, status becomes `SUSPENDED`, the email is rewritten to `deleted+<id>@invalid.local`, the username is nulled, and every linked OAuth `Account` row is deleted — so audit history survives, and both the email and the OAuth identity are freed for reuse. The `Account` deletion matters because Google resolves a returning sign-in by `providerAccountId`, not email; without it, a soft-deleted user's Google identity stays bound to the dead row and a later "Sign in with Google" silently resolves back to it instead of creating a fresh account (Auth.js has no status check on that path — `auth.ts`'s `signIn()` callback is defense-in-depth for that, mirroring the check the Credentials provider already does in `authorize()`).
 
+**Adding a user invites, it doesn't create with a password.** `createUser()` sets `status: INVITED` and no `passwordHash` — the admin never sees or sets a password — then emails a one-time acceptance link via `sendInvitationEmail()` (`lib/auth/invitations.ts`). The link's token is stored as a SHA-256 hash in the Auth.js adapter's `VerificationToken` model (`identifier` = email, `token` = hash), reused as-is with no schema changes; consuming it (`consumeInvitationToken()`) deletes the row, so a link can't be replayed. `acceptInvitation()` (`lib/actions/invitations.ts`, public at `/invite/accept`) sets the password, flips `status` to `ACTIVE`, and signs the invitee in immediately — same create-then-`signIn()` shape as `signUpAction`. A manager/admin can `resendInvitation()` on any still-`INVITED` row (`UserRowActions` swaps "Reset password" for "Resend invite" there, since there's no password yet to reset) — the prior token isn't revoked, just left to expire on its own, since it's already single-use. Requires `emailEnabled` (`lib/env.ts`; `SMTP_HOST`/`SMTP_PORT`/`SMTP_FROM`, same optional-until-fully-configured pattern as `googleEnabled`) — `createUser()` fails before creating anything if it's unset, rather than leaving a stuck `INVITED` row nobody can activate. Local dev points `lib/email.ts`'s `nodemailer` transport at a Mailpit container (`docker-compose.yml`, brought up by `pnpm db:up`) — sent mail never leaves the machine, viewable at `http://localhost:8025`. Link URLs are built by `lib/url.ts`'s `absoluteUrl()`, which prefers `AUTH_URL` and otherwise infers the origin from the request, same fallback Auth.js itself uses.
+
 ### Auth invariants
 
 - The Credentials provider **forces `session.strategy: "jwt"`**, so the adapter's `Session` table stays permanently empty. The UI's session list is the separate `DeviceSession` model, keyed by the JWT's `sid`.
@@ -83,8 +86,8 @@ These are persisted-but-inert, and the UI implies otherwise. Don't mistake them 
 - **`sidebarBehavior`** — stored and selectable; no sidebar reads it.
 - **`telemetryEnabled`, `editEntitiesInCode`, `queueTableOperations`** — stored; nothing consults them.
 - **Keyboard shortcuts** — toggles persist, but only ⌘K is implemented, and several labels name features removed with the tenancy layer.
-- **`UserStatus.INVITED`** — a filter option no code path can produce; `createUser` hardcodes `ACTIVE`.
-- **`Authenticator` and `VerificationToken`** — dead models. No WebAuthn, no email verification, no password-reset flow.
+- **`Authenticator`** — dead model. No WebAuthn.
+- **Email verification, forgot-password** — `User.emailVerified` is never written and there is no reset route; `VerificationToken` is no longer entirely dead (invitations reuse it, see below) but nothing yet activates `emailVerified` or a self-service reset.
 - **`Header`'s Feedback/Docs/Bell buttons and the sidebar collapse control** — non-functional. (`AccountHeader`'s Feedback/Docs buttons are wired to real destinations; `Header`'s standalone copies are not.)
 
 ### Data flow
@@ -107,7 +110,7 @@ Each route in `app/` is a thin composition of layout chrome + section components
 - `app/dashboard/page.tsx` — the signed-in home for every role (`Header` + `IconSidebar`, `DashboardStats` + `RecentActivity`). `DEFAULT_SIGNED_IN_PATH` in `auth.config.ts` points here and is the fallback for every `callbackUrl`. Managers/admins get user-count stats and everyone's recent activity; members/viewers get their own activity only.
 - `app/users/page.tsx` — the user-management table (`Header` + `IconSidebar` + `components/users/UsersTable`), reachable from the dashboard for managers and admins only — members and viewers are redirected to `/account/preferences`.
 - `app/account/{preferences,security,access-tokens,audit-logs}/page.tsx` — account section: `AccountHeader` + `SettingsSidebar` (from `components/account/`), with an `active` prop identifying the current nav item. There is **no** `app/account/layout.tsx`.
-- `app/(auth)/{signin,signup}/page.tsx` — bare layout, no dashboard chrome, without changing the URL. `app/(auth)/account/set-password/page.tsx` lives in this same route group for the same reason, even though its URL (`/account/set-password`) sits outside `/signin`/`/signup` — see the password-gate invariant above.
+- `app/(auth)/{signin,signup}/page.tsx` — bare layout, no dashboard chrome, without changing the URL. `app/(auth)/account/set-password/page.tsx` lives in this same route group for the same reason, even though its URL (`/account/set-password`) sits outside `/signin`/`/signup` — see the password-gate invariant above. `app/(auth)/invite/accept/page.tsx` is here too — public via `/invite` in `PUBLIC_PREFIXES`, since the invitee has no session yet.
 - `app/docs/page.tsx` — reads `docs/SRS.md` off disk at request time and renders it with `react-markdown`/`remark-gfm`; gated the same as any other account page (via `AccountHeader`'s own `requireUser()`). Assumes a long-lived Node server (`pnpm start`/`next dev`); a serverless deploy target would need the file added to its file-tracing include list.
 - `app/terms/page.tsx` — the one page besides `/` in `PUBLIC_EXACT` (`auth.config.ts`). Placeholder legal copy, explicitly marked as such on the page — not reviewed by a lawyer.
 

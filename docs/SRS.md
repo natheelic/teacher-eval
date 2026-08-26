@@ -359,10 +359,37 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
 
 *Implemented in `lib/actions/users.ts` and `lib/queries/users.ts`.*
 
-- **FR-40** — An authorised actor shall be able to create a user with an email, password, name
-  and role, subject to FR-35. The system shall reject a duplicate email, hash the password,
-  generate a unique username, record `invitedById` as the actor, and create an empty
-  `UserPreferences` row. Audit: `user.created` (201).
+- **FR-40** — An authorised actor shall be able to invite a user by name, email and role, subject
+  to FR-35. The system shall reject a duplicate email, generate a unique username, record
+  `invitedById` as the actor, create an empty `UserPreferences` row, and create the account with
+  `status: INVITED` and **no password** — the actor never sees or sets one. The system shall then
+  email the invitee a one-time acceptance link (FR-40a) and require email to be configured (FR-40c)
+  before creating anything, so a failed send never leaves an unreachable `INVITED` row behind.
+  Audit: `user.invited` (201). *Implementation:* `createUser()` in `lib/actions/users.ts`.
+- **FR-40a** — An invitation link shall be single-use and shall expire 7 days after issuance. The
+  system shall store it as a SHA-256 hash (`hashToken()`, the same function API tokens use) in the
+  Auth.js adapter's existing `VerificationToken` model (`identifier` = the invitee's email,
+  `token` = the hash), never the raw value that goes out in the email — consuming a link shall
+  delete the matching row so it cannot be replayed. *Implementation:*
+  `lib/auth/invitations.ts`'s `createInvitationToken()` / `consumeInvitationToken()`.
+- **FR-40b** — Visiting `/invite/accept?token=<token>` and submitting a password meeting
+  `passwordSchema` (FR-14) shall: consume the token (FR-40a); reject with a clear, actionable
+  error if it is missing, invalid, expired, or already used; otherwise set the matching `INVITED`
+  account's password, flip `status` to `ACTIVE`, and sign the user in immediately (mirroring
+  FR-14's registration auto-sign-in). Audit: `user.invitation.accepted`. *Implementation:*
+  `acceptInvitation()` in `lib/actions/invitations.ts`; `app/(auth)/invite/accept/page.tsx`,
+  public via `PUBLIC_PREFIXES` in `auth.config.ts` (unauthenticated by design — the invitee has no
+  session yet).
+- **FR-40c** — Email-dependent features shall be gated behind `emailEnabled`
+  (`SMTP_HOST`/`SMTP_PORT`/`SMTP_FROM` all present, mirroring how `googleEnabled` gates the Google
+  provider) rather than crashing the app at boot when unset. `lib/email.ts` sends through
+  `nodemailer` against that SMTP config; local development points it at a Mailpit container
+  (`docker-compose.yml`) so invitations can be tested without a real mail account — sent mail is
+  caught and viewable at `http://localhost:8025`.
+- **FR-40d** — An authorised actor shall be able to resend an invitation to a target whose
+  `status` is still `INVITED`, generating a fresh token (FR-40a) and email without revoking the
+  prior one — it is already single-use and self-expiring. Audit: `user.invitation.resent`.
+  *Implementation:* `resendInvitation()` in `lib/actions/users.ts`.
 - **FR-41** — An authorised actor shall be able to change a target's role, subject to FR-34,
   FR-35 and FR-37. Audit: `user.role.changed`.
 - **FR-42** — An authorised actor shall be able to suspend or reactivate a target, subject to
@@ -654,8 +681,9 @@ SidebarBehavior OPEN | CLOSED | EXPAND_ON_HOVER
 - **DR-01** — `User.email` and `User.username` shall be unique. Soft delete shall preserve both
   constraints by rewriting the email and nulling the username (FR-44).
 - **DR-02** — `AuditLog` shall be treated as append-only. No code path may update or delete a row.
-- **DR-03** — `UserStatus.INVITED` is defined and filterable but **never assigned** by any code
-  path; `createUser` hardcodes `ACTIVE`.
+- **DR-03** — `UserStatus.INVITED` shall be assigned by `createUser()` and cleared to `ACTIVE`
+  only by a successful `acceptInvitation()` (FR-40, FR-40b) — the only two code paths permitted to
+  write it.
 - **DR-04** — `User.lastLoginAt` shall be stamped with the current time on every successful
   sign-in (Credentials and OAuth alike), from the `jwt` callback's initial-sign-in branch in
   `auth.ts` — the same place `DeviceSession` creation and pending-deletion cancellation already
@@ -702,7 +730,9 @@ required entry is missing or malformed.
 | FR-30 – FR-36 | `lib/permissions.ts` |
 | FR-37, FR-38 | `lib/actions/users.ts` (`assertNotLastAdmin`, `loadActionable`) |
 | FR-39, FR-39a | `lib/auth/require-session.ts`, `proxy.ts` |
-| FR-40 – FR-43 | `lib/actions/users.ts` |
+| FR-40, FR-40d, FR-41 – FR-43 | `lib/actions/users.ts` |
+| FR-40a, FR-40c | `lib/auth/invitations.ts`, `lib/email.ts`, `lib/url.ts`, `lib/env.ts` |
+| FR-40b | `lib/actions/invitations.ts`, `app/(auth)/invite/accept/page.tsx` |
 | FR-44 | `lib/auth/deletion.ts` |
 | FR-44a | `auth.ts` (`signIn` callback) |
 | FR-45 – FR-49 | `lib/queries/users.ts` |
@@ -730,9 +760,8 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 
 | # | Requirement | Deviation |
 |---|---|---|
-| D-7 | DR-03 | `UserStatus.INVITED` is unreachable; there is no invitation flow. |
 | D-9 | FR-86 | Audit filtering is limited to range and scope; action codes are inline literals with no central definition. |
-| D-11 | §3.4 | `Authenticator` and `VerificationToken` are dead models. |
+| D-11 | §3.4 | `Authenticator` is a dead model — no WebAuthn. `VerificationToken` is no longer entirely dead (invitations reuse it, FR-40a) but Auth.js's own uses of it — email verification, password reset — remain unimplemented. |
 | D-12 | NFR-25 | No test framework, no CI. |
 | D-13 | Appendix A | `SHADOW_DATABASE_URL` is read by `prisma.config.ts` but absent from `.env.example`. |
 | D-14 | §2.4 | `package-lock.json` coexists with the authoritative `pnpm-lock.yaml`. |

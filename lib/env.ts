@@ -20,6 +20,16 @@ const serverSchema = z.object({
   AUTH_GOOGLE_ID: z.string().optional(),
   AUTH_GOOGLE_SECRET: z.string().optional(),
 
+  // Optional, same pattern as Google above: email-dependent features (invite
+  // links today; verification/reset later) are only enabled when the three
+  // required fields are present. SMTP_USER/SMTP_PASS are separately optional
+  // since a local Mailpit/MailHog dev server needs no auth.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_FROM: z.string().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+
   // Declared here to be *validated*, not to be read — read them from
   // lib/app-config.ts, which is the browser-safe module.
   //
@@ -59,6 +69,11 @@ export const env = parsed.data;
 /** Google is wired up only when both halves of the credential are present. */
 export const googleEnabled = Boolean(
   env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET,
+);
+
+/** Email-dependent features (invitations) are only enabled when all three are present. */
+export const emailEnabled = Boolean(
+  env.SMTP_HOST && env.SMTP_PORT && env.SMTP_FROM,
 );
 
 // Client-safe display values (appName / appDomain) intentionally live in
