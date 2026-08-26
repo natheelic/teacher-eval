@@ -20,6 +20,24 @@ const serverSchema = z.object({
   AUTH_GOOGLE_ID: z.string().optional(),
   AUTH_GOOGLE_SECRET: z.string().optional(),
 
+  // Declared here to be *validated*, not to be read — read them from
+  // lib/app-config.ts, which is the browser-safe module.
+  //
+  // They are required rather than optional on purpose: the failure being
+  // guarded against is a misspelled variable name, and an optional field would
+  // accept that silently. Without this, a typo'd NEXT_PUBLIC_APP_DOMAIN falls
+  // back to a default and every project URL on the dashboard is quietly wrong.
+  NEXT_PUBLIC_APP_NAME: z
+    .string()
+    .min(1, "NEXT_PUBLIC_APP_NAME is required — see .env.example"),
+  NEXT_PUBLIC_APP_DOMAIN: z
+    .string()
+    .min(1, "NEXT_PUBLIC_APP_DOMAIN is required — see .env.example")
+    .refine(
+      (value) => !value.includes("://") && !value.includes("/"),
+      "NEXT_PUBLIC_APP_DOMAIN must be a bare hostname (e.g. portal.example.com), not a URL",
+    ),
+
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
