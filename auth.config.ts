@@ -29,6 +29,8 @@ export const authConfig = {
               id: profile.sub,
               name: profile.name,
               email: profile.email,
+              // Google has already verified this — no link to click.
+              emailVerified: profile.email_verified ? new Date() : null,
               image: profile.picture,
               firstName: profile.given_name,
               lastName: profile.family_name ?? null,
@@ -78,7 +80,7 @@ export const DEFAULT_SIGNED_IN_PATH = "/dashboard";
  * app/api/me) is responsible for its own auth and its own 401, not the
  * proxy's session cookie check.
  */
-const PUBLIC_PREFIXES = ["/signin", "/signup", "/invite", "/api"];
+const PUBLIC_PREFIXES = ["/signin", "/signup", "/invite", "/verify-email", "/api"];
 
 /**
  * Paths that are public but must match exactly. `/` cannot go in

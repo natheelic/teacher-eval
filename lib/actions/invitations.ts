@@ -62,7 +62,14 @@ export async function acceptInvitation(
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash, passwordUpdatedAt: new Date(), status: "ACTIVE" },
+    data: {
+      passwordHash,
+      passwordUpdatedAt: new Date(),
+      status: "ACTIVE",
+      // Clicking a link sent to this address already proves control of it —
+      // no separate verification email needed.
+      emailVerified: new Date(),
+    },
   });
 
   await logAudit({

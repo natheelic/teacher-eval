@@ -292,6 +292,22 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
 - **FR-16** — Usernames shall be derived from the email local part, slugified, and disambiguated
   with suffixes `-1` … `-49`, falling back to a random 8-character suffix.
   *Implementation:* `uniqueUsername()` in `lib/bootstrap.ts`
+- **FR-16a** — A Credentials registration shall, best-effort, send a verification link to the
+  registered email (reusing FR-40a's token mechanism, 24-hour expiry) without blocking or failing
+  registration if email is unconfigured or the send fails — verification is never a gate on using
+  the account, only a status shown back to the user. `User.emailVerified` shall otherwise be
+  stamped without a separate email: automatically for a Google sign-in when the provider's own
+  `email_verified` claim is true (`auth.config.ts`'s `profile()`), and on invitation acceptance
+  (FR-40b), since clicking a link sent to that address already proves control of it.
+  *Implementation:* `lib/auth/email-verification.ts`.
+- **FR-16b** — Visiting `/verify-email?token=<token>` shall consume the token (shared mechanism
+  with FR-40a) and stamp `emailVerified` on the matching account, or show a clear "invalid or
+  expired" message otherwise — verification on render, not behind a button, mirroring how a
+  single-use link is conventionally expected to "just work" on click.
+  *Implementation:* `app/(auth)/verify-email/page.tsx`, `verifyEmailToken()`.
+- **FR-16c** — A user whose email is not yet verified shall be able to trigger a fresh
+  verification email from `/account/preferences`, subject to email being configured (FR-40c).
+  *Implementation:* `resendVerificationEmail()` in `lib/actions/email-verification.ts`.
 - **FR-17** — On initial sign-in the system shall create a `DeviceSession` row and stamp its id
   into the JWT as `sid`, alongside the user id as `uid`. Device labelling shall degrade
   gracefully when request headers are unavailable.
@@ -370,8 +386,10 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
   system shall store it as a SHA-256 hash (`hashToken()`, the same function API tokens use) in the
   Auth.js adapter's existing `VerificationToken` model (`identifier` = the invitee's email,
   `token` = the hash), never the raw value that goes out in the email — consuming a link shall
-  delete the matching row so it cannot be replayed. *Implementation:*
-  `lib/auth/invitations.ts`'s `createInvitationToken()` / `consumeInvitationToken()`.
+  delete the matching row so it cannot be replayed. This mechanism is generic, shared with email
+  verification (FR-16a) via `createVerificationToken()` / `consumeVerificationToken()` in
+  `lib/auth/verification-tokens.ts`; `lib/auth/invitations.ts` uses it with a 7-day expiry,
+  `lib/auth/email-verification.ts` with 24 hours.
 - **FR-40b** — Visiting `/invite/accept?token=<token>` and submitting a password meeting
   `passwordSchema` (FR-14) shall: consume the token (FR-40a); reject with a clear, actionable
   error if it is missing, invalid, expired, or already used; otherwise set the matching `INVITED`
@@ -659,7 +677,7 @@ Defined in `prisma/schema.prisma`. PostgreSQL; ids are cuids unless noted.
 
 | Model | Purpose | Notes |
 |---|---|---|
-| `User` | The central entity | Identity, `role`, `status`, `passwordHash`, `twoFactorEnabled`/`twoFactorSecret`, `deletionRequestedAt`, `deletedAt`, `lastLoginAt`, self-relation `invitedBy`/`invitees` (`SetNull`). Indexed on `role`, `status`, `createdAt desc`, `deletionRequestedAt`. |
+| `User` | The central entity | Identity, `emailVerified`, `role`, `status`, `passwordHash`, `twoFactorEnabled`/`twoFactorSecret`, `deletionRequestedAt`, `deletedAt`, `lastLoginAt`, self-relation `invitedBy`/`invitees` (`SetNull`). Indexed on `role`, `status`, `createdAt desc`, `deletionRequestedAt`. |
 | `Account` | Auth.js adapter contract | OAuth tokens; `@@id([provider, providerAccountId])`; cascade-deleted with the user. |
 | `Session` | Auth.js adapter contract | **Intentionally always empty** — see C-2. Must not be read. |
 | `VerificationToken` | Auth.js adapter contract | **Unused.** Reserved for email verification / password reset. |
@@ -726,12 +744,13 @@ required entry is missing or malformed.
 | FR-10 – FR-13, FR-17 – FR-19, FR-24 | `auth.ts`, `auth.config.ts` |
 | FR-13a | `auth.config.ts` (Google `profile()`), `types/next-auth.d.ts` |
 | FR-14 – FR-16 | `lib/actions/auth.ts`, `lib/bootstrap.ts` |
+| FR-16a – FR-16c | `lib/auth/email-verification.ts`, `lib/actions/email-verification.ts`, `app/(auth)/verify-email/page.tsx`, `auth.config.ts` |
 | FR-20 – FR-22 | `proxy.ts`, `auth.config.ts` (`isPublicPath`) |
 | FR-30 – FR-36 | `lib/permissions.ts` |
 | FR-37, FR-38 | `lib/actions/users.ts` (`assertNotLastAdmin`, `loadActionable`) |
 | FR-39, FR-39a | `lib/auth/require-session.ts`, `proxy.ts` |
 | FR-40, FR-40d, FR-41 – FR-43 | `lib/actions/users.ts` |
-| FR-40a, FR-40c | `lib/auth/invitations.ts`, `lib/email.ts`, `lib/url.ts`, `lib/env.ts` |
+| FR-40a, FR-40c | `lib/auth/verification-tokens.ts`, `lib/auth/invitations.ts`, `lib/email.ts`, `lib/url.ts`, `lib/env.ts` |
 | FR-40b | `lib/actions/invitations.ts`, `app/(auth)/invite/accept/page.tsx` |
 | FR-44 | `lib/auth/deletion.ts` |
 | FR-44a | `auth.ts` (`signIn` callback) |
@@ -761,7 +780,7 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 | # | Requirement | Deviation |
 |---|---|---|
 | D-9 | FR-86 | Audit filtering is limited to range and scope; action codes are inline literals with no central definition. |
-| D-11 | §3.4 | `Authenticator` is a dead model — no WebAuthn. `VerificationToken` is no longer entirely dead (invitations reuse it, FR-40a) but Auth.js's own uses of it — email verification, password reset — remain unimplemented. |
+| D-11 | §3.4 | `Authenticator` is a dead model — no WebAuthn. `VerificationToken` is now actively used (invitations and email verification, FR-40a/FR-16a) — only password reset (ROADMAP 3.3) remains unimplemented. |
 | D-12 | NFR-25 | No test framework, no CI. |
 | D-13 | Appendix A | `SHADOW_DATABASE_URL` is read by `prisma.config.ts` but absent from `.env.example`. |
 | D-14 | §2.4 | `package-lock.json` coexists with the authoritative `pnpm-lock.yaml`. |

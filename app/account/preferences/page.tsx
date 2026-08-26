@@ -7,6 +7,7 @@ import { DangerZone } from "@/components/account/DangerZone";
 import { requireUser } from "@/lib/auth/require-session";
 import { getConnections, getPreferences } from "@/lib/queries/account";
 import { toIso } from "@/lib/format";
+import { emailEnabled } from "@/lib/env";
 
 export default async function PreferencesPage() {
   // One batched fetch for the four sections below.
@@ -38,7 +39,13 @@ export default async function PreferencesPage() {
             </div>
 
             <div className="flex w-full max-w-[768px] flex-col gap-16 px-4 pb-24 pt-12 sm:px-10">
-              <ProfileInformation user={user} />
+              <ProfileInformation
+                user={{
+                  ...user,
+                  emailVerified: Boolean(user.emailVerified),
+                }}
+                canResendVerification={emailEnabled}
+              />
               <Connections
                 connections={connections}
                 canDisconnect={canDisconnect}

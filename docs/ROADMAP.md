@@ -159,12 +159,32 @@ on the same transport rather than re-litigating the question.
     both sides (`user.invited` for the inviter, `user.invitation.accepted` for the invitee).
     Re-visiting the same link afterward correctly showed "This invitation link is invalid or has
     expired." Resending produced a second, independent email.
-- **3.2 — Email verification.** `User.emailVerified` is never written (D-11's remaining half).
-  Either activate it — `VerificationToken` is no longer a dead model, invitations already prove
-  the send/consume path works — or drop the field.
+- **3.2** ✅ **Email verification.** `emailVerified` is now stamped on every path that can prove
+  address control: a Credentials sign-up sends a best-effort verification link (never a gate on
+  using the account — a fresh install with no SMTP configured yet, or a transient send failure,
+  must not block registration); a Google sign-in stamps it directly from the provider's own
+  `email_verified` claim (no link needed — Google already checked); accepting an invitation stamps
+  it too, since clicking a link mailed to that address is already proof. `/account/preferences`
+  shows "Verified" / "Not verified" + a resend action for the unverified case.
+  - **Token machinery generalized rather than duplicated:** `lib/auth/invitations.ts`'s
+    create/consume-token logic moved to a new `lib/auth/verification-tokens.ts` (generic
+    `createVerificationToken(email, ttlMs)` / `consumeVerificationToken()`), which both
+    invitations (7-day expiry) and email verification (24-hour) now call — same primitive, two
+    TTLs, no copy-pasted hashing/expiry logic. `lib/email.ts` gained a shared `escapeHtml()` for
+    both email templates.
+  - **`/verify-email?token=...` verifies on render, not behind a button** — a plain async
+    function call from a Server Component, not a `"use server"` action, matching how
+    `requireUser()`'s own soft-delete-on-expiry already establishes that a state-changing side
+    effect triggered by navigation (not a form submit) is an accepted pattern here. A single-use
+    link is conventionally expected to "just work" on click.
+  - **Verified end-to-end in Chrome + Mailpit:** signed up fresh — account usable immediately, a
+    real verification email arrived without any explicit trigger; clicked its link → "Email
+    verified" page → DB confirmed `emailVerified` stamped and the token row consumed. Separately,
+    triggered "Resend" on an existing unverified seed account from `/account/preferences`,
+    followed that link, and watched the badge flip from "Not verified" to "Verified" on reload.
 - **3.3 — Forgot password.** There is no reset route. Administrators can reset another user's
   password, but a locked-out user with no admin available has no recourse. This shares the
-  `VerificationToken` machinery with 3.2.
+  `verification-tokens.ts` machinery with 3.1/3.2.
 - ✅ **3.4 — Honour deletion requests.** `deletionRequestedAt` is now enforced: `requireUser()`
   soft-deletes any account past the 30-day window on its next request (no scheduled job — there is
   no job runner in this app, so it piggybacks on the same chokepoint that already enforces

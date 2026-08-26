@@ -37,3 +37,12 @@ export async function sendEmail(input: {
     text: input.text,
   });
 }
+
+/** Shared by every outbound HTML email that interpolates user-controlled text. */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}

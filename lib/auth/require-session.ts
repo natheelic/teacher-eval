@@ -13,6 +13,7 @@ export type CurrentUser = {
   sid: string | null;
   name: string | null;
   email: string;
+  emailVerified: Date | null;
   image: string | null;
   firstName: string | null;
   lastName: string | null;
@@ -45,6 +46,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       id: true,
       name: true,
       email: true,
+      emailVerified: true,
       image: true,
       firstName: true,
       lastName: true,
@@ -99,6 +101,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     sid,
     name: user.name,
     email: user.email,
+    emailVerified: user.emailVerified,
     image: user.image,
     firstName: user.firstName,
     lastName: user.lastName,

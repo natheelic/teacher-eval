@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { updateProfile, type ActionState } from "@/lib/actions/profile";
+import { resendVerificationEmail } from "@/lib/actions/email-verification";
 import { SectionHeading, SettingsCard } from "./SettingsPrimitives";
 
 export type ProfileInformationProps = {
@@ -10,7 +11,9 @@ export type ProfileInformationProps = {
     lastName: string | null;
     username: string | null;
     email: string;
+    emailVerified: boolean;
   };
+  canResendVerification: boolean;
 };
 
 const initialState: ActionState = {};
@@ -42,11 +45,22 @@ function Row({
 const inputClass =
   "h-[34px] w-full rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30";
 
-export function ProfileInformation({ user }: ProfileInformationProps) {
+export function ProfileInformation({
+  user,
+  canResendVerification,
+}: ProfileInformationProps) {
   const [state, formAction, pending] = useActionState(
     updateProfile,
     initialState,
   );
+  const [verifyState, setVerifyState] = useState<ActionState>({});
+  const [verifyPending, startVerifying] = useTransition();
+
+  function resendVerification() {
+    startVerifying(async () => {
+      setVerifyState(await resendVerificationEmail());
+    });
+  }
 
   return (
     <form action={formAction} className="flex w-full flex-col items-start gap-6">
@@ -89,6 +103,36 @@ export function ProfileInformation({ user }: ProfileInformationProps) {
             aria-label="Primary email"
             className={`${inputClass} cursor-not-allowed text-[#696969] opacity-70`}
           />
+          {user.emailVerified ? (
+            <span className="text-xs font-medium text-[#16b674]">
+              Verified
+            </span>
+          ) : verifyState.ok ? (
+            <span className="text-xs font-medium text-[#16b674]">
+              Verification email sent
+            </span>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-[#dc7b18]">
+                Not verified
+              </span>
+              {canResendVerification && (
+                <button
+                  type="button"
+                  onClick={resendVerification}
+                  disabled={verifyPending}
+                  className="text-xs font-medium text-[#030303] underline hover:no-underline disabled:opacity-50"
+                >
+                  {verifyPending ? "Sending..." : "Resend"}
+                </button>
+              )}
+              {verifyState.error && (
+                <span className="text-xs font-medium text-[#ab413e]">
+                  {verifyState.error}
+                </span>
+              )}
+            </div>
+          )}
         </Row>
 
         <Row label="Username" description="Display name used across dashboard">

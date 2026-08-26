@@ -9,6 +9,7 @@ import { DEFAULT_SIGNED_IN_PATH } from "@/auth.config";
 import { prisma } from "@/lib/prisma";
 import { passwordSchema } from "@/lib/auth/password";
 import { bootstrapUser } from "@/lib/bootstrap";
+import { sendVerificationEmail } from "@/lib/auth/email-verification";
 import { logAudit } from "@/lib/audit";
 
 export type AuthFormState = {
@@ -142,6 +143,10 @@ export async function signUpAction(
     method: "POST",
     statusCode: 201,
   });
+
+  // Best-effort: sign-up must remain usable on a fresh install with no SMTP
+  // configured yet, so a missing config or a send failure never blocks it.
+  await sendVerificationEmail(email, [firstName, lastName].filter(Boolean).join(" "));
 
   try {
     await signIn("credentials", {
