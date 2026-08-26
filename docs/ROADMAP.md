@@ -72,8 +72,14 @@ describes a capability the system lacks.
 and completely unimplemented on the consuming side. Nothing authenticates with them, so the
 feature currently produces secrets that do nothing (D-6).
 
-- **2.1** Add a bearer-token authentication path: hash the presented token, look it up by
-  `tokenHash`, reject revoked and expired tokens. Reuse `hashToken()` in `lib/auth/tokens.ts`.
+- **2.1** ✅ Bearer-token authentication path added: `authenticateApiToken(request)` in
+  `lib/auth/api-token.ts` hashes the presented token via the existing `hashToken()`, looks it up
+  by the unique `tokenHash`, and rejects a missing/malformed header, an unknown hash, a revoked
+  token, an expired one, or one belonging to a deleted/suspended account — mirroring
+  `getCurrentUser()`'s account-state checks. Returns `null` uniformly rather than distinguishing
+  the failure reason. Not yet wired to a route — that's 2.2 — so it was verified with a standalone
+  script exercising all six paths directly, then removed. Scopes are returned but not enforced
+  (2.5).
 - **2.2** Add at least one machine API route that this path protects, under `app/api/`. Route
   handlers are the correct mechanism here — they are explicitly reserved for machine APIs.
 - **2.3** Write `ApiToken.lastUsedAt` on each successful authentication, so the token list shows
