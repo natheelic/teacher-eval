@@ -23,6 +23,81 @@ export function SettingsCard({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * A full-width block inside a SettingsCard, for sections that are a *form*
+ * rather than a single control.
+ *
+ * SettingsRow puts its control in a fixed 262px right-aligned column, which is
+ * right for a toggle or one button and wrong for a stack of text inputs — they
+ * end up cramped against the edge while the label column sits mostly empty.
+ * Use this instead when a section collects several values.
+ */
+export function SettingsBlock({
+  title,
+  description,
+  children,
+  bordered = true,
+}: {
+  title?: string;
+  description?: string;
+  children: React.ReactNode;
+  bordered?: boolean;
+}) {
+  return (
+    <div
+      className={`flex w-full flex-col gap-4 p-4 ${
+        bordered ? "border-b border-border" : ""
+      }`}
+    >
+      {(title || description) && (
+        <div className="flex flex-col gap-0.5">
+          {title && (
+            <p className="text-[13px] font-medium text-foreground">{title}</p>
+          )}
+          {description && (
+            <p className="text-[13px] font-medium text-foreground-muted">
+              {description}
+            </p>
+          )}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+/**
+ * A labelled form field. The label stays visible after the field is filled,
+ * unlike a placeholder — which is why placeholders are for examples here, not
+ * for naming the field.
+ */
+export function SettingsField({
+  label,
+  htmlFor,
+  hint,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex w-full flex-col gap-1.5">
+      <label
+        htmlFor={htmlFor}
+        className="text-[13px] font-medium text-foreground"
+      >
+        {label}
+      </label>
+      {children}
+      {hint && (
+        <p className="text-[12px] font-medium text-foreground-muted">{hint}</p>
+      )}
+    </div>
+  );
+}
+
 export function SettingsRow({
   label,
   description,

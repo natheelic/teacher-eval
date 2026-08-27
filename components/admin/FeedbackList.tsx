@@ -1,4 +1,4 @@
-import { SectionHeading, SettingsCard } from "../account/SettingsPrimitives";
+import { SettingsCard } from "../account/SettingsPrimitives";
 import { RelativeTime } from "../account/RelativeTime";
 import { getFeedbackList } from "@/lib/queries/feedback";
 
@@ -7,10 +7,6 @@ export async function FeedbackList() {
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
-      <SectionHeading
-        title="Feedback"
-        description="Messages submitted through the Feedback button, most recent first."
-      />
 
       <SettingsCard>
         {feedback.length === 0 ? (

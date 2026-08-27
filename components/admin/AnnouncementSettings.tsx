@@ -3,7 +3,6 @@
 import { useActionState, useTransition } from "react";
 import { Megaphone, Trash2 } from "lucide-react";
 import {
-  SectionHeading,
   SettingsCard,
   SettingsRow,
 } from "../account/SettingsPrimitives";
@@ -35,10 +34,6 @@ export function AnnouncementSettings({
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
-      <SectionHeading
-        title="Announcement"
-        description="A message shown to every signed-in user until they dismiss it."
-      />
 
       <SettingsCard>
         <SettingsRow
