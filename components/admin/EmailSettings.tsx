@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useTransition } from "react";
+import { useActionState, useState, useTransition } from "react";
 import {
   SectionHeading,
   SettingsCard,
@@ -42,12 +42,25 @@ export function EmailSettings({
     initialState,
   );
   const [clearing, startClearTransition] = useTransition();
+  const [clearError, setClearError] = useState<string | null>(null);
+
+  // Awaited inside the transition, matching LogoSettings/AnnouncementSettings.
+  // A synchronous callback would end the transition before the action
+  // resolved, so the button would never show its pending state and a failure
+  // would surface as an unhandled rejection.
+  function handleClear() {
+    setClearError(null);
+    startClearTransition(async () => {
+      const result = await clearEmailSettings();
+      if (result?.error) setClearError(result.error);
+    });
+  }
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
       <SectionHeading
-        title="Email"
-        description="SMTP server used for invitations, password resets and email verification."
+        title="SMTP"
+        description="The mail server used for invitations, password resets and email verification."
       />
 
       <div className="w-full max-w-[688px] rounded-md border border-border bg-surface px-4 py-3">
@@ -94,7 +107,7 @@ export function EmailSettings({
                 <button
                   type="button"
                   disabled={clearing}
-                  onClick={() => startClearTransition(() => void clearEmailSettings())}
+                  onClick={handleClear}
                   className="flex items-center rounded-md border border-border-strong bg-surface px-3 py-1.5 text-[13px] font-medium text-foreground hover:bg-hover disabled:opacity-60"
                 >
                   {clearing ? "Clearing..." : "Clear"}
@@ -108,8 +121,10 @@ export function EmailSettings({
                 </button>
               </div>
 
-              {state.error && (
-                <p className="text-[13px] font-medium text-danger">{state.error}</p>
+              {(state.error || clearError) && (
+                <p className="text-[13px] font-medium text-danger">
+                  {state.error ?? clearError}
+                </p>
               )}
               {state.ok && (
                 <p className="text-[13px] font-medium text-foreground-secondary">

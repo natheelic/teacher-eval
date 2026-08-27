@@ -662,7 +662,7 @@ every role, but `/users` redirects `MEMBER` and `VIEWER` away.
   letting the test diverge from what actually sends. Nodemailer's error is surfaced verbatim —
   admin-only surface, and `ECONNREFUSED 127.0.0.1:1026` is the entire diagnostic value.
 
-- **Audit metadata for SMTP logs `{ host, port, from, user, hasPassword }` and never the password
+- **Audit metadata for SMTP logs `{ host, port, from, user, passwordChanged }` and never the password
   or its ciphertext** — `AuditLog.metadata` renders in the expanded row and is exported to CSV by
   `app/account/audit-logs/export/route.ts`, which would carry the secret out of the app.
 

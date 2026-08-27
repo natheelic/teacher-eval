@@ -65,7 +65,7 @@ export function LogoSettings({
   return (
     <div className="flex w-full flex-col items-start gap-6">
       <SectionHeading
-        title="Branding"
+        title="Logo"
         description="The logo shown across the app, in place of the default mark."
       />
 

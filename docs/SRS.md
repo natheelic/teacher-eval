@@ -709,7 +709,7 @@ page or `/account/preferences`).*
   `AUTH_SECRET`) and shall never be returned to the client: the admin view
   (`lib/queries/email-settings.ts`) exposes only `hasPassword` and `passwordDecryptable` booleans,
   a blank password field on submit means "leave unchanged" rather than "delete", and audit
-  metadata records `{ host, port, from, user, hasPassword }` and never the password or its
+  metadata records `{ host, port, from, user, passwordChanged }` and never the password or its
   ciphertext — `AuditLog.metadata` is exported to CSV (FR-88) and would otherwise carry the secret
   out of the application.
 

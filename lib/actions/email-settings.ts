@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth/require-session";
 import { logAudit } from "@/lib/audit";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, escapeHtml } from "@/lib/email";
 import { getAppSettings } from "@/lib/queries/settings";
 import { SECRET_LABELS, encryptSecret } from "@/lib/secret-box";
 
@@ -62,24 +62,30 @@ export async function saveEmailSettings(
   const { host, port, from, user, password } = parsed.data;
   const trimmedUser = user?.trim() || null;
 
-  // An empty password field means "leave the stored one alone", never "delete
-  // it" — the form cannot render the existing value back, so treating blank as
-  // a deletion would silently wipe the password on every unrelated edit.
-  // Clearing it is a separate, explicit action.
+  // Password handling, in precedence order:
+  //
+  //  1. No username  -> no password. lib/email.ts only sends credentials when
+  //     both are present, so a password without a user is dead data that the
+  //     admin view would still report as `hasPassword: true`. This wins even
+  //     when a new password was typed in the same save, since storing one that
+  //     can never be used is worse than dropping it.
+  //  2. Password typed -> store it, encrypted.
+  //  3. Password blank -> leave the stored one alone. The form cannot render
+  //     the existing value back, so treating blank as a deletion would
+  //     silently wipe it on every unrelated edit. Clearing is a separate,
+  //     explicit action.
   const passwordUpdate =
-    password && password.length > 0
-      ? { smtpPassEncrypted: encryptSecret(password, SECRET_LABELS.SMTP_PASSWORD) }
-      : {};
-
-  // If the username is being removed, the stored password is meaningless.
-  const orphanedPassword = trimmedUser === null ? { smtpPassEncrypted: null } : {};
+    trimmedUser === null
+      ? { smtpPassEncrypted: null }
+      : password && password.length > 0
+        ? { smtpPassEncrypted: encryptSecret(password, SECRET_LABELS.SMTP_PASSWORD) }
+        : {};
 
   const data = {
     smtpHost: host,
     smtpPort: port,
     smtpFrom: from,
     smtpUser: trimmedUser,
-    ...orphanedPassword,
     ...passwordUpdate,
   };
 
@@ -104,7 +110,11 @@ export async function saveEmailSettings(
       port,
       from,
       user: trimmedUser,
-      hasPassword: Boolean(passwordUpdate.smtpPassEncrypted),
+      // Whether *this save* set a password — not whether one is stored, which
+      // the "leave unchanged" branch deliberately doesn't look up.
+      passwordChanged: Boolean(
+        "smtpPassEncrypted" in passwordUpdate && passwordUpdate.smtpPassEncrypted,
+      ),
     },
   });
 
@@ -168,7 +178,10 @@ export async function sendTestEmail(
       to,
       subject: `Test email from ${appName}`,
       text: `This is a test message from ${appName}. If you received it, outgoing email is working.`,
-      html: `<p>This is a test message from ${appName}.</p><p>If you received it, outgoing email is working.</p>`,
+      // Escaped like every other template: appName is admin-editable at
+      // /admin/branding and its schema only trims and length-limits, so it can
+      // contain `<` or `&`.
+      html: `<p>This is a test message from ${escapeHtml(appName)}.</p><p>If you received it, outgoing email is working.</p>`,
     });
   } catch (error) {
     // Surfaced verbatim on purpose: this is an admin-only screen, and the

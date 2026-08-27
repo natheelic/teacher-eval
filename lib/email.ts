@@ -47,7 +47,11 @@ async function getTransporter(): Promise<{
 
   const key = fingerprint(config);
   if (cached?.key !== key) {
-    cached?.transport.close();
+    // The superseded transport is dropped, not close()d. A concurrent send
+    // that resolved the old config a moment earlier may still be inside
+    // sendMail() on it, and closing it here would pull the connection out from
+    // under that request. These transports are non-pooled, so each send opens
+    // and closes its own connection and there is nothing to leak.
     cached = {
       key,
       transport: nodemailer.createTransport({
