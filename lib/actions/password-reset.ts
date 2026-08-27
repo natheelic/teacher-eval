@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { passwordSchema, hashPassword } from "@/lib/auth/password";
 import { sendPasswordResetEmail } from "@/lib/auth/password-reset";
 import { consumeVerificationToken } from "@/lib/auth/verification-tokens";
-import { emailEnabled } from "@/lib/env";
+import { isEmailEnabled } from "@/lib/email-config";
 import { logAudit } from "@/lib/audit";
 import type { AuthFormState } from "@/lib/actions/auth";
 import type { ActionState } from "@/lib/actions/profile";
@@ -36,7 +36,7 @@ export async function requestPasswordReset(
     return { fieldErrors: { email: "Enter a valid email address" } };
   }
 
-  if (!emailEnabled) {
+  if (!(await isEmailEnabled())) {
     return { error: "Email isn't configured — ask an admin for a password reset." };
   }
 

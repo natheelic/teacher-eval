@@ -20,10 +20,12 @@ const serverSchema = z.object({
   AUTH_GOOGLE_ID: z.string().optional(),
   AUTH_GOOGLE_SECRET: z.string().optional(),
 
-  // Optional, same pattern as Google above: email-dependent features (invite
-  // links today; verification/reset later) are only enabled when the three
-  // required fields are present. SMTP_USER/SMTP_PASS are separately optional
-  // since a local Mailpit/MailHog dev server needs no auth.
+  // Optional, same pattern as Google above. These are the *bootstrap* SMTP
+  // config: they apply on a fresh install and are superseded once an admin
+  // saves settings at /admin/email (ROADMAP 7.2). Resolution — all-or-nothing
+  // on each side, database first — lives in lib/email-config.ts.
+  // SMTP_USER/SMTP_PASS are separately optional since a local Mailpit/MailHog
+  // dev server needs no auth.
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_FROM: z.string().optional(),
@@ -71,10 +73,11 @@ export const googleEnabled = Boolean(
   env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET,
 );
 
-/** Email-dependent features (invitations) are only enabled when all three are present. */
-export const emailEnabled = Boolean(
-  env.SMTP_HOST && env.SMTP_PORT && env.SMTP_FROM,
-);
+// There is deliberately no `emailEnabled` const here any more. SMTP is now
+// configurable at runtime from the admin panel (ROADMAP 7.2), so the answer
+// lives in the database and cannot be a synchronous value derived from env.
+// Use `isEmailEnabled()` from lib/email-config.ts, which resolves the database
+// config first and falls back to the SMTP_* vars below.
 
 // Client-safe display values (appName / appDomain) intentionally live in
 // lib/app-config.ts — re-exporting them here would let a Client Component pull

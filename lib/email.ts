@@ -1,26 +1,68 @@
 import nodemailer from "nodemailer";
-import { env, emailEnabled } from "@/lib/env";
+import { createHash } from "node:crypto";
+import { type EmailConfig, getEmailConfig } from "@/lib/email-config";
 
-let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
+/**
+ * The transport is cached against a fingerprint of the config that built it,
+ * rather than being built once for the process lifetime.
+ *
+ * Since SMTP settings are now editable at runtime (ROADMAP 7.2), a plain
+ * singleton would keep serving the old transport until the process restarted.
+ * The obvious alternative — an exported resetTransporter() called from the
+ * save action — is worse than it looks: it only invalidates the Node instance
+ * that happened to handle the save, leaving every other one stale. Re-deriving
+ * from the resolved config is correct in every process, and costs one indexed
+ * single-row read per outbound email. Outbound emails are rare.
+ */
+let cached: {
+  key: string;
+  transport: ReturnType<typeof nodemailer.createTransport>;
+} | null = null;
 
-function getTransporter() {
-  if (!emailEnabled) {
+/** Hashed so no plaintext copy of the password lives in a module-level string. */
+function fingerprint(config: EmailConfig): string {
+  return createHash("sha256")
+    .update(
+      JSON.stringify([
+        config.host,
+        config.port,
+        config.from,
+        config.user ?? "",
+        config.pass ?? "",
+      ]),
+    )
+    .digest("hex");
+}
+
+async function getTransporter(): Promise<{
+  transport: ReturnType<typeof nodemailer.createTransport>;
+  from: string;
+}> {
+  const config = await getEmailConfig();
+  if (!config) {
     throw new Error(
-      "Email is not configured — set SMTP_HOST, SMTP_PORT and SMTP_FROM.",
+      "Email is not configured — set it up in the admin panel under Email, or set SMTP_HOST, SMTP_PORT and SMTP_FROM.",
     );
   }
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: env.SMTP_HOST,
-      port: env.SMTP_PORT,
-      secure: env.SMTP_PORT === 465,
-      auth:
-        env.SMTP_USER && env.SMTP_PASS
-          ? { user: env.SMTP_USER, pass: env.SMTP_PASS }
-          : undefined,
-    });
+
+  const key = fingerprint(config);
+  if (cached?.key !== key) {
+    cached?.transport.close();
+    cached = {
+      key,
+      transport: nodemailer.createTransport({
+        host: config.host,
+        port: config.port,
+        secure: config.port === 465,
+        auth:
+          config.user && config.pass
+            ? { user: config.user, pass: config.pass }
+            : undefined,
+      }),
+    };
   }
-  return transporter;
+
+  return { transport: cached.transport, from: config.from };
 }
 
 export async function sendEmail(input: {
@@ -29,8 +71,9 @@ export async function sendEmail(input: {
   html: string;
   text: string;
 }): Promise<void> {
-  await getTransporter().sendMail({
-    from: env.SMTP_FROM,
+  const { transport, from } = await getTransporter();
+  await transport.sendMail({
+    from,
     to: input.to,
     subject: input.subject,
     html: input.html,

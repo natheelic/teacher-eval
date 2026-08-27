@@ -7,14 +7,17 @@ import { DangerZone } from "@/components/account/DangerZone";
 import { requireUser } from "@/lib/auth/require-session";
 import { getConnections, getPreferences } from "@/lib/queries/account";
 import { toIso } from "@/lib/format";
-import { emailEnabled } from "@/lib/env";
+import { isEmailEnabled } from "@/lib/email-config";
 
 export default async function PreferencesPage() {
-  // One batched fetch for the four sections below.
-  const [user, connections, preferences] = await Promise.all([
+  // One batched fetch for the four sections below. Email config is resolved
+  // here, in the server shell, so ProfileInformation keeps taking a plain
+  // boolean — the async-ness stops before the client leaf.
+  const [user, connections, preferences, emailEnabled] = await Promise.all([
     requireUser(),
     getConnections(),
     getPreferences(),
+    isEmailEnabled(),
   ]);
 
   // Disconnecting the last remaining sign-in method would lock the account

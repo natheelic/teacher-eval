@@ -9,7 +9,7 @@ import { hashPassword, passwordSchema } from "@/lib/auth/password";
 import { softDeleteUser } from "@/lib/auth/deletion";
 import { uniqueUsername } from "@/lib/bootstrap";
 import { sendInvitationEmail } from "@/lib/auth/invitations";
-import { emailEnabled } from "@/lib/env";
+import { isEmailEnabled } from "@/lib/email-config";
 import { logAudit } from "@/lib/audit";
 import {
   ROLE_LABELS,
@@ -72,10 +72,10 @@ export async function createUser(
 ): Promise<ActionState> {
   const actor = await requireUserManager();
 
-  if (!emailEnabled) {
+  if (!(await isEmailEnabled())) {
     return {
       error:
-        "Email isn't configured — set SMTP_HOST, SMTP_PORT and SMTP_FROM to invite users.",
+        "Email isn't configured — ask an admin to set it up in the admin panel before inviting users.",
     };
   }
 
@@ -156,9 +156,9 @@ export async function resendInvitation(userId: string): Promise<void> {
   if (target.status !== "INVITED") {
     throw new Error("This user has already accepted their invitation.");
   }
-  if (!emailEnabled) {
+  if (!(await isEmailEnabled())) {
     throw new Error(
-      "Email isn't configured — set SMTP_HOST, SMTP_PORT and SMTP_FROM to resend invitations.",
+      "Email isn't configured — ask an admin to set it up in the admin panel before resending invitations.",
     );
   }
 

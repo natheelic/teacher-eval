@@ -4,7 +4,7 @@ import {
   consumeVerificationToken,
 } from "@/lib/auth/verification-tokens";
 import { sendEmail, escapeHtml } from "@/lib/email";
-import { emailEnabled } from "@/lib/env";
+import { isEmailEnabled } from "@/lib/email-config";
 import { absoluteUrl } from "@/lib/url";
 import { appName } from "@/lib/app-config";
 
@@ -20,7 +20,7 @@ export async function sendVerificationEmail(
   email: string,
   name: string,
 ): Promise<void> {
-  if (!emailEnabled) return;
+  if (!(await isEmailEnabled())) return;
 
   const token = await createVerificationToken(email, VERIFY_EXPIRY_MS);
   const url = await absoluteUrl(`/verify-email?token=${token}`);
