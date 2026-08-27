@@ -1,6 +1,5 @@
 import { generateSecret, generateURI, verify } from "otplib";
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
-import { env } from "@/lib/env";
+import { SECRET_LABELS, decryptSecret, encryptSecret } from "@/lib/secret-box";
 import { appName } from "@/lib/app-config";
 
 export function generateTotpSecret(): string {
@@ -23,20 +22,6 @@ export function buildOtpAuthUrl(secret: string, email: string): string {
 
 const PENDING_ENROLLMENT_TTL_MS = 10 * 60 * 1000;
 
-/**
- * Derived from AUTH_SECRET — already a trusted, high-entropy secret in this
- * app. A distinct label per purpose so the pending-enrollment key and the
- * at-rest key are cryptographically separate, even though both ultimately
- * derive from the same root secret.
- */
-function deriveKey(label: string): Buffer {
-  return createHash("sha256").update(`${env.AUTH_SECRET}:${label}`).digest();
-}
-
-function encryptionKey(): Buffer {
-  return deriveKey("2fa-pending");
-}
-
 type PendingPayload = { secret: string; userId: string; iat: number };
 
 /**
@@ -45,36 +30,14 @@ type PendingPayload = { secret: string; userId: string; iat: number };
  * user-bound token — never as a raw secret sitting in a hidden form field.
  */
 export function encryptPendingSecret(secret: string, userId: string): string {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
   const payload: PendingPayload = { secret, userId, iat: Date.now() };
-  const ciphertext = Buffer.concat([
-    cipher.update(JSON.stringify(payload), "utf8"),
-    cipher.final(),
-  ]);
-  const authTag = cipher.getAuthTag();
-  return [iv, authTag, ciphertext]
-    .map((b) => b.toString("base64url"))
-    .join(".");
+  return encryptSecret(JSON.stringify(payload), SECRET_LABELS.TWO_FACTOR_PENDING);
 }
 
 /** Returns null on any failure: bad token, expired, or bound to another user. */
 export function decryptPendingSecret(token: string, userId: string): string | null {
   try {
-    const [ivB64, tagB64, ciphertextB64] = token.split(".");
-    if (!ivB64 || !tagB64 || !ciphertextB64) return null;
-
-    const decipher = createDecipheriv(
-      "aes-256-gcm",
-      encryptionKey(),
-      Buffer.from(ivB64, "base64url"),
-    );
-    decipher.setAuthTag(Buffer.from(tagB64, "base64url"));
-    const plaintext = Buffer.concat([
-      decipher.update(Buffer.from(ciphertextB64, "base64url")),
-      decipher.final(),
-    ]).toString("utf8");
-
+    const plaintext = decryptSecret(token, SECRET_LABELS.TWO_FACTOR_PENDING);
     const payload = JSON.parse(plaintext) as PendingPayload;
     if (payload.userId !== userId) return null;
     if (Date.now() - payload.iat > PENDING_ENROLLMENT_TTL_MS) return null;
@@ -92,34 +55,12 @@ export function decryptPendingSecret(token: string, userId: string): string | nu
  * password hash, which only ever needs comparing), so encryption — not
  * hashing — is the only option.
  */
-function atRestKey(): Buffer {
-  return deriveKey("2fa-secret-at-rest");
-}
-
 export function encryptTwoFactorSecret(secret: string): string {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", atRestKey(), iv);
-  const ciphertext = Buffer.concat([cipher.update(secret, "utf8"), cipher.final()]);
-  const authTag = cipher.getAuthTag();
-  return [iv, authTag, ciphertext].map((b) => b.toString("base64url")).join(".");
+  return encryptSecret(secret, SECRET_LABELS.TWO_FACTOR_AT_REST);
 }
 
 /** Throws on a malformed or tampered value — a stored secret failing to
  * decrypt is a real integrity problem, not a normal "try again" case. */
 export function decryptTwoFactorSecret(ciphertext: string): string {
-  const [ivB64, tagB64, dataB64] = ciphertext.split(".");
-  if (!ivB64 || !tagB64 || !dataB64) {
-    throw new Error("Malformed encrypted twoFactorSecret");
-  }
-
-  const decipher = createDecipheriv(
-    "aes-256-gcm",
-    atRestKey(),
-    Buffer.from(ivB64, "base64url"),
-  );
-  decipher.setAuthTag(Buffer.from(tagB64, "base64url"));
-  return Buffer.concat([
-    decipher.update(Buffer.from(dataB64, "base64url")),
-    decipher.final(),
-  ]).toString("utf8");
+  return decryptSecret(ciphertext, SECRET_LABELS.TWO_FACTOR_AT_REST);
 }
