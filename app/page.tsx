@@ -2,15 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, KeyRound, ListChecks, ShieldCheck, Users } from "lucide-react";
 import { AppLogo } from "@/components/dashboard/AppLogo";
-import { appName } from "@/lib/app-config";
 import { getAppSettings } from "@/lib/queries/settings";
 
-export const metadata: Metadata = {
-  // Sits at the root, so it opts out of the `%s · appName` template.
-  title: `${appName} — user management`,
-  description:
-    "Accounts, roles and access for a single application. Invite people, set what they can do, and keep a record of every change.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { appName } = await getAppSettings();
+  return {
+    // Sits at the root, so it opts out of the `%s · appName` template.
+    title: `${appName} — user management`,
+    description:
+      "Accounts, roles and access for a single application. Invite people, set what they can do, and keep a record of every change.",
+  };
+}
 
 // Public: `/` is listed in auth.config's PUBLIC_EXACT, so the proxy lets
 // anonymous visitors through. Deliberately reads no session — that keeps this
@@ -40,7 +42,7 @@ const FEATURES = [
 ];
 
 export default async function LandingPage() {
-  const { logoUrl } = await getAppSettings();
+  const { logoUrl, appName } = await getAppSettings();
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">

@@ -62,7 +62,19 @@ function Divider() {
   );
 }
 
-export function IconSidebar({ showAdmin = false }: { showAdmin?: boolean }) {
+/**
+ * `showUsers`/`showAdmin` both default to false — fail closed, so a new call
+ * site that forgets them hides the links rather than showing ones the role
+ * cannot follow. The sidebar deliberately derives nothing itself; the pages
+ * own the role check, matching the route guards.
+ */
+export function IconSidebar({
+  showUsers = false,
+  showAdmin = false,
+}: {
+  showUsers?: boolean;
+  showAdmin?: boolean;
+}) {
   const { open, setOpen } = useMobileNav();
   const pathname = usePathname();
   const close = () => setOpen(false);
@@ -85,13 +97,15 @@ export function IconSidebar({ showAdmin = false }: { showAdmin?: boolean }) {
               active={pathname === "/dashboard"}
               onNavigate={close}
             />
-            <NavItem
-              icon={Users}
-              label="Users"
-              href="/users"
-              active={pathname.startsWith("/users")}
-              onNavigate={close}
-            />
+            {showUsers && (
+              <NavItem
+                icon={Users}
+                label="Users"
+                href="/users"
+                active={pathname.startsWith("/users")}
+                onNavigate={close}
+              />
+            )}
             <NavItem
               icon={ListChecks}
               label="Audit logs"

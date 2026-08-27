@@ -4,7 +4,7 @@ import {
 } from "@/lib/auth/verification-tokens";
 import { sendEmail, escapeHtml } from "@/lib/email";
 import { absoluteUrl } from "@/lib/url";
-import { appName } from "@/lib/app-config";
+import { getAppSettings } from "@/lib/queries/settings";
 
 const INVITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -20,6 +20,7 @@ export async function sendInvitationEmail(
 ): Promise<void> {
   const token = await createInvitationToken(email);
   const url = await absoluteUrl(`/invite/accept?token=${token}`);
+  const { appName } = await getAppSettings();
 
   await sendEmail({
     to: email,

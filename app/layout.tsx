@@ -3,7 +3,7 @@ import { Inter, Manrope, Source_Code_Pro } from "next/font/google";
 import { SearchProvider } from "@/components/search/SearchProvider";
 import { CommandPalette } from "@/components/search/CommandPalette";
 import { MobileNavProvider } from "@/components/layout/MobileNavProvider";
-import { appName } from "@/lib/app-config";
+import { getAppSettings } from "@/lib/queries/settings";
 import "./globals.css";
 
 const THEME_INIT_SCRIPT = `
@@ -33,15 +33,19 @@ const sourceCodePro = Source_Code_Pro({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  // Driven by NEXT_PUBLIC_APP_NAME now that the app has real configuration,
-  // rather than the {{APP_NAME}} template placeholder.
-  title: {
-    default: appName,
-    template: `%s · ${appName}`,
-  },
-  description: "Project dashboard",
-};
+// A function rather than a static object because the product name is now a
+// runtime setting (ROADMAP 7.1) — a `const metadata` would freeze whatever
+// name was present when the module was first evaluated.
+export async function generateMetadata(): Promise<Metadata> {
+  const { appName } = await getAppSettings();
+  return {
+    title: {
+      default: appName,
+      template: `%s · ${appName}`,
+    },
+    description: "Project dashboard",
+  };
+}
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

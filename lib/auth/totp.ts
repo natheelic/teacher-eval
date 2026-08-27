@@ -16,6 +16,17 @@ export async function verifyTotpCode(secret: string, code: string): Promise<bool
   }
 }
 
+/**
+ * Deliberately uses the build-time `appName` from lib/app-config.ts, NOT the
+ * runtime one from getAppSettings() (ROADMAP 7.1).
+ *
+ * The issuer is written once into a third-party authenticator app on someone's
+ * phone and can never be updated from here. Renaming the site would not lock
+ * anyone out — verifyTotpCode() only reads the secret — but it would leave a
+ * permanently split list, entries enrolled before the rename showing the old
+ * name and entries after showing the new one, with no migration path. A value
+ * that escapes into software we don't control should be stable.
+ */
 export function buildOtpAuthUrl(secret: string, email: string): string {
   return generateURI({ issuer: appName, label: email, secret });
 }

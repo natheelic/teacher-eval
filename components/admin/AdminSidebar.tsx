@@ -6,10 +6,17 @@ import { useMobileNav } from "../layout/MobileNavProvider";
 import { MobileDrawer } from "../layout/MobileDrawer";
 import { SidebarNavLink as NavLink } from "../layout/SidebarNavLink";
 
-export function SettingsSidebar({
+/**
+ * Sub-navigation for /admin/* (ROADMAP 7.3), built the same way
+ * SettingsSidebar is: a typed `active` union whose literals double as the
+ * visible labels, passed down from each page rather than derived from
+ * usePathname(). There is deliberately no app/admin/layout.tsx — a layout
+ * cannot supply that literal, and /account/* sets the same precedent.
+ */
+export function AdminSidebar({
   active,
 }: {
-  active: "Preferences" | "Access Tokens" | "Security" | "Audit Logs";
+  active: "Branding" | "Announcements" | "Email" | "Feedback";
 }) {
   const { open, setOpen } = useMobileNav();
   const close = () => setOpen(false);
@@ -34,21 +41,21 @@ export function SettingsSidebar({
           <div className="flex flex-col py-4">
             <div className="flex flex-col px-3">
               <p className="px-3 font-mono text-[13px] uppercase text-foreground-muted">
-                Account Settings
+                Site Settings
               </p>
               <div className="flex flex-col gap-px pt-2">
-                <NavLink label="Preferences" href="/account/preferences" active={active === "Preferences"} onNavigate={close} />
-                <NavLink label="Access Tokens" href="/account/access-tokens" active={active === "Access Tokens"} onNavigate={close} />
-                <NavLink label="Security" href="/account/security" active={active === "Security"} onNavigate={close} />
+                <NavLink label="Branding" href="/admin/branding" active={active === "Branding"} onNavigate={close} />
+                <NavLink label="Announcements" href="/admin/announcements" active={active === "Announcements"} onNavigate={close} />
+                <NavLink label="Email" href="/admin/email" active={active === "Email"} onNavigate={close} />
               </div>
             </div>
             <div className="mt-4 h-px w-full bg-hover" />
             <div className="flex flex-col px-3 pt-4">
               <p className="px-3 font-mono text-[13px] uppercase text-foreground-muted">
-                Logs
+                Submissions
               </p>
               <div className="flex flex-col gap-px pt-2">
-                <NavLink label="Audit Logs" href="/account/audit-logs" active={active === "Audit Logs"} onNavigate={close} />
+                <NavLink label="Feedback" href="/admin/feedback" active={active === "Feedback"} onNavigate={close} />
               </div>
             </div>
           </div>

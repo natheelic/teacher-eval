@@ -1,43 +1,13 @@
-import { Header } from "@/components/dashboard/Header";
-import { IconSidebar } from "@/components/dashboard/IconSidebar";
-import { LogoSettings } from "@/components/admin/LogoSettings";
-import { AnnouncementSettings } from "@/components/admin/AnnouncementSettings";
-import { FeedbackList } from "@/components/admin/FeedbackList";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/require-session";
-import { getAppSettings } from "@/lib/queries/settings";
-import { getActiveAnnouncement } from "@/lib/queries/announcements";
 
+/**
+ * /admin is now a section rather than a page (ROADMAP 7.3). The guard runs
+ * here before the redirect so a non-admin still lands on /dashboard directly,
+ * rather than bouncing through a sub-route first — preserving the behaviour
+ * verified when the admin panel shipped.
+ */
 export default async function AdminPage() {
   await requireAdmin();
-  const [{ logoUrl }, announcement] = await Promise.all([
-    getAppSettings(),
-    getActiveAnnouncement(),
-  ]);
-
-  return (
-    <div className="flex min-h-screen w-full flex-col bg-surface">
-      <Header />
-      <div className="flex min-w-0 flex-1">
-        <IconSidebar showAdmin />
-        <main className="flex-1 min-w-0 overflow-x-auto">
-          <div className="mx-auto flex max-w-[1200px] flex-col px-4 pb-24 pt-8 sm:px-10 sm:pt-12">
-            <div className="flex flex-col gap-1 pb-8">
-              <h1 className="font-display text-[22px] font-semibold tracking-[-0.55px] text-foreground">
-                Admin
-              </h1>
-              <p className="text-[15px] font-medium text-foreground-secondary">
-                Site-wide settings, visible only to administrators.
-              </p>
-            </div>
-
-            <div className="flex w-full flex-col gap-16">
-              <LogoSettings currentLogoUrl={logoUrl} />
-              <AnnouncementSettings current={announcement} />
-              <FeedbackList />
-            </div>
-          </div>
-        </main>
-      </div>
-    </div>
-  );
+  redirect("/admin/branding");
 }

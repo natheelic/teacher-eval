@@ -4,16 +4,20 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth/require-session";
 import { logAudit } from "@/lib/audit";
+import { z } from "zod";
 import {
   InvalidLogoUpload,
   deleteLogoFile,
   saveLogoFile,
 } from "@/lib/logo-storage";
 
-export type LogoActionState = {
+export type SettingsActionState = {
   ok?: boolean;
   error?: string;
 };
+
+/** @deprecated Use SettingsActionState — kept so existing imports keep working. */
+export type LogoActionState = SettingsActionState;
 
 const SETTINGS_ID = "singleton";
 
@@ -24,9 +28,9 @@ function revalidateEverywhere() {
 }
 
 export async function updateLogo(
-  _prev: LogoActionState,
+  _prev: SettingsActionState,
   formData: FormData,
-): Promise<LogoActionState> {
+): Promise<SettingsActionState> {
   const user = await requireAdmin();
 
   const file = formData.get("logo");
@@ -72,7 +76,49 @@ export async function updateLogo(
   return { ok: true };
 }
 
-export async function removeLogo(): Promise<LogoActionState> {
+const appNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Enter a name")
+  .max(60, "Keep the name to 60 characters or fewer");
+
+/**
+ * The product name reaches headers, page titles, the landing page and every
+ * outbound email, so it gets the same root-layout invalidation the logo does.
+ */
+export async function updateAppName(
+  _prev: SettingsActionState,
+  formData: FormData,
+): Promise<SettingsActionState> {
+  const user = await requireAdmin();
+
+  const parsed = appNameSchema.safeParse(formData.get("appName"));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]!.message };
+  }
+  const appName = parsed.data;
+
+  await prisma.appSettings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, appName },
+    update: { appName },
+  });
+
+  await logAudit({
+    actorId: user.id,
+    action: `Changed the app name to "${appName}"`,
+    actionCode: "settings.app_name.updated",
+    method: "POST",
+    statusCode: 200,
+    targetLabel: "App name",
+    metadata: { appName },
+  });
+
+  revalidateEverywhere();
+  return { ok: true };
+}
+
+export async function removeLogo(): Promise<SettingsActionState> {
   const user = await requireAdmin();
 
   const previous = await prisma.appSettings.findUnique({

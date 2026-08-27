@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AppLogo } from "@/components/dashboard/AppLogo";
-import { appName } from "@/lib/app-config";
 import { getAppSettings } from "@/lib/queries/settings";
 
+// No appName here, so this stays a static object.
 export const metadata: Metadata = { title: "Terms of Service" };
 
 // Public: listed in auth.config's PUBLIC_EXACT, so anonymous visitors and
 // signed-in users alike can reach it — conventionally a ToS page shouldn't
 // require sign-in.
 
-const SECTIONS = [
+// A function of the resolved name rather than a module-level const, since the
+// product name is now a runtime setting (ROADMAP 7.1).
+const sectionsFor = (appName: string) => [
   {
     title: "Acceptance of Terms",
     body: `By creating an account or otherwise using ${appName}, you agree to these terms. If you don't agree, don't use the service.`,
@@ -38,7 +40,8 @@ const SECTIONS = [
 ];
 
 export default async function TermsPage() {
-  const { logoUrl } = await getAppSettings();
+  const { logoUrl, appName } = await getAppSettings();
+  const sections = sectionsFor(appName);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -67,7 +70,7 @@ export default async function TermsPage() {
           </div>
 
           <div className="flex flex-col gap-8">
-            {SECTIONS.map((section) => (
+            {sections.map((section) => (
               <div key={section.title} className="flex flex-col gap-2">
                 <h2 className="font-display text-[17px] font-semibold text-foreground">
                   {section.title}

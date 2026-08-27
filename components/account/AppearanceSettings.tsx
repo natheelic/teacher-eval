@@ -3,7 +3,6 @@
 import { SectionHeading, SettingsCard } from "./SettingsPrimitives";
 import { type ThemeMode } from "../theme/useTheme";
 import { useSyncedTheme } from "../theme/useSyncedTheme";
-import { appName } from "@/lib/app-config";
 
 type ThemeOption = {
   key: ThemeMode;
@@ -61,9 +60,12 @@ function ThemeSwatch({
 export type AppearanceSettingsProps = {
   theme: "LIGHT" | "DARK" | "SYSTEM";
   userId: string;
+  /** Passed in rather than imported: this is a Client Component, and the
+   *  product name is now a runtime value the server shell resolves. */
+  appName: string;
 };
 
-export function AppearanceSettings({ theme, userId }: AppearanceSettingsProps) {
+export function AppearanceSettings({ theme, userId, appName }: AppearanceSettingsProps) {
   const { mode, setMode } = useSyncedTheme(theme, userId);
 
   return (

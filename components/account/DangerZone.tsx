@@ -2,14 +2,15 @@ import { AlertTriangle } from "lucide-react";
 import { SectionHeading } from "./SettingsPrimitives";
 import { AccountDeletionButton } from "./AccountDeletionButton";
 import { formatDate } from "@/lib/format";
-import { appName } from "@/lib/app-config";
 
 export function DangerZone({
   deletionRequestedAt,
   hasPassword,
+  appName,
 }: {
   deletionRequestedAt: string | null;
   hasPassword: boolean;
+  appName: string;
 }) {
   return (
     <div className="flex w-full flex-col items-start gap-6">

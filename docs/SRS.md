@@ -417,12 +417,15 @@ their URLs. There is no `app/account/layout.tsx`; each account page composes its
   `acceptInvitation()` in `lib/actions/invitations.ts`; `app/(auth)/invite/accept/page.tsx`,
   public via `PUBLIC_PREFIXES` in `auth.config.ts` (unauthenticated by design — the invitee has no
   session yet).
-- **FR-40c** — Email-dependent features shall be gated behind `emailEnabled`
-  (`SMTP_HOST`/`SMTP_PORT`/`SMTP_FROM` all present, mirroring how `googleEnabled` gates the Google
-  provider) rather than crashing the app at boot when unset. `lib/email.ts` sends through
-  `nodemailer` against that SMTP config; local development points it at a Mailpit container
-  (`docker-compose.yml`) so invitations can be tested without a real mail account — sent mail is
-  caught and viewable at `http://localhost:8025`.
+- **FR-40c** — Email-dependent features shall be gated on email being configured, rather than
+  crashing the app at boot when it isn't. `lib/email.ts` sends through `nodemailer`; local
+  development points it at a Mailpit container (`docker-compose.yml`) so invitations can be tested
+  without a real mail account — sent mail is caught and viewable at `http://localhost:8025`.
+
+  *Superseded in part by FR-94:* the gate was originally a synchronous `emailEnabled` const derived
+  from `SMTP_HOST`/`SMTP_PORT`/`SMTP_FROM` (mirroring how `googleEnabled` gates the Google
+  provider). Now that SMTP is configurable at runtime, the check is `await isEmailEnabled()`
+  (`lib/email-config.ts`) and the environment triple is only the bootstrap fallback.
 - **FR-40d** — An authorised actor shall be able to resend an invitation to a target whose
   `status` is still `INVITED`, generating a fresh token (FR-40a) and email without revoking the
   prior one — it is already single-use and self-expiring. Audit: `user.invitation.resent`.
@@ -680,6 +683,62 @@ page or `/account/preferences`).*
   security-relevant, same reasoning as FR-90); publishing/editing and deactivating are audited
   under `announcement.saved` and `announcement.deactivated` respectively.
 
+- **FR-93** — An `ADMIN` shall be able to change the displayed product name at `/admin/branding`.
+  The name is stored in `AppSettings.appName` and resolved by `getAppSettings()`
+  (`lib/queries/settings.ts`) against the `NEXT_PUBLIC_APP_NAME` fallback, so a null or blank
+  stored value yields the environment value and no call site handles null. It applies to page
+  chrome, `<title>` metadata, the landing and terms pages, and every outbound email. Audited as
+  `settings.app_name.updated`.
+
+  *Deliberate deviation:* the TOTP issuer (`lib/auth/totp.ts`'s `buildOtpAuthUrl()`) shall **not**
+  follow this setting, continuing to use the build-time `NEXT_PUBLIC_APP_NAME`. The issuer is
+  written once into a third-party authenticator application and cannot be updated afterwards;
+  changing it would not invalidate any credential (verification reads only the secret) but would
+  leave a permanently inconsistent list of entries with no migration path.
+
+- **FR-94** — An `ADMIN` shall be able to configure the SMTP server at `/admin/email` — host,
+  port, From address, and optional username and password — superseding the `SMTP_*` environment
+  variables (FR-40c), which become bootstrap defaults for a fresh install.
+
+  Resolution (`lib/email-config.ts`) shall be **all-or-nothing on each side**: a complete stored
+  triple (host, port, From) wins outright; otherwise a complete environment triple wins; otherwise
+  email is disabled. The two shall never be merged, since a partially-saved configuration would
+  otherwise send mail from an unintended `From` address.
+
+  The password shall be encrypted at rest (AES-256-GCM, `lib/secret-box.ts`, key derived from
+  `AUTH_SECRET`) and shall never be returned to the client: the admin view
+  (`lib/queries/email-settings.ts`) exposes only `hasPassword` and `passwordDecryptable` booleans,
+  a blank password field on submit means "leave unchanged" rather than "delete", and audit
+  metadata records `{ host, port, from, user, hasPassword }` and never the password or its
+  ciphertext — `AuditLog.metadata` is exported to CSV (FR-88) and would otherwise carry the secret
+  out of the application.
+
+  A stored password that fails to decrypt shall fail **soft**: it degrades to an unauthenticated
+  connection and the condition is surfaced at `/admin/email` for recovery, rather than throwing
+  and taking down every page that renders application chrome. Audited as `settings.email.updated`
+  and `settings.email.cleared`.
+
+- **FR-94a** — An `ADMIN` shall be able to send a test message from `/admin/email` to verify the
+  configuration. It tests the **saved** configuration, not unsubmitted form values, so that the
+  test cannot diverge from what the application actually sends. The transport error, if any, shall
+  be surfaced verbatim — this is an administrator-only surface and the underlying message is the
+  diagnostic value. Audited as `settings.email.test_sent`.
+
+- **FR-95** — The admin panel shall be organised as sub-routes (`/admin/branding`,
+  `/admin/announcements`, `/admin/email`, `/admin/feedback`) with persistent sub-navigation.
+  `/admin` shall apply the `ADMIN` guard before redirecting, so an unauthorised user is redirected
+  to their default landing page directly rather than by way of a sub-route.
+
+- **FR-31a** — Navigation shall not present links the current user's role cannot follow. Where a
+  route guard redirects a role away (FR-31: `MEMBER`/`VIEWER` from `/users`, non-`ADMIN` from
+  `/admin`), the corresponding navigation item shall be hidden for that role. Visibility is passed
+  in by each page rather than derived inside the navigation component, and defaults to hidden, so
+  that a new call site fails closed.
+
+  *Known gap:* the ⌘K command palette (`components/search/search-data.ts`) is a static list and
+  still offers `/users` to every role. This is a presentation inconsistency, not an authorisation
+  defect — the route guard still applies. See Appendix C.
+
 ---
 
 ### 3.3 Non-functional requirements
@@ -821,12 +880,17 @@ required entry is missing or malformed.
 | `AUTH_URL` | — | Auth.js | Required in production; leave unset in development |
 | `AUTH_GOOGLE_ID` | — | `auth.config.ts` | Google provider registers only if this **and** the secret are set |
 | `AUTH_GOOGLE_SECRET` | — | `auth.config.ts` | — |
-| `NEXT_PUBLIC_APP_NAME` | ✅ | `lib/app-config.ts` | Client-safe; falls back to `"Portal"` only if validation is bypassed |
+| `NEXT_PUBLIC_APP_NAME` | ✅ | `lib/app-config.ts` | Client-safe. Now the **fallback** display name (FR-93) and the TOTP issuer; the shown name is `AppSettings.appName` when set |
 | `NEXT_PUBLIC_APP_DOMAIN` | ✅ | `lib/app-config.ts` | Must be a **bare hostname** (no scheme, no path) |
 | `NODE_ENV` | — | `lib/env.ts` | Defaults to `development` |
 | `SHADOW_DATABASE_URL` | — | `prisma.config.ts` | Needed for `prisma migrate diff`. **Not present in `.env.example`** — see Appendix C. |
 
 `lib/env.ts` additionally exports `googleEnabled = Boolean(AUTH_GOOGLE_ID && AUTH_GOOGLE_SECRET)`.
+
+The `SMTP_*` variables are **bootstrap defaults** only (FR-94): they apply until an `ADMIN` saves
+SMTP settings at `/admin/email`, after which the stored configuration wins outright. There is
+deliberately no `emailEnabled` export — the answer now depends on the database, so callers use
+`await isEmailEnabled()` from `lib/email-config.ts`.
 
 ### Appendix B — Traceability matrix
 
@@ -864,6 +928,10 @@ required entry is missing or malformed.
 | FR-90 | `lib/actions/feedback.ts`, `components/dashboard/FeedbackDialog.tsx`, `lib/queries/feedback.ts`, `components/admin/FeedbackList.tsx` |
 | FR-91 | `lib/logo-storage.ts`, `lib/queries/settings.ts`, `lib/actions/settings.ts`, `components/admin/LogoSettings.tsx`, `components/dashboard/AppLogo.tsx` |
 | FR-92 | `lib/actions/announcements.ts`, `lib/queries/announcements.ts`, `components/admin/AnnouncementSettings.tsx`, `components/dashboard/AnnouncementBanner.tsx` |
+| FR-93 | `lib/queries/settings.ts`, `lib/actions/settings.ts`, `components/admin/AppNameSettings.tsx`, `app/layout.tsx`, `app/page.tsx`, `app/terms/page.tsx`, `lib/auth/totp.ts` (deviation) |
+| FR-94, FR-94a | `lib/email-config.ts`, `lib/secret-box.ts`, `lib/queries/email-settings.ts`, `lib/actions/email-settings.ts`, `components/admin/EmailSettings.tsx`, `lib/email.ts` |
+| FR-95 | `app/admin/page.tsx`, `app/admin/{branding,announcements,email,feedback}/page.tsx`, `components/admin/AdminSidebar.tsx`, `components/layout/SidebarNavLink.tsx` |
+| FR-31a | `components/dashboard/IconSidebar.tsx`, `app/dashboard/page.tsx`, `app/users/page.tsx` |
 | NFR-30 – NFR-32 | `lib/env.ts`, `lib/app-config.ts` |
 | DR-01 – DR-04 | `prisma/schema.prisma` |
 | DR-05 | `docs/ROADMAP.md` (4.5) — documented, not enforced |
@@ -880,3 +948,6 @@ Requirements that the code does not currently satisfy in full. Each is scheduled
 | D-13 | Appendix A | `SHADOW_DATABASE_URL` is read by `prisma.config.ts` but absent from `.env.example`. |
 | D-14 | §2.4 | `package-lock.json` coexists with the authoritative `pnpm-lock.yaml`. |
 | D-15 | DR-05 | `AuditLog` has no retention/archival enforcement — a 365-day policy is documented but not implemented, since it would need scheduled-job infrastructure this app doesn't have anywhere else. |
+| D-16 | FR-31a | The ⌘K command palette (`components/search/search-data.ts`) is a static list and still offers `/users` to every role. Presentation only — the route guard still redirects. Fixing it needs the role inside `SearchProvider`, rendered from a root layout that must not read a session (it would make every route dynamic and undo the static prerendering of `/` and `/terms`). |
+| D-17 | FR-94, NFR-01 | `AUTH_SECRET` now has two dependents — the 2FA secret and the stored SMTP password — with no key-rotation story. Rotating it invalidates both. The SMTP half fails soft and is recoverable by re-entering the password; the 2FA half is not. |
+| D-18 | FR-93 | `appDomain` in `lib/app-config.ts` has no consumers anywhere in the codebase. A deletion candidate. |

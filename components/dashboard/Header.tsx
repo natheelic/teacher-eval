@@ -11,12 +11,11 @@ import { getPreferences } from "@/lib/queries/account";
 import { getAppSettings } from "@/lib/queries/settings";
 import { getVisibleAnnouncement } from "@/lib/queries/announcements";
 import { ROLE_LABELS } from "@/lib/permissions";
-import { appName } from "@/lib/app-config";
 
 // Used by several pages, so it reads the session itself rather than having
 // every page thread the same props through. All calls are cached per render.
 export async function Header() {
-  const [user, preferences, { logoUrl }] = await Promise.all([
+  const [user, preferences, { logoUrl, appName }] = await Promise.all([
     requireUser(),
     getPreferences(),
     getAppSettings(),

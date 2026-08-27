@@ -597,6 +597,94 @@ feature asks for it first.
 
 ---
 
+## Phase 7 — Runtime configuration 🟢
+
+**Why:** Phase 6 gave the app an admin panel with exactly one real setting (the logo). Three gaps
+remained, all of the same shape — configuration an administrator should own, that only an operator
+with shell access could actually change:
+
+- **Email had no UI at all.** SMTP lived solely in `.env`, and `emailEnabled` was a synchronous
+  const derived at import time. An admin could not tell whether email worked, and four user-visible
+  error strings told them to go set `SMTP_HOST` — advice a MANAGER, who cannot reach `/admin` let
+  alone a shell, could not act on.
+- **The site name required a rebuild.** `NEXT_PUBLIC_APP_NAME` is inlined by Next at build time,
+  while `logoUrl` right beside it was already a runtime value.
+- **`/admin` was one flat page**, stacking three sections with no sub-navigation, unlike `/account/*`.
+
+A fourth item is a plain bug found in the same review: `IconSidebar` showed the **Users** link to
+every role, but `/users` redirects `MEMBER` and `VIEWER` away.
+
+| # | Item | Notes |
+|---|---|---|
+| 7.1 | ✅ **Runtime app name** | New nullable `AppSettings.appName`, resolved against the env fallback inside `getAppSettings()` so no call site handles null. `export const metadata` became `async generateMetadata()` in `app/layout.tsx` and `app/page.tsx`; `app/terms/page.tsx` kept its static metadata (no name in it) but its module-level `SECTIONS` array became `sectionsFor(appName)`. The three email templates read the name inside their send functions. |
+| 7.2 | ✅ **Database-backed SMTP** | Five nullable columns on `AppSettings`, password encrypted via `lib/secret-box.ts`. New `lib/email-config.ts` resolves database-then-env; `lib/queries/email-settings.ts` is the masked admin view; `lib/actions/email-settings.ts` has save/clear/test. |
+| 7.3 | ✅ **`/admin` split into sub-routes** | `/admin/{branding,announcements,email,feedback}` with `components/admin/AdminSidebar.tsx`; `/admin` itself guards then redirects. |
+| 7.4 | ✅ **Users nav gated by role** | `IconSidebar` gained `showUsers`, defaulting to `false`. |
+
+### Decisions worth keeping
+
+- **SMTP columns went on `AppSettings`, not a new table** — following 6.1's note that a real second
+  setting is a new column here. The safety property is enforced by explicit `select`s in two
+  separate modules instead: `getAppSettings()` (public, unauthenticated, reaches anonymous
+  visitors) selects only `logoUrl` and `appName`, and **must never be widened** to include
+  `smtpPassEncrypted` or become `select: undefined`. The schema, the query, and CLAUDE.md all carry
+  that warning at the point someone would be tempted to change it.
+
+- **The cached nodemailer transport is keyed by a config fingerprint, not invalidated by a hook.**
+  An exported `resetTransporter()` called from the save action is the obvious design and is wrong:
+  it only clears the Node instance that happened to handle the save, leaving every other process
+  serving the old transport until restart. Re-deriving from the resolved config is correct
+  everywhere and costs one indexed single-row read per outbound email, which is rare. Verified
+  in-process: change the port, and the very next send fails naming the *new* port.
+
+- **`emailEnabled` was deleted from `lib/env.ts`, not renamed.** Deletion guarantees no call site
+  silently keeps the synchronous env-only version; every one of the five had to be revisited.
+
+- **The TOTP issuer deliberately does not follow the runtime name.** Changing it would not lock
+  anyone out — `verifyTotpCode()` reads only the secret — but it would leave a permanently split
+  list in people's authenticator apps, entries before the rename showing the old name and entries
+  after showing the new one, with no migration path because the string lives on someone's phone.
+  `lib/auth/totp.ts` keeps importing the build-time `appName`, with a comment saying why.
+
+- **A stored SMTP password that fails to decrypt fails soft**, unlike `decryptTwoFactorSecret()`
+  which throws by design. A corrupt value must not take down every page that renders a header, so
+  it degrades to "no auth" and `/admin/email` surfaces the condition with a recovery instruction.
+  This does extend ROADMAP 5.9's known gap: `AUTH_SECRET` now has a second dependent, and rotating
+  it breaks SMTP auth as well as 2FA. The SMTP half at least recovers by re-entering the password.
+
+- **The password field renders empty even when one is stored, and blank means "leave unchanged".**
+  The form cannot render the value back, so treating blank as a deletion would wipe the password on
+  every unrelated edit. `SmtpAdminView.hasPassword` exists so the field can say so; clearing is a
+  separate explicit action.
+
+- **The test send tests *saved* settings**, so the flow is Save then Send test. Testing unsaved form
+  values would ship the password through a second round-trip and duplicate the resolution path,
+  letting the test diverge from what actually sends. Nodemailer's error is surfaced verbatim —
+  admin-only surface, and `ECONNREFUSED 127.0.0.1:1026` is the entire diagnostic value.
+
+- **Audit metadata for SMTP logs `{ host, port, from, user, hasPassword }` and never the password
+  or its ciphertext** — `AuditLog.metadata` renders in the expanded row and is exported to CSV by
+  `app/account/audit-logs/export/route.ts`, which would carry the secret out of the app.
+
+- **No `app/admin/layout.tsx`.** A layout cannot supply the typed `active` literal without falling
+  back to `usePathname()`, and `/account/*` sets the precedent of having no layout file. The
+  `/admin/*` pages use `Header` + `AdminSidebar` and drop `IconSidebar`, mirroring how `/account/*`
+  pairs `AccountHeader` with `SettingsSidebar` — three nav elements side by side is one too many.
+
+### Known gap, deliberately not closed
+
+- **`components/search/search-data.ts` still offers "Users" to every role** in the ⌘K palette. It is
+  a UX inconsistency, not a security hole — `/users` redirects server-side regardless. Fixing it
+  properly means threading the role into `SearchProvider`, which is rendered from `app/layout.tsx`,
+  a layout that must not read a session: `/` has to stay renderable for anonymous visitors, and
+  reading one would make every route dynamic and undo the static prerendering of `/` and `/terms`.
+  The cheapest correct version is a client-side role fetch inside `SearchProvider` — a separate
+  item, not a rider on this one.
+- **`appDomain` in `lib/app-config.ts` has zero consumers** anywhere in `app/`, `components/` or
+  `lib/`. A deletion candidate, left alone here to keep this phase's diff focused.
+
+---
+
 ## Deliberately out of scope
 
 Recorded so the question is settled rather than re-litigated. See SRS §1.2.

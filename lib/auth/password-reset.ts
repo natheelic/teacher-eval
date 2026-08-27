@@ -1,7 +1,7 @@
 import { createVerificationToken } from "@/lib/auth/verification-tokens";
 import { sendEmail, escapeHtml } from "@/lib/email";
 import { absoluteUrl } from "@/lib/url";
-import { appName } from "@/lib/app-config";
+import { getAppSettings } from "@/lib/queries/settings";
 
 const RESET_EXPIRY_MS = 60 * 60 * 1000;
 
@@ -11,6 +11,7 @@ export async function sendPasswordResetEmail(
 ): Promise<void> {
   const token = await createVerificationToken(email, RESET_EXPIRY_MS);
   const url = await absoluteUrl(`/reset-password?token=${token}`);
+  const { appName } = await getAppSettings();
 
   await sendEmail({
     to: email,

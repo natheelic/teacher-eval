@@ -6,7 +6,7 @@ import {
 import { sendEmail, escapeHtml } from "@/lib/email";
 import { isEmailEnabled } from "@/lib/email-config";
 import { absoluteUrl } from "@/lib/url";
-import { appName } from "@/lib/app-config";
+import { getAppSettings } from "@/lib/queries/settings";
 
 const VERIFY_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
@@ -24,6 +24,7 @@ export async function sendVerificationEmail(
 
   const token = await createVerificationToken(email, VERIFY_EXPIRY_MS);
   const url = await absoluteUrl(`/verify-email?token=${token}`);
+  const { appName } = await getAppSettings();
 
   await sendEmail({
     to: email,

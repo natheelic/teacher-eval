@@ -6,6 +6,7 @@ import { AppearanceSettings } from "@/components/account/AppearanceSettings";
 import { DangerZone } from "@/components/account/DangerZone";
 import { requireUser } from "@/lib/auth/require-session";
 import { getConnections, getPreferences } from "@/lib/queries/account";
+import { getAppSettings } from "@/lib/queries/settings";
 import { toIso } from "@/lib/format";
 import { isEmailEnabled } from "@/lib/email-config";
 
@@ -13,12 +14,14 @@ export default async function PreferencesPage() {
   // One batched fetch for the four sections below. Email config is resolved
   // here, in the server shell, so ProfileInformation keeps taking a plain
   // boolean — the async-ness stops before the client leaf.
-  const [user, connections, preferences, emailEnabled] = await Promise.all([
-    requireUser(),
-    getConnections(),
-    getPreferences(),
-    isEmailEnabled(),
-  ]);
+  const [user, connections, preferences, emailEnabled, { appName }] =
+    await Promise.all([
+      requireUser(),
+      getConnections(),
+      getPreferences(),
+      isEmailEnabled(),
+      getAppSettings(),
+    ]);
 
   // Disconnecting the last remaining sign-in method would lock the account
   // out — safe only with a password set, or more than one provider linked.
@@ -52,11 +55,17 @@ export default async function PreferencesPage() {
               <Connections
                 connections={connections}
                 canDisconnect={canDisconnect}
+                appName={appName}
               />
-              <AppearanceSettings theme={preferences.theme} userId={user.id} />
+              <AppearanceSettings
+                theme={preferences.theme}
+                userId={user.id}
+                appName={appName}
+              />
               <DangerZone
                 deletionRequestedAt={toIso(user.deletionRequestedAt)}
                 hasPassword={user.hasPassword}
+                appName={appName}
               />
             </div>
           </div>

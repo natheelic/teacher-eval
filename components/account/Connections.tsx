@@ -2,19 +2,21 @@ import { KeyRound } from "lucide-react";
 import { SectionHeading, SettingsCard } from "./SettingsPrimitives";
 import { ConnectionButton } from "./ConnectionButton";
 import type { ConnectionView } from "@/lib/queries/account";
-import { appName } from "@/lib/app-config";
 
-const DESCRIPTIONS: Record<string, string> = {
+const descriptionsFor = (appName: string): Record<string, string> => ({
   google: `Use your Google account to sign in to ${appName}.`,
-};
+});
 
 export function Connections({
   connections,
   canDisconnect,
+  appName,
 }: {
   connections: ConnectionView[];
   canDisconnect: boolean;
+  appName: string;
 }) {
+  const DESCRIPTIONS = descriptionsFor(appName);
   return (
     <div className="flex w-full flex-col items-start gap-6">
       <SectionHeading

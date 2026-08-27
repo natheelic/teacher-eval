@@ -22,7 +22,8 @@ export default async function UsersPage({
     <div className="flex min-h-screen w-full flex-col bg-surface">
       <Header />
       <div className="flex min-w-0 flex-1">
-        <IconSidebar showAdmin={user.role === "ADMIN"} />
+        {/* Non-managers were already redirected above, so this is always true here. */}
+        <IconSidebar showUsers showAdmin={user.role === "ADMIN"} />
         <main className="flex-1 min-w-0 overflow-x-auto">
           <div className="mx-auto flex max-w-[1200px] flex-col px-4 pb-24 pt-8 sm:px-10 sm:pt-12">
             <div className="flex flex-col gap-1 pb-8">

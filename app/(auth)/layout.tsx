@@ -1,9 +1,8 @@
 import { AppLogo } from "@/components/dashboard/AppLogo";
-import { appName } from "@/lib/app-config";
 import { getAppSettings } from "@/lib/queries/settings";
 
 export default async function AuthLayout({ children }: LayoutProps<"/">) {
-  const { logoUrl } = await getAppSettings();
+  const { logoUrl, appName } = await getAppSettings();
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background px-4 py-12">

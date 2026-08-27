@@ -1,0 +1,190 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth/require-session";
+import { logAudit } from "@/lib/audit";
+import { sendEmail } from "@/lib/email";
+import { getAppSettings } from "@/lib/queries/settings";
+import { SECRET_LABELS, encryptSecret } from "@/lib/secret-box";
+
+export type EmailSettingsActionState = {
+  ok?: boolean;
+  error?: string;
+  /** Set by sendTestEmail so the UI can confirm where the message went. */
+  sentTo?: string;
+};
+
+const SETTINGS_ID = "singleton";
+
+/**
+ * SMTP config is read on exactly one page, unlike the logo and the app name
+ * which appear app-wide — so this is a targeted invalidation rather than the
+ * root-layout one those use.
+ */
+function revalidateEmailSettings() {
+  revalidatePath("/admin/email");
+}
+
+const settingsSchema = z.object({
+  host: z.string().trim().min(1, "Enter an SMTP host"),
+  port: z.coerce
+    .number({ error: "Enter a port number" })
+    .int("Port must be a whole number")
+    .min(1, "Port must be between 1 and 65535")
+    .max(65535, "Port must be between 1 and 65535"),
+  // NOT z.email() — this is a From header, which may carry a display name,
+  // e.g. `Portal <noreply@portal.local>`.
+  from: z.string().trim().min(1, "Enter a From address"),
+  user: z.string().trim().optional(),
+  password: z.string().optional(),
+});
+
+export async function saveEmailSettings(
+  _prev: EmailSettingsActionState,
+  formData: FormData,
+): Promise<EmailSettingsActionState> {
+  const actor = await requireAdmin();
+
+  const parsed = settingsSchema.safeParse({
+    host: formData.get("host"),
+    port: formData.get("port"),
+    from: formData.get("from"),
+    user: formData.get("user") ?? undefined,
+    password: formData.get("password") ?? undefined,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]!.message };
+  }
+
+  const { host, port, from, user, password } = parsed.data;
+  const trimmedUser = user?.trim() || null;
+
+  // An empty password field means "leave the stored one alone", never "delete
+  // it" — the form cannot render the existing value back, so treating blank as
+  // a deletion would silently wipe the password on every unrelated edit.
+  // Clearing it is a separate, explicit action.
+  const passwordUpdate =
+    password && password.length > 0
+      ? { smtpPassEncrypted: encryptSecret(password, SECRET_LABELS.SMTP_PASSWORD) }
+      : {};
+
+  // If the username is being removed, the stored password is meaningless.
+  const orphanedPassword = trimmedUser === null ? { smtpPassEncrypted: null } : {};
+
+  const data = {
+    smtpHost: host,
+    smtpPort: port,
+    smtpFrom: from,
+    smtpUser: trimmedUser,
+    ...orphanedPassword,
+    ...passwordUpdate,
+  };
+
+  await prisma.appSettings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, ...data },
+    update: data,
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    action: `Updated the SMTP settings (${host}:${port})`,
+    actionCode: "settings.email.updated",
+    method: "POST",
+    statusCode: 200,
+    targetLabel: "Email settings",
+    // Never the password or its ciphertext: audit metadata renders in the
+    // expanded log row and is exported to CSV by
+    // app/account/audit-logs/export/route.ts.
+    metadata: {
+      host,
+      port,
+      from,
+      user: trimmedUser,
+      hasPassword: Boolean(passwordUpdate.smtpPassEncrypted),
+    },
+  });
+
+  revalidateEmailSettings();
+  return { ok: true };
+}
+
+export async function clearEmailSettings(): Promise<EmailSettingsActionState> {
+  const actor = await requireAdmin();
+
+  await prisma.appSettings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID },
+    update: {
+      smtpHost: null,
+      smtpPort: null,
+      smtpFrom: null,
+      smtpUser: null,
+      smtpPassEncrypted: null,
+    },
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    action: "Cleared the SMTP settings",
+    actionCode: "settings.email.cleared",
+    method: "POST",
+    statusCode: 200,
+    targetLabel: "Email settings",
+  });
+
+  revalidateEmailSettings();
+  return { ok: true };
+}
+
+const testSchema = z.object({ to: z.email("Enter a valid email address") });
+
+/**
+ * Tests the *saved* configuration, so the flow is Save, then Send test.
+ * Testing unsaved form values would mean shipping the password through a
+ * second round-trip and duplicating the resolution path, letting the test
+ * diverge from what actually sends.
+ */
+export async function sendTestEmail(
+  _prev: EmailSettingsActionState,
+  formData: FormData,
+): Promise<EmailSettingsActionState> {
+  const actor = await requireAdmin();
+
+  const parsed = testSchema.safeParse({
+    to: formData.get("to") || actor.email,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]!.message };
+  }
+  const { to } = parsed.data;
+  const { appName } = await getAppSettings();
+
+  try {
+    await sendEmail({
+      to,
+      subject: `Test email from ${appName}`,
+      text: `This is a test message from ${appName}. If you received it, outgoing email is working.`,
+      html: `<p>This is a test message from ${appName}.</p><p>If you received it, outgoing email is working.</p>`,
+    });
+  } catch (error) {
+    // Surfaced verbatim on purpose: this is an admin-only screen, and the
+    // underlying message ("connect ECONNREFUSED 127.0.0.1:1026", "Invalid
+    // login") is the entire diagnostic value of a test send.
+    return { error: (error as Error).message };
+  }
+
+  await logAudit({
+    actorId: actor.id,
+    action: `Sent a test email to ${to}`,
+    actionCode: "settings.email.test_sent",
+    method: "POST",
+    statusCode: 200,
+    targetLabel: to,
+  });
+
+  return { ok: true, sentTo: to };
+}
