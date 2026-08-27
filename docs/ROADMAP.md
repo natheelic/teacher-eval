@@ -410,11 +410,37 @@ database query.
     enumeration-sensitive endpoint that could also benefit from rate limiting, but the roadmap item
     that motivated this work named sign-in and the TOTP check specifically — worth its own item
     rather than folded in silently.
-- **5.9** **Encrypt `User.twoFactorSecret` at rest.** It is currently stored in plaintext, same as
-  the column the schema already reserved for it. It must stay decryptable (unlike a password
-  hash), so encrypting the column with a key derived from `AUTH_SECRET` — the same technique
-  `lib/auth/totp.ts` already uses for the short-lived pending-enrollment token — is a reasonable
-  follow-up hardening step.
+- **5.9** ✅ **`User.twoFactorSecret` is encrypted at rest.** Already implemented in code
+  (`lib/auth/totp.ts`'s `encryptTwoFactorSecret()`/`decryptTwoFactorSecret()`, wired into
+  enrollment in `lib/actions/twoFactor.ts` and decrypted on sign-in in `auth.ts`) using the same
+  AES-256-GCM-via-`AUTH_SECRET`-derived-key technique the pending-enrollment token already used,
+  with a distinct key label (`"2fa-secret-at-rest"` vs. `"2fa-pending"`) so the two purposes don't
+  share key material even though both derive from the same root secret. This item's remaining work
+  was verifying it end-to-end and adding coverage, not building it:
+  - **Unit-tested** (`lib/auth/totp.test.ts`, 5 tests): round-trips a secret through
+    encrypt→decrypt, confirms the ciphertext never contains the plaintext secret as a substring,
+    confirms two encryptions of the same secret produce different ciphertext (random IV per call),
+    and confirms both a malformed ciphertext and a tampered (bit-flipped) one throw rather than
+    silently returning wrong data — GCM's auth tag catches the latter.
+  - **`vitest.config.mts` now loads `.env` via `setupFiles: ["dotenv/config"]`**, since
+    `lib/auth/totp.ts` transitively imports `lib/env.ts`, which throws at import time if
+    `AUTH_SECRET` etc. aren't set — the same file `prisma.config.ts` already reads via `dotenv`, so
+    this doesn't introduce new config. A harmless no-op in CI, where those variables are already
+    set as job-level env vars (`dotenv` doesn't override variables that already exist).
+  - **Verified end-to-end in Chrome against the dev DB, not just unit-tested in isolation:**
+    enrolled a real account in 2FA through the actual UI, confirmed via `psql` that
+    `User.twoFactorSecret` holds base64url ciphertext (`iv.authTag.data`) rather than the
+    plaintext secret shown in the enrollment QR/manual-key step; signed out and back in with the
+    real password and a TOTP code computed from that same plaintext secret, confirming the
+    decrypt-on-sign-in path genuinely round-trips through Postgres and not just through the
+    encrypt/decrypt functions in memory; disabled 2FA afterward and confirmed the column was
+    cleared, restoring the test account to its original state.
+  - **Known gap, documented rather than silently accepted:** this only protects secrets enrolled
+    under the current `AUTH_SECRET`. There is no rotation path — rotating `AUTH_SECRET` would make
+    every already-encrypted `twoFactorSecret` undecryptable (`decryptStoredSecret()` in `auth.ts`
+    already fails closed in that case, forcing `TwoFactorRequired` forever rather than crashing or
+    silently skipping the check, but that still permanently locks out anyone enrolled). No
+    encryption-key-rotation story exists anywhere in this app yet; out of scope here.
 - **5.10** **Fix the access-token dialog's stuck-closed state.** Found during 2.5 verification:
   `AccessTokensTable.tsx`'s `showDialog = dialogOpen && !state.plaintext` never re-opens the
   "Generate access token" dialog after the first successful mint in a session, because
