@@ -13,6 +13,12 @@ import {
   type EmailSettingsActionState,
 } from "@/lib/actions/email-settings";
 import type { SmtpAdminView } from "@/lib/queries/email-settings";
+import {
+  DEFAULT_PROVIDER_ID,
+  EMAIL_PROVIDERS,
+  getEmailProvider,
+  type EmailProviderId,
+} from "@/lib/email-providers";
 
 const initialState: EmailSettingsActionState = {};
 
@@ -43,6 +49,14 @@ export function EmailSettings({
   );
   const [clearing, startClearTransition] = useTransition();
   const [clearError, setClearError] = useState<string | null>(null);
+
+  // Defaults to whatever was saved; "custom" for a fresh install, which keeps
+  // the full host/port form visible rather than presuming a provider.
+  const [providerId, setProviderId] = useState<EmailProviderId>(
+    settings.provider ?? DEFAULT_PROVIDER_ID,
+  );
+  const provider = getEmailProvider(providerId);
+  const isCustom = provider.host === null;
 
   // Awaited inside the transition, matching LogoSettings/AnnouncementSettings.
   // A synchronous callback would end the transition before the action
@@ -77,29 +91,75 @@ export function EmailSettings({
 
       <SettingsCard>
         <SettingsRow
-          label="SMTP server"
-          description="Host, port, and the address mail is sent from."
+          label="Provider"
+          description="Choosing a provider fills in its server details for you."
+          control={
+            <select
+              value={providerId}
+              onChange={(e) => setProviderId(e.target.value as EmailProviderId)}
+              aria-label="Email provider"
+              className={FIELD_CLASS}
+            >
+              {EMAIL_PROVIDERS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          }
+        />
+        <SettingsRow
+          label={isCustom ? "SMTP server" : "Credentials"}
+          description={provider.hint}
           bordered={false}
           control={
             <form
-              key={`${settings.host}-${settings.port}-${settings.from}-${settings.user}`}
+              key={`${settings.provider}-${settings.host}-${settings.port}-${settings.from}-${settings.user}`}
               action={formAction}
               className="flex w-full flex-col gap-2"
             >
-              <input name="host" defaultValue={settings.host ?? ""} placeholder="smtp.example.com" required aria-label="SMTP host" className={FIELD_CLASS} />
-              <input name="port" type="number" min={1} max={65535} defaultValue={settings.port ?? ""} placeholder="587" required aria-label="SMTP port" className={FIELD_CLASS} />
+              {/* The picker lives outside the form so it can drive the fields,
+                  so its value is submitted through a hidden input. */}
+              <input type="hidden" name="provider" value={providerId} />
+
+              {isCustom ? (
+                <>
+                  <input name="host" defaultValue={settings.host ?? ""} placeholder="smtp.example.com" required aria-label="SMTP host" className={FIELD_CLASS} />
+                  <input name="port" type="number" min={1} max={65535} defaultValue={settings.port ?? ""} placeholder="587" required aria-label="SMTP port" className={FIELD_CLASS} />
+                </>
+              ) : (
+                <p className="pb-1 text-[13px] font-medium text-foreground-muted">
+                  {provider.host}:{provider.port}
+                </p>
+              )}
+
               <input name="from" defaultValue={settings.from ?? ""} placeholder="Portal &lt;noreply@example.com&gt;" required aria-label="From address" className={FIELD_CLASS} />
-              <input name="user" defaultValue={settings.user ?? ""} placeholder="Username (optional)" aria-label="SMTP username" className={FIELD_CLASS} />
+
+              {/* Resend and SendGrid authenticate as a fixed literal username,
+                  which the action supplies — asking for it invites errors. */}
+              {provider.fixedUser === null && (
+                <input
+                  name="user"
+                  defaultValue={settings.user ?? ""}
+                  placeholder={provider.needsCredential ? "Username" : "Username (optional)"}
+                  required={provider.needsCredential}
+                  aria-label="SMTP username"
+                  className={FIELD_CLASS}
+                />
+              )}
+
               <input
                 name="password"
                 type="password"
                 autoComplete="new-password"
                 placeholder={
                   settings.hasPassword
-                    ? "A password is saved — leave blank to keep it"
-                    : "Password (optional)"
+                    ? `A ${provider.credentialLabel.toLowerCase()} is saved — leave blank to keep it`
+                    : provider.needsCredential
+                      ? provider.credentialLabel
+                      : `${provider.credentialLabel} (optional)`
                 }
-                aria-label="SMTP password"
+                aria-label={provider.credentialLabel}
                 className={FIELD_CLASS}
               />
 

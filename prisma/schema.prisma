@@ -261,6 +261,11 @@ model AppSettings {
   /// database config to win over the .env triple — a mixed resolution would
   /// send mail from the wrong address after a half-finished admin edit.
   /// Resolved in lib/email-config.ts, never in lib/queries/settings.ts.
+  /// Which preset from lib/email-providers.ts was chosen ("gmail", "resend",
+  /// "custom", …). Stored only so /admin/email can redisplay the picker and
+  /// label the credential correctly — the resolved host/port are still written
+  /// to the columns below, so lib/email-config.ts never consults this.
+  smtpProvider String?
   smtpHost  String?
   smtpPort  Int?
   smtpFrom  String?

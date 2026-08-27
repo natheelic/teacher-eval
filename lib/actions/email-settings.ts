@@ -8,6 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { sendEmail, escapeHtml } from "@/lib/email";
 import { getAppSettings } from "@/lib/queries/settings";
 import { SECRET_LABELS, encryptSecret } from "@/lib/secret-box";
+import { getEmailProvider, isEmailProviderId } from "@/lib/email-providers";
 
 export type EmailSettingsActionState = {
   ok?: boolean;
@@ -27,13 +28,19 @@ function revalidateEmailSettings() {
   revalidatePath("/admin/email");
 }
 
+const portSchema = z.coerce
+  .number({ error: "Enter a port number" })
+  .int("Port must be a whole number")
+  .min(1, "Port must be between 1 and 65535")
+  .max(65535, "Port must be between 1 and 65535");
+
 const settingsSchema = z.object({
-  host: z.string().trim().min(1, "Enter an SMTP host"),
-  port: z.coerce
-    .number({ error: "Enter a port number" })
-    .int("Port must be a whole number")
-    .min(1, "Port must be between 1 and 65535")
-    .max(65535, "Port must be between 1 and 65535"),
+  provider: z
+    .string()
+    .refine(isEmailProviderId, "Choose an email provider"),
+  // Only consulted for the custom provider; every preset supplies its own.
+  host: z.string().trim().optional(),
+  port: z.string().trim().optional(),
   // NOT z.email() — this is a From header, which may carry a display name,
   // e.g. `Portal <noreply@portal.local>`.
   from: z.string().trim().min(1, "Enter a From address"),
@@ -48,8 +55,9 @@ export async function saveEmailSettings(
   const actor = await requireAdmin();
 
   const parsed = settingsSchema.safeParse({
-    host: formData.get("host"),
-    port: formData.get("port"),
+    provider: formData.get("provider"),
+    host: formData.get("host") ?? undefined,
+    port: formData.get("port") ?? undefined,
     from: formData.get("from"),
     user: formData.get("user") ?? undefined,
     password: formData.get("password") ?? undefined,
@@ -59,8 +67,36 @@ export async function saveEmailSettings(
     return { error: parsed.error.issues[0]!.message };
   }
 
-  const { host, port, from, user, password } = parsed.data;
-  const trimmedUser = user?.trim() || null;
+  const { from, user, password } = parsed.data;
+  const provider = getEmailProvider(parsed.data.provider);
+
+  // Host, port and the fixed username come from the preset table, never from
+  // the request — a tampered form cannot point a known provider id at another
+  // server. Only "custom" reads them off the form.
+  let host: string;
+  let port: number;
+  if (provider.host !== null && provider.port !== null) {
+    host = provider.host;
+    port = provider.port;
+  } else {
+    const customHost = parsed.data.host;
+    if (!customHost) return { error: "Enter an SMTP host" };
+    const parsedPort = portSchema.safeParse(parsed.data.port);
+    if (!parsedPort.success) {
+      return { error: parsedPort.error.issues[0]!.message };
+    }
+    host = customHost;
+    port = parsedPort.data;
+  }
+
+  // Resend and SendGrid authenticate as a fixed literal username; the form
+  // hides the field for them, so accepting one from the request would only
+  // create a way to get it wrong.
+  const trimmedUser = provider.fixedUser ?? (user?.trim() || null);
+
+  if (provider.needsCredential && !trimmedUser) {
+    return { error: `${provider.label} requires a username.` };
+  }
 
   // Password handling, in precedence order:
   //
@@ -82,6 +118,7 @@ export async function saveEmailSettings(
         : {};
 
   const data = {
+    smtpProvider: provider.id,
     smtpHost: host,
     smtpPort: port,
     smtpFrom: from,
@@ -97,7 +134,7 @@ export async function saveEmailSettings(
 
   await logAudit({
     actorId: actor.id,
-    action: `Updated the SMTP settings (${host}:${port})`,
+    action: `Updated the email settings (${provider.label}, ${host}:${port})`,
     actionCode: "settings.email.updated",
     method: "POST",
     statusCode: 200,
@@ -106,6 +143,7 @@ export async function saveEmailSettings(
     // expanded log row and is exported to CSV by
     // app/account/audit-logs/export/route.ts.
     metadata: {
+      provider: provider.id,
       host,
       port,
       from,
@@ -129,6 +167,7 @@ export async function clearEmailSettings(): Promise<EmailSettingsActionState> {
     where: { id: SETTINGS_ID },
     create: { id: SETTINGS_ID },
     update: {
+      smtpProvider: null,
       smtpHost: null,
       smtpPort: null,
       smtpFrom: null,

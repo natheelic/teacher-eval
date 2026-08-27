@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth/require-session";
 import { resolveEmailConfig, type EmailConfigSource } from "@/lib/email-config";
 import { SECRET_LABELS, decryptSecret } from "@/lib/secret-box";
+import { isEmailProviderId, type EmailProviderId } from "@/lib/email-providers";
 
 /**
  * The admin-facing view of SMTP settings (ROADMAP 7.2) — deliberately distinct
@@ -15,6 +16,8 @@ import { SECRET_LABELS, decryptSecret } from "@/lib/secret-box";
  * "leave unchanged" rather than "delete it".
  */
 export type SmtpAdminView = {
+  /** Which preset was saved, for redisplaying the picker. */
+  provider: EmailProviderId | null;
   host: string | null;
   port: number | null;
   from: string | null;
@@ -36,6 +39,7 @@ export const getSmtpSettingsForAdmin = cache(async (): Promise<SmtpAdminView> =>
     prisma.appSettings.findUnique({
       where: { id: SETTINGS_ID },
       select: {
+        smtpProvider: true,
         smtpHost: true,
         smtpPort: true,
         smtpFrom: true,
@@ -56,6 +60,7 @@ export const getSmtpSettingsForAdmin = cache(async (): Promise<SmtpAdminView> =>
   }
 
   return {
+    provider: isEmailProviderId(row?.smtpProvider) ? row.smtpProvider : null,
     host: row?.smtpHost ?? null,
     port: row?.smtpPort ?? null,
     from: row?.smtpFrom ?? null,

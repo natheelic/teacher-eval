@@ -620,6 +620,7 @@ every role, but `/users` redirects `MEMBER` and `VIEWER` away.
 | 7.2 | ✅ **Database-backed SMTP** | Five nullable columns on `AppSettings`, password encrypted via `lib/secret-box.ts`. New `lib/email-config.ts` resolves database-then-env; `lib/queries/email-settings.ts` is the masked admin view; `lib/actions/email-settings.ts` has save/clear/test. |
 | 7.3 | ✅ **`/admin` split into sub-routes** | `/admin/{branding,announcements,email,feedback}` with `components/admin/AdminSidebar.tsx`; `/admin` itself guards then redirects. |
 | 7.4 | ✅ **Users nav gated by role** | `IconSidebar` gained `showUsers`, defaulting to `false`. |
+| 7.5 | ✅ **Email provider presets** | Dropdown over `lib/email-providers.ts`; still one SMTP path. |
 
 ### Decisions worth keeping
 
@@ -670,6 +671,27 @@ every role, but `/users` redirects `MEMBER` and `VIEWER` away.
   back to `usePathname()`, and `/account/*` sets the precedent of having no layout file. The
   `/admin/*` pages use `Header` + `AdminSidebar` and drop `IconSidebar`, mirroring how `/account/*`
   pairs `AccountHeader` with `SettingsSidebar` — three nav elements side by side is one too many.
+
+### 7.5 — Email provider presets
+
+Administrators were being asked for a hostname and port they'd have to look up. `/admin/email` now
+leads with a provider dropdown (`lib/email-providers.ts`): Gmail, Outlook/Microsoft 365, Resend,
+SendGrid, Mailpit, and Custom.
+
+**No HTTP-API clients were added.** Resend and SendGrid both accept an API key *as the SMTP
+password* against a fixed username (`resend` / `apikey`), so every provider here is still reached
+through the one `nodemailer` path in `lib/email.ts`. The dropdown is a UX layer over the existing
+columns, not a second transport.
+
+- **Host, port and the fixed username are resolved server-side from the preset table**, never taken
+  from the request — the same closed-set discipline API-token scopes use. Verified by submitting an
+  injected `host=evil.attacker.test` alongside `provider=mailpit`: the row stored `localhost:1025`.
+- **`AppSettings.smtpProvider` exists only so the picker can redisplay** and label the credential
+  correctly ("App password" vs "API key"). The resolved host/port are still written to the existing
+  columns, so `lib/email-config.ts` never consults it and the resolution path is unchanged.
+- The form adapts per provider: host/port collapse to a static `smtp.resend.com:465` line, the
+  username field disappears for the fixed-username providers, and the password placeholder takes
+  the provider's own vocabulary.
 
 ### Known gap, deliberately not closed
 

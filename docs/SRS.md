@@ -718,6 +718,18 @@ page or `/account/preferences`).*
   and taking down every page that renders application chrome. Audited as `settings.email.updated`
   and `settings.email.cleared`.
 
+- **FR-94b** — The email configuration screen shall offer a provider picker drawn from a closed
+  vocabulary (`lib/email-providers.ts`): Gmail, Outlook/Microsoft 365, Resend, SendGrid, Mailpit,
+  and Custom. Every provider is reached over SMTP — Resend and SendGrid accept an API key as the
+  SMTP password against a fixed username — so no additional transport is introduced.
+
+  The hostname, port, and any fixed username shall be resolved **server-side** from that table and
+  never accepted from the request, so a tampered submission cannot point a recognised provider id
+  at a different server. Only the Custom provider reads a hostname and port from the form.
+  `AppSettings.smtpProvider` records the selection solely for redisplay and credential labelling;
+  the resolved values are written to the existing SMTP columns, leaving FR-94's resolution
+  unchanged.
+
 - **FR-94a** — An `ADMIN` shall be able to send a test message from `/admin/email` to verify the
   configuration. It tests the **saved** configuration, not unsubmitted form values, so that the
   test cannot diverge from what the application actually sends. The transport error, if any, shall
@@ -929,7 +941,7 @@ deliberately no `emailEnabled` export — the answer now depends on the database
 | FR-91 | `lib/logo-storage.ts`, `lib/queries/settings.ts`, `lib/actions/settings.ts`, `components/admin/LogoSettings.tsx`, `components/dashboard/AppLogo.tsx` |
 | FR-92 | `lib/actions/announcements.ts`, `lib/queries/announcements.ts`, `components/admin/AnnouncementSettings.tsx`, `components/dashboard/AnnouncementBanner.tsx` |
 | FR-93 | `lib/queries/settings.ts`, `lib/actions/settings.ts`, `components/admin/AppNameSettings.tsx`, `app/layout.tsx`, `app/page.tsx`, `app/terms/page.tsx`, `lib/auth/totp.ts` (deviation) |
-| FR-94, FR-94a | `lib/email-config.ts`, `lib/secret-box.ts`, `lib/queries/email-settings.ts`, `lib/actions/email-settings.ts`, `components/admin/EmailSettings.tsx`, `lib/email.ts` |
+| FR-94, FR-94a, FR-94b | `lib/email-providers.ts`, `lib/email-config.ts`, `lib/secret-box.ts`, `lib/queries/email-settings.ts`, `lib/actions/email-settings.ts`, `components/admin/EmailSettings.tsx`, `lib/email.ts` |
 | FR-95 | `app/admin/page.tsx`, `app/admin/{branding,announcements,email,feedback}/page.tsx`, `components/admin/AdminSidebar.tsx`, `components/layout/SidebarNavLink.tsx` |
 | FR-31a | `components/dashboard/IconSidebar.tsx`, `app/dashboard/page.tsx`, `app/users/page.tsx` |
 | NFR-30 – NFR-32 | `lib/env.ts`, `lib/app-config.ts` |
