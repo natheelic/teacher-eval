@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/auth";
+import { DEFAULT_SIGNED_IN_PATH } from "@/auth.config";
 import { prisma } from "@/lib/prisma";
 import { canManageUsers } from "@/lib/permissions";
 import { DELETION_GRACE_PERIOD_MS, softDeleteUser } from "@/lib/auth/deletion";
@@ -164,5 +165,18 @@ async function currentPathname(): Promise<string | null> {
 export async function requireUserManager(): Promise<CurrentUser> {
   const user = await requireUser();
   if (!canManageUsers(user.role)) redirect("/account/preferences");
+  return user;
+}
+
+/**
+ * Guards the admin panel (ROADMAP 6.1). Stricter than requireUserManager —
+ * a manager can act on lower-ranked users but has no business changing
+ * app-wide settings. Redirects to the dashboard rather than /account/preferences
+ * since a manager landing here already belongs on the dashboard, not the
+ * member/viewer settings redirect.
+ */
+export async function requireAdmin(): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (user.role !== "ADMIN") redirect(DEFAULT_SIGNED_IN_PATH);
   return user;
 }

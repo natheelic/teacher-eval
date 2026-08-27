@@ -7,12 +7,29 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    services:
+      # ROADMAP 6.1 added a public, DB-backed page (AppSettings.logoUrl on
+      # the landing page, terms page, and auth layout) — Next now genuinely
+      # queries the database while statically prerendering those routes
+      # during `pnpm build`, so a real (even empty) Postgres is required.
+      # Dummy credentials no longer suffice the way they did before 6.1.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: portal
+          POSTGRES_PASSWORD: portal
+          POSTGRES_DB: portal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
-      # Values only needed to satisfy lib/env.ts's boot-time validation and to
-      # let `next build` collect page data — no live database is required
-      # (see docs/ROADMAP.md 5.2: `pnpm build` succeeds against these dummy
-      # values with no reachable Postgres instance).
-      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      # AUTH_SECRET/NEXT_PUBLIC_* only need to satisfy lib/env.ts's boot-time
+      # validation — nothing reads them for real content in this job.
+      DATABASE_URL: "postgresql://portal:portal@localhost:5432/portal"
       AUTH_SECRET: "ci-only-secret-not-used-anywhere-real"
       NEXT_PUBLIC_APP_NAME: "Portal"
       NEXT_PUBLIC_APP_DOMAIN: "portal.local"
@@ -33,5 +50,7 @@ jobs:
       - run: pnpm typecheck
 
       - run: pnpm test
+
+      - run: pnpm exec prisma migrate deploy
 
       - run: pnpm build

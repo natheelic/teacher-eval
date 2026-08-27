@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, ListChecks, Settings, X } from "lucide-react";
+import { LayoutDashboard, Users, ListChecks, Settings, ShieldCheck, X } from "lucide-react";
 import { useMobileNav } from "../layout/MobileNavProvider";
 import { MobileDrawer } from "../layout/MobileDrawer";
 
@@ -62,7 +62,7 @@ function Divider() {
   );
 }
 
-export function IconSidebar() {
+export function IconSidebar({ showAdmin = false }: { showAdmin?: boolean }) {
   const { open, setOpen } = useMobileNav();
   const pathname = usePathname();
   const close = () => setOpen(false);
@@ -99,6 +99,15 @@ export function IconSidebar() {
               active={pathname === "/account/audit-logs"}
               onNavigate={close}
             />
+            {showAdmin && (
+              <NavItem
+                icon={ShieldCheck}
+                label="Admin"
+                href="/admin"
+                active={pathname.startsWith("/admin")}
+                onNavigate={close}
+              />
+            )}
           </div>
           <Divider />
           <div className="flex flex-col p-2">

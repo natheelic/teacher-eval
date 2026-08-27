@@ -230,6 +230,21 @@ model AuditLog {
   @@index([createdAt(sort: Desc)])
 }
 
+// ---------------------------------------------------------------------------
+// App-wide settings
+// ---------------------------------------------------------------------------
+
+/// Singleton row (ROADMAP 6.1) — always read/written at id "singleton" via
+/// upsert. No app-wide config table existed before this; a real second
+/// setting should be added as a column here rather than a new table.
+model AppSettings {
+  id        String   @id @default("singleton")
+  /// Public path under /uploads, e.g. "/uploads/<id>.png". Null renders the
+  /// built-in AppLogo SVG fallback.
+  logoUrl   String?
+  updatedAt DateTime @updatedAt
+}
+
 /// Submitted from the header's Feedback button. No admin viewing UI yet —
 /// intentional, to avoid rebuilding the "no admin panel exists" problem for
 /// a first-cut feature; read via psql/Prisma Studio for now.

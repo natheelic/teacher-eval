@@ -469,16 +469,70 @@ database query.
 so it's worth building the first version deliberately rather than as a side effect of whichever
 feature asks for it first.
 
-- **6.1 — Logo upload.** No logo/branding config exists today: `components/dashboard/AppLogo.tsx`
-  is a hardcoded inline SVG used identically at all 4 call sites (`app/page.tsx`,
-  `app/(auth)/layout.tsx`, `components/dashboard/Header.tsx`, `components/account/AccountHeader.tsx`),
-  and `lib/app-config.ts` only exposes `appName`/`appDomain` from build-time env vars — nothing
-  DB-backed or user-uploadable. Building this needs: a new `ADMIN`-only route (the actual start of
-  this phase), a storage decision (no upload/object-storage package exists in `package.json` at
-  all — e.g. `@vercel/blob`, S3-compatible bucket, or a `public/`-write fallback), a new Prisma
-  field for the logo URL (a singleton settings row, since there's no existing app-wide config
-  table), a new upload Server Action, and updating `AppLogo.tsx`'s 4 call sites to render it
-  conditionally instead of the hardcoded SVG.
+- **6.1** ✅ **Logo upload.** `components/dashboard/AppLogo.tsx` now accepts an optional `src` and
+  renders it via a plain `<img>` (same `next/image`-skipping tradeoff `TwoFactorSettings.tsx`
+  already made for its QR code — the file lives outside the build with no known dimensions to
+  configure ahead of time), falling back to the original inline SVG when `src` is null. Actually
+  5 call sites needed updating, not the 4 originally listed above — `app/terms/page.tsx` was
+  missed in the original scoping.
+  - **New `AppSettings` singleton model** (`prisma/migrations/20260827001256_add_app_settings/`):
+    `id` fixed at `"singleton"`, `logoUrl String?`. The first app-wide config table in the schema —
+    a real second setting should be a new column here, not a new table. Read via
+    `lib/queries/settings.ts`'s `getAppSettings()`, a public unauthenticated read (the landing page
+    and sign-in layout have no session) cached the same way `getCurrentUser()` is.
+  - **Storage decision: `public/uploads/`, not a hosted object-storage provider.** No such package
+    (`@vercel/blob`, an S3 client, …) existed in `package.json` at all, and this app already assumes
+    a long-lived Node server (CLAUDE.md) — the same assumption `/docs` makes reading a file off disk
+    at request time. Next's built-in static file serving reads `public/` from disk per-request
+    rather than baking a build-time manifest, so a file written after boot is served immediately,
+    no restart needed. Explicitly documented as NOT portable to a serverless target (no durable
+    local disk, possibly multiple instances with no shared filesystem) — revisit if that changes.
+    `lib/logo-storage.ts` handles validation (≤2MB, PNG/JPEG/WebP only) and the actual
+    write/delete; `image/svg+xml` is deliberately excluded — an SVG served from this app's own
+    origin executes embedded script if a browser is ever pointed at the file directly (`<object>`,
+    `<iframe>`, or plain navigation), unlike an `<img src>` reference. Excluding the format removes
+    that stored-XSS surface entirely rather than trying to sanitize SVG markup.
+  - **New `ADMIN`-only route, `/admin`**, gated by a new `requireAdmin()` in `require-session.ts`
+    (stricter than `requireUserManager()` — a manager can act on lower-ranked users but has no
+    business changing app-wide settings; redirects to `/dashboard`, not `/account/preferences`,
+    since a manager landing here already belongs on the dashboard). Composed from `Header` +
+    `IconSidebar` like `/users`, plus a new "Admin" nav item in `IconSidebar` — threaded through a
+    `showAdmin` prop from `/dashboard`, `/users`, and `/admin` itself, rather than having the
+    sidebar re-derive the role, since it already takes no other data-fetching responsibility.
+  - **`lib/actions/settings.ts`'s `updateLogo()`/`removeLogo()`** follow the established Server
+    Action shape (`requireAdmin()` → mutate → `logAudit()` → `revalidatePath`), logging two new
+    action codes (`settings.logo.updated`, `settings.logo.removed`) added to `lib/action-codes.ts`.
+    Revalidation is deliberately `revalidatePath("/", "layout")`, not a per-page list — the logo
+    appears in headers and layouts across nearly every route, so a global asset gets a global
+    invalidation rather than an easily-incomplete list of specific paths.
+  - **`components/admin/LogoSettings.tsx`** (client leaf, server shell in `app/admin/page.tsx`)
+    shows an immediate local preview via `URL.createObjectURL()` before the upload round-trips,
+    then hands off to the server-refreshed `currentLogoUrl` once it actually succeeds — done by
+    adjusting state during render (comparing `state` against a `prevState` local) rather than a
+    `useEffect`, since a plain effect calling `setPreview()` synchronously trips this repo's
+    `react-hooks/set-state-in-effect` lint rule; the file input is reset by bumping a `key` (the
+    standard way to clear an uncontrolled file input) instead of an effect reaching into the DOM.
+  - **A real, unplanned build-time regression, found and fixed, not just described:** `app/page.tsx`,
+    `app/terms/page.tsx`, and `app/(auth)/layout.tsx` were previously synchronous components with no
+    database access, so `pnpm build`'s static prerendering never touched Prisma for them — this is
+    exactly why 5.2's CI could get away with a fake, unreachable `DATABASE_URL`. Making them `async`
+    to read `getAppSettings()` means Next now genuinely queries the database while statically
+    prerendering those routes at build time, and the fake CI credentials started failing the build
+    outright. Fixed by giving CI's job a real (if empty) `postgres:17` service container and running
+    `prisma migrate deploy` before `pnpm build`, rather than reverting to a dynamic-rendering
+    workaround — a real deployment already has a reachable database at build time, so this makes CI
+    match reality instead of papering over it. Confirmed locally: `pnpm build` against a live,
+    freshly-migrated dev database succeeds and correctly statically prerenders `/` and `/terms`
+    (both still show as `○` in the build output).
+  - **Verified end-to-end in Chrome against the dev DB:** uploaded a real PNG through `/admin` as an
+    `ADMIN` account — confirmed via `psql`/`ls` that the file landed on disk and `AppSettings.logoUrl`
+    was set, confirmed the uploaded file is served correctly at its `/uploads/<id>.png` URL, and
+    confirmed the new logo rendered immediately (no manual refresh) in the header **and** on the
+    fully unauthenticated `/` landing page and `/signin` page, proving `revalidatePath("/", "layout")`
+    actually invalidated every route. Clicked "Remove," confirmed the file was deleted from disk,
+    `logoUrl` was cleared in the DB, and every page fell back to the default SVG. Confirmed a signed-in
+    `MANAGER` account sees no "Admin" sidebar item and, on directly navigating to `/admin`, is
+    server-side redirected to `/dashboard` rather than shown the page — not just hidden in the UI.
 - **6.2 — A real view for submitted feedback.** `Feedback` (added alongside 6.1's motivating
   request) has no admin-facing read UI yet — rows are only inspectable via `psql`/Prisma Studio.
   Once 6.1's admin route exists, add a simple list view here rather than building a second,

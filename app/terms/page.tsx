@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AppLogo } from "@/components/dashboard/AppLogo";
 import { appName } from "@/lib/app-config";
+import { getAppSettings } from "@/lib/queries/settings";
 
 export const metadata: Metadata = { title: "Terms of Service" };
 
@@ -36,13 +37,15 @@ const SECTIONS = [
   },
 ];
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const { logoUrl } = await getAppSettings();
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-[#fdfdfd]">
       <header className="flex h-12 shrink-0 items-center border-b border-black/8">
         <div className="mx-auto flex w-full max-w-[720px] items-center justify-between gap-4 px-4 sm:px-0">
           <Link href="/" className="flex min-w-0 items-center gap-2">
-            <AppLogo className="h-[18px] w-auto" />
+            <AppLogo className="h-[18px] w-auto" src={logoUrl} />
             <span className="truncate text-[13px] font-medium text-[#030303]">
               {appName}
             </span>

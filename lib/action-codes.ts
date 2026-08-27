@@ -35,6 +35,9 @@ export const ACTION_CODES = [
   "user.reactivated",
   "user.password.reset",
   "user.deleted",
+  // App-wide settings (admin panel)
+  "settings.logo.updated",
+  "settings.logo.removed",
 ] as const;
 
 export type ActionCode = (typeof ACTION_CODES)[number];

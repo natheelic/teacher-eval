@@ -1,4 +1,21 @@
-export function AppLogo({ className }: { className?: string }) {
+/**
+ * `src` comes from AppSettings.logoUrl (ROADMAP 6.1) — plain `<img>` rather
+ * than next/image since the file lives outside the build (written to
+ * public/uploads at runtime) with no known dimensions to configure ahead of
+ * time; same tradeoff TwoFactorSettings.tsx already made for its QR code.
+ */
+export function AppLogo({
+  className,
+  src,
+}: {
+  className?: string;
+  src?: string | null;
+}) {
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt="" className={`${className ?? ""} object-contain`} />;
+  }
+
   return (
     <svg
       viewBox="0 0 109 113"

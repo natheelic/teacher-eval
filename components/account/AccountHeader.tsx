@@ -7,11 +7,13 @@ import { MobileMenuButton } from "../layout/MobileMenuButton";
 import { FeedbackDialog } from "../dashboard/FeedbackDialog";
 import { requireUser } from "@/lib/auth/require-session";
 import { getPreferences } from "@/lib/queries/account";
+import { getAppSettings } from "@/lib/queries/settings";
 
 export async function AccountHeader() {
-  const [user, preferences] = await Promise.all([
+  const [user, preferences, { logoUrl }] = await Promise.all([
     requireUser(),
     getPreferences(),
+    getAppSettings(),
   ]);
 
   return (
@@ -20,7 +22,7 @@ export async function AccountHeader() {
         <div className="flex min-w-0 items-center gap-2">
           <MobileMenuButton />
           <Link href="/dashboard" className="hidden shrink-0 items-center justify-center sm:flex">
-            <AppLogo className="h-[18px] w-auto" />
+            <AppLogo className="h-[18px] w-auto" src={logoUrl} />
           </Link>
           <span className="truncate text-[13px] font-medium text-[#030303]">Account</span>
         </div>

@@ -37,6 +37,9 @@ yarn-error.log*
 # prisma generated client
 /lib/generated
 
+# runtime-uploaded files (ROADMAP 6.1) — not source, written by the app itself
+/public/uploads
+
 # vercel
 .vercel
 

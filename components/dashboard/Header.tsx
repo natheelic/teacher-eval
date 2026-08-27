@@ -7,15 +7,17 @@ import { SearchTrigger } from "../search/SearchTrigger";
 import { MobileMenuButton } from "../layout/MobileMenuButton";
 import { requireUser } from "@/lib/auth/require-session";
 import { getPreferences } from "@/lib/queries/account";
+import { getAppSettings } from "@/lib/queries/settings";
 import { ROLE_LABELS } from "@/lib/permissions";
 import { appName } from "@/lib/app-config";
 
 // Used by several pages, so it reads the session itself rather than having
-// every page thread the same props through. Both calls are cached per render.
+// every page thread the same props through. All calls are cached per render.
 export async function Header() {
-  const [user, preferences] = await Promise.all([
+  const [user, preferences, { logoUrl }] = await Promise.all([
     requireUser(),
     getPreferences(),
+    getAppSettings(),
   ]);
 
   return (
@@ -27,7 +29,7 @@ export async function Header() {
             href="/dashboard"
             className="hidden shrink-0 items-center justify-center lg:flex"
           >
-            <AppLogo className="h-[18px] w-auto" />
+            <AppLogo className="h-[18px] w-auto" src={logoUrl} />
           </Link>
 
           <div className="flex min-w-0 items-center gap-2 pl-1 lg:pl-2">
