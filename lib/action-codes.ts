@@ -38,6 +38,10 @@ export const ACTION_CODES = [
   // App-wide settings (admin panel)
   "settings.logo.updated",
   "settings.logo.removed",
+  "settings.app_name.updated",
+  "settings.email.updated",
+  "settings.email.cleared",
+  "settings.email.test_sent",
   "announcement.saved",
   "announcement.deactivated",
 ] as const;

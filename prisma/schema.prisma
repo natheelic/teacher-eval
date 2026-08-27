@@ -249,6 +249,31 @@ model AppSettings {
   /// Public path under /uploads, e.g. "/uploads/<id>.png". Null renders the
   /// built-in AppLogo SVG fallback.
   logoUrl   String?
+
+  /// Runtime override for the displayed product name (ROADMAP 7.1). Null falls
+  /// back to NEXT_PUBLIC_APP_NAME, resolved in lib/queries/settings.ts so no
+  /// call site ever handles the null. Note the TOTP issuer deliberately does
+  /// *not* follow this — see lib/auth/totp.ts.
+  appName   String?
+
+  /// SMTP configuration (ROADMAP 7.2), overriding the SMTP_* env vars when
+  /// set. All-or-nothing: host + port + from must ALL be present for the
+  /// database config to win over the .env triple — a mixed resolution would
+  /// send mail from the wrong address after a half-finished admin edit.
+  /// Resolved in lib/email-config.ts, never in lib/queries/settings.ts.
+  smtpHost  String?
+  smtpPort  Int?
+  smtpFrom  String?
+  smtpUser  String?
+
+  /// SECRET. AES-256-GCM via lib/secret-box.ts, key derived from AUTH_SECRET.
+  ///
+  /// getAppSettings() (lib/queries/settings.ts) is a deliberately
+  /// unauthenticated read — the landing page and sign-in layout render the
+  /// logo with no session. Its `select` must therefore never be widened to
+  /// include this column and must never become `select: undefined`.
+  smtpPassEncrypted String?
+
   updatedAt DateTime @updatedAt
 }
 
