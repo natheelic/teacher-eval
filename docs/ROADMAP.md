@@ -441,12 +441,23 @@ database query.
     already fails closed in that case, forcing `TwoFactorRequired` forever rather than crashing or
     silently skipping the check, but that still permanently locks out anyone enrolled). No
     encryption-key-rotation story exists anywhere in this app yet; out of scope here.
-- **5.10** **Fix the access-token dialog's stuck-closed state.** Found during 2.5 verification:
-  `AccessTokensTable.tsx`'s `showDialog = dialogOpen && !state.plaintext` never re-opens the
-  "Generate access token" dialog after the first successful mint in a session, because
-  `useActionState`'s `state.plaintext` only clears when the action runs again — which it can't,
-  because the dialog won't show to let it. A page reload is the only workaround today. Likely fix:
-  clear `state.plaintext` (or track "dialog was explicitly reopened") on the Cancel/dismiss path
+- **5.10** ✅ **Fixed the access-token dialog's stuck-closed state**, found during 2.5's
+  verification. `AccessTokensTable.tsx` now tracks the specific plaintext already
+  shown-and-dismissed (`dismissedToken`, a string, not a boolean) instead of checking
+  `!state.plaintext` — `showReveal = Boolean(state.plaintext) && state.plaintext !== dismissedToken`,
+  `showDialog = dialogOpen && !showReveal`. The old check could never go back to `true` on its own
+  because `useActionState`'s `state.plaintext` only updates on the next dispatch, and the dialog
+  wouldn't show to let that dispatch happen — comparing by value instead of by "has any reveal ever
+  happened" is what lets a *second* Generate flow open the dialog and show its own reveal panel.
+  This was already implemented and committed (bundled into `200fa3a`, alongside the `Authenticator`
+  removal) by the time this item came up for its own verification pass here — nothing left to build.
+  - **Verified live in Chrome against the dev server, in one continuous session (no reload):**
+    generated `test-token-1`, dismissed its reveal panel via the × button, clicked "Generate new
+    token" again and confirmed the dialog actually reopened (the exact failure this item names —
+    previously stuck closed for the rest of the session), generated `test-token-2`, and confirmed
+    it got its own distinct reveal panel with its own token value rather than reusing or hiding
+    behind the first. Revoked both test tokens afterward to leave the account's token list empty,
+    matching its state before this verification.
   rather than deriving visibility from stale action state.
 
 ---
