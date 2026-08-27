@@ -43,10 +43,16 @@ export async function saveAnnouncement(
   });
 
   if (active) {
-    await prisma.announcement.update({
-      where: { id: active.id },
-      data: { message: parsed.data },
-    });
+    await prisma.$transaction([
+      prisma.announcement.update({
+        where: { id: active.id },
+        data: { message: parsed.data },
+      }),
+      prisma.user.updateMany({
+        where: { dismissedAnnouncementId: active.id },
+        data: { dismissedAnnouncementId: null },
+      }),
+    ]);
   } else {
     await prisma.announcement.create({
       data: { message: parsed.data, active: true },
@@ -69,15 +75,11 @@ export async function saveAnnouncement(
 export async function deactivateAnnouncement(): Promise<AnnouncementActionState> {
   const user = await requireAdmin();
 
-  const active = await prisma.announcement.findFirst({
+  const { count } = await prisma.announcement.updateMany({
     where: { active: true },
-  });
-  if (!active) return { ok: true };
-
-  await prisma.announcement.update({
-    where: { id: active.id },
     data: { active: false },
   });
+  if (count === 0) return { ok: true };
 
   await logAudit({
     actorId: user.id,
@@ -97,13 +99,25 @@ export async function deactivateAnnouncement(): Promise<AnnouncementActionState>
  * unlike the two actions above, not admin-gated. Not audited: dismissing an
  * announcement isn't security-relevant, the same reasoning submitFeedback()
  * already uses to skip logAudit.
+ *
+ * The caller-supplied id is only used to no-op a stale dismiss (e.g. a
+ * banner the client had already rendered before someone else published a
+ * new one) — the id actually persisted is always resolved from the active
+ * row server-side, never trusted from the client.
  */
 export async function dismissAnnouncement(
   announcementId: string,
 ): Promise<void> {
   const user = await requireUser();
+
+  const active = await prisma.announcement.findFirst({
+    where: { active: true },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!active || active.id !== announcementId) return;
+
   await prisma.user.update({
     where: { id: user.id },
-    data: { dismissedAnnouncementId: announcementId },
+    data: { dismissedAnnouncementId: active.id },
   });
 }
