@@ -1,13 +1,18 @@
 import { Header } from "@/components/dashboard/Header";
 import { IconSidebar } from "@/components/dashboard/IconSidebar";
 import { LogoSettings } from "@/components/admin/LogoSettings";
+import { AnnouncementSettings } from "@/components/admin/AnnouncementSettings";
 import { FeedbackList } from "@/components/admin/FeedbackList";
 import { requireAdmin } from "@/lib/auth/require-session";
 import { getAppSettings } from "@/lib/queries/settings";
+import { getActiveAnnouncement } from "@/lib/queries/announcements";
 
 export default async function AdminPage() {
   await requireAdmin();
-  const { logoUrl } = await getAppSettings();
+  const [{ logoUrl }, announcement] = await Promise.all([
+    getAppSettings(),
+    getActiveAnnouncement(),
+  ]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
@@ -27,6 +32,7 @@ export default async function AdminPage() {
 
             <div className="flex w-full flex-col gap-16">
               <LogoSettings currentLogoUrl={logoUrl} />
+              <AnnouncementSettings current={announcement} />
               <FeedbackList />
             </div>
           </div>

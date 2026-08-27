@@ -652,9 +652,33 @@ deleted with the old multi-tenancy layer. `UserPreferences` now has only `theme`
 - **FR-90** — A signed-in user shall be able to submit free-text feedback (1–2000 characters)
   from any page, via the Feedback control in the account header. It is stored in a dedicated
   `Feedback` row (`userId`, `message`, `createdAt`); `userId` is `SetNull` on account deletion, so
-  the row survives. **[NOT IMPLEMENTED]**: there is no admin-facing view of submitted feedback —
-  intentional for now, to avoid building a second admin surface before `docs/ROADMAP.md` Phase 6
-  establishes one. Not written to `AuditLog`; it isn't a security-relevant action.
+  the row survives. Not written to `AuditLog`; it isn't a security-relevant action. Viewable
+  (read-only, most recent first, capped at 100 rows) by admins at `/admin` (FR-91/FR-92's panel).
+
+#### FR-9x — Admin panel
+
+*`docs/ROADMAP.md` Phase 6. `ADMIN`-only via `requireAdmin()` in `lib/auth/require-session.ts`
+(stricter than `requireUserManager()` — a manager is redirected to `/dashboard`, not shown the
+page or `/account/preferences`).*
+
+- **FR-91** — An `ADMIN` shall be able to upload a PNG, JPEG, or WebP image (≤2MB) at `/admin` to
+  replace the built-in logo shown across the app; removing it restores the default. Stored on
+  disk under `public/uploads` (`lib/logo-storage.ts`) with the resulting path in a singleton
+  `AppSettings.logoUrl` row, read by every page that renders `AppLogo`. `image/svg+xml` is
+  rejected — an SVG served from the app's own origin executes embedded script if a browser is
+  ever pointed at the file directly, unlike an `<img src>` reference.
+  *Deployment note:* this assumes the same long-lived Node server `/docs` already assumes reading
+  a file off disk at request time (A-3 territory) — it does not survive a serverless target with
+  no durable local disk.
+- **FR-92** — An `ADMIN` shall be able to publish, edit, or deactivate a single announcement
+  message, shown to every signed-in user (via `Header`/`AccountHeader`) until they individually
+  dismiss it. At most one `Announcement` row is `active` at a time; deactivating clears it for
+  every user immediately, regardless of who has or hasn't dismissed it. A user's dismissal is a
+  single `User.dismissedAnnouncementId` pointer to the announcement they last dismissed, not a
+  growing list — sufficient because there is no "reactivate," so a user only ever needs to know
+  whether they've dismissed *the current* one. Not written to `AuditLog` on dismissal (not
+  security-relevant, same reasoning as FR-90); publishing/editing and deactivating are audited
+  under `announcement.saved` and `announcement.deactivated` respectively.
 
 ---
 
@@ -837,7 +861,9 @@ required entry is missing or malformed.
 | FR-80 – FR-82, FR-85 | `lib/audit.ts` + call sites |
 | FR-83 – FR-84a, FR-86 | `lib/queries/audit.ts`, `lib/action-codes.ts`, `components/account/{AuditLogFilters,AuditLogRow}.tsx` |
 | FR-87 | `app/account/audit-logs/export/route.ts`, `lib/csv.ts` |
-| FR-90 | `lib/actions/feedback.ts`, `components/dashboard/FeedbackDialog.tsx` |
+| FR-90 | `lib/actions/feedback.ts`, `components/dashboard/FeedbackDialog.tsx`, `lib/queries/feedback.ts`, `components/admin/FeedbackList.tsx` |
+| FR-91 | `lib/logo-storage.ts`, `lib/queries/settings.ts`, `lib/actions/settings.ts`, `components/admin/LogoSettings.tsx`, `components/dashboard/AppLogo.tsx` |
+| FR-92 | `lib/actions/announcements.ts`, `lib/queries/announcements.ts`, `components/admin/AnnouncementSettings.tsx`, `components/dashboard/AnnouncementBanner.tsx` |
 | NFR-30 – NFR-32 | `lib/env.ts`, `lib/app-config.ts` |
 | DR-01 – DR-04 | `prisma/schema.prisma` |
 | DR-05 | `docs/ROADMAP.md` (4.5) — documented, not enforced |

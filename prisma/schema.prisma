@@ -46,6 +46,13 @@ model User {
 
   lastLoginAt DateTime?
 
+  /// The one announcement (ROADMAP 6.3) this user has dismissed. A single
+  /// pointer, not a join table or growing array: only one announcement is
+  /// ever active at a time and there is no "reactivate", so a user only ever
+  /// needs to know whether they've dismissed *the current* one.
+  dismissedAnnouncementId String?
+  dismissedAnnouncement   Announcement? @relation(fields: [dismissedAnnouncementId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -256,4 +263,21 @@ model Feedback {
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([createdAt(sort: Desc)])
+}
+
+/// Admin-authored message shown to signed-in users until they dismiss it
+/// (ROADMAP 6.3) — what NoticeBanner (deleted in 1.7) attempted without this
+/// infrastructure. At most one row is `active` at a time, enforced in
+/// lib/actions/announcements.ts rather than a DB constraint: `saveAnnouncement()`
+/// edits the active row in place if one exists, otherwise creates one.
+model Announcement {
+  id        String   @id @default(cuid())
+  message   String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dismissedBy User[]
+
+  @@index([active])
 }

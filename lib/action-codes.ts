@@ -38,6 +38,8 @@ export const ACTION_CODES = [
   // App-wide settings (admin panel)
   "settings.logo.updated",
   "settings.logo.removed",
+  "announcement.saved",
+  "announcement.deactivated",
 ] as const;
 
 export type ActionCode = (typeof ACTION_CODES)[number];

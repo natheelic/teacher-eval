@@ -552,14 +552,48 @@ feature asks for it first.
     Postgres via `psql`, then signed in as `ADMIN` and confirmed `/admin` rendered that exact
     submitter name and message text, with no changes needed to `FeedbackDialog.tsx` or
     `submitFeedback()` — the write side was already correct from before this item existed.
-- **6.3 — Admin-authored announcements.** The old `NoticeBanner` (deleted in 1.7) was really this
-  feature attempted without the infrastructure it needs: an `ADMIN`-authored message shown to
-  users until they dismiss it, not a hardcoded client component. Needs a Prisma model (message,
-  active flag, created/updated timestamps — a `Dismissal` join table or a
-  `dismissedAnnouncementIds` column on `User` so "dismissed" actually persists instead of
-  resetting on every navigation like the old banner did), a create/edit/deactivate Server Action
-  reachable from the same admin route as 6.1/6.2, and a read-side query gating which page shells
-  render it. Build after 6.1 exists rather than standing up a separate admin surface for it.
+- **6.3** ✅ **Admin-authored announcements.** A third section on `/admin`, below Branding and
+  Feedback: `components/admin/AnnouncementSettings.tsx` lets an admin publish, edit, or deactivate
+  a single message shown to every signed-in user until they dismiss it — what the old
+  `NoticeBanner` (deleted in 1.7) attempted without any of this infrastructure.
+  - **New `Announcement` model, plus a single `User.dismissedAnnouncementId` pointer** —
+    deliberately not the `Dismissal` join table the roadmap floated as one option: only one
+    announcement is ever `active` at a time and there is no "reactivate" action, so a user only
+    ever needs to know whether they've dismissed *the current* one, not a growing history of ids.
+    A real FK (`onDelete: SetNull`), not a denormalised string, since there's no need for the
+    pointer to survive the announcement's own deletion the way `AuditLog.targetLabel` needs to
+    survive a user's.
+  - **"Create" and "edit" collapsed into one `saveAnnouncement()` action** (and one audit action
+    code, `announcement.saved`) rather than two — it edits the currently active row in place if
+    one exists, else creates one, the same shape `changePassword()` already uses for "set" vs.
+    "change" under a single `account.password.changed` code, varying only the human-readable
+    action text. `deactivateAnnouncement()` is separate, and the row is deactivated, not deleted,
+    so history survives. Publishing a new announcement does **not** re-show it to users who
+    already dismissed the previous one under the same id if only the text was edited — editing is
+    a correction, not automatically a re-notification; a genuinely new announcement is a separate
+    `create`, which naturally gets a new id every dismissed user hasn't seen yet.
+  - **Rendered from `Header`/`AccountHeader` themselves**, not threaded into each page file
+    individually — precisely the mistake the old `NoticeBanner` made (rendered on 7 separate
+    pages, per CLAUDE.md), and the same lesson already applied when the logo and dismissal-aware
+    banner both needed to reach every signed-in page. `getVisibleAnnouncement(userId)`
+    (`lib/queries/announcements.ts`) is what each header actually calls — returns `null` once
+    already dismissed or when nothing is active, keeping the "should I render a banner" decision
+    entirely server-side.
+  - **Dismissal is not audited** — not security-relevant, same reasoning `submitFeedback()` already
+    documents for skipping `logAudit`. Optimistic on the client (hides immediately, fire-and-forget
+    to the server), the same UX the old `NoticeBanner`'s dismiss already had, now actually backed
+    by persistence instead of resetting on the next navigation.
+  - **Verified end-to-end in Chrome against the dev DB:** published a real announcement as
+    `ADMIN` — banner appeared immediately (no reload) on both `/admin` (`Header`) and
+    `/account/preferences` (`AccountHeader`); dismissed it as that admin, confirmed via `psql` that
+    only that one user's `dismissedAnnouncementId` was set and the row otherwise untouched,
+    confirmed the banner stayed gone across a fresh navigation (not just component state); signed
+    in as a different, `MANAGER` account who had never dismissed it and confirmed they still saw
+    it; deactivated it as `ADMIN` and confirmed it disappeared for that `MANAGER` too, despite them
+    never having dismissed it — proving deactivation clears it for everyone, not just the acting
+    admin. Confirmed both `announcement.saved` and `announcement.deactivated` audit rows recorded
+    with the right distinct action text ("Created an announcement" / "Deactivated the
+    announcement").
 
 ---
 
