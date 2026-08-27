@@ -15,10 +15,10 @@ export default async function DocsPage() {
   const content = await readFile(filePath, "utf8");
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-white">
+    <div className="flex min-h-screen w-full flex-col bg-surface">
       <AccountHeader />
       <main className="flex flex-1 justify-center overflow-x-auto px-4 pb-24 pt-12 sm:px-10">
-        <article className="prose prose-sm w-full max-w-[768px] prose-headings:font-display prose-headings:font-semibold prose-headings:text-[#030303] prose-p:text-[#464646] prose-a:text-[#030303]">
+        <article className="prose prose-sm w-full max-w-[768px] prose-headings:font-display prose-headings:font-semibold prose-headings:text-foreground prose-p:text-foreground-secondary prose-a:text-foreground">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         </article>
       </main>

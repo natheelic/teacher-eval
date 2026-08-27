@@ -32,10 +32,10 @@ export default async function VerifyEmailPage({
             : "This verification link is invalid or has expired. You can request a new one from your account preferences."
         }
       />
-      <p className="text-center text-[13px] font-medium text-[#696969]">
+      <p className="text-center text-[13px] font-medium text-foreground-muted">
         <Link
           href={DEFAULT_SIGNED_IN_PATH}
-          className="text-[#030303] hover:underline"
+          className="text-foreground hover:underline"
         >
           Continue to dashboard
         </Link>

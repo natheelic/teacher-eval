@@ -24,16 +24,16 @@ export type UsersTableProps = {
 };
 
 const STATUS_STYLES: Record<UserStatus, string> = {
-  ACTIVE: "border-[#16b674] bg-[#3fcf8e]/10 text-[#097c4f]",
-  INVITED: "border-[#f3ba63] bg-[#ca8a10]/10 text-[#dc7b18]",
-  SUSPENDED: "border-[#ab413e]/40 bg-[#ab413e]/10 text-[#ab413e]",
+  ACTIVE: "border-success bg-success/10 text-success-strong",
+  INVITED: "border-pending bg-pending/10 text-pending-strong",
+  SUSPENDED: "border-danger/40 bg-danger/10 text-danger",
 };
 
 const ROLE_STYLES: Record<Role, string> = {
-  ADMIN: "border-[#030303]/20 bg-black/5 text-[#030303]",
-  MANAGER: "border-black/15 bg-white text-[#464646]",
-  MEMBER: "border-black/15 bg-white text-[#464646]",
-  VIEWER: "border-black/10 bg-white text-[#696969]",
+  ADMIN: "border-foreground/20 bg-hover text-foreground",
+  MANAGER: "border-border-strong bg-surface text-foreground-secondary",
+  MEMBER: "border-border-strong bg-surface text-foreground-secondary",
+  VIEWER: "border-border-strong bg-surface text-foreground-muted",
 };
 
 /**
@@ -67,24 +67,24 @@ export async function UsersTable({ searchParams }: UsersTableProps) {
         total={total}
       />
 
-      <div className="w-full overflow-x-auto rounded-md border border-black/8">
+      <div className="w-full overflow-x-auto rounded-md border border-border">
         <table className="w-full min-w-[860px] border-collapse text-left">
           <thead>
-            <tr className="bg-black/[0.03]">
+            <tr className="bg-hover">
               <Th>User</Th>
               <Th>Role</Th>
               <Th>Status</Th>
               <Th>Last sign-in</Th>
               <Th>Created</Th>
-              <th className="border-b border-black/8 px-4 py-3" />
+              <th className="border-b border-border px-4 py-3" />
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
-              <tr className="bg-white">
+              <tr className="bg-surface">
                 <td
                   colSpan={6}
-                  className="px-4 py-10 text-center text-[13px] font-medium text-[#696969]"
+                  className="px-4 py-10 text-center text-[13px] font-medium text-foreground-muted"
                 >
                   No users match these filters.
                 </td>
@@ -92,11 +92,11 @@ export async function UsersTable({ searchParams }: UsersTableProps) {
             )}
             {rows.map((row, i) => {
               const border =
-                i === rows.length - 1 ? "" : "border-b border-black/8";
+                i === rows.length - 1 ? "" : "border-b border-border";
               const actionable = canActOnUser(viewer, row);
 
               return (
-                <tr key={row.id} className="bg-white">
+                <tr key={row.id} className="bg-surface">
                   <td className={`${border} px-4 py-3 align-middle`}>
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="flex size-[30px] shrink-0 items-center justify-center rounded-md bg-[#030303] text-[13px] font-medium text-white">
@@ -104,20 +104,20 @@ export async function UsersTable({ searchParams }: UsersTableProps) {
                       </span>
                       <div className="flex min-w-0 flex-col">
                         <span className="flex items-center gap-2">
-                          <span className="truncate text-[13px] font-medium text-[#030303]">
+                          <span className="truncate text-[13px] font-medium text-foreground">
                             {row.name?.trim() || row.username || "—"}
                           </span>
                           {row.isYou && (
-                            <span className="flex shrink-0 items-center rounded-full border border-black/15 bg-white px-[5.5px] py-[3px] text-[9px] font-medium uppercase tracking-[0.63px] text-[#464646]">
+                            <span className="flex shrink-0 items-center rounded-full border border-border-strong bg-surface px-[5.5px] py-[3px] text-[9px] font-medium uppercase tracking-[0.63px] text-foreground-secondary">
                               You
                             </span>
                           )}
                         </span>
-                        <span className="truncate text-[13px] font-medium text-[#696969]">
+                        <span className="truncate text-[13px] font-medium text-foreground-muted">
                           {row.email}
                         </span>
                         {row.deletionDeadline && (
-                          <span className="truncate text-[13px] font-medium text-[#ab413e]">
+                          <span className="truncate text-[13px] font-medium text-danger">
                             Deletion requested · deletes{" "}
                             <RelativeTime iso={row.deletionDeadline} />
                           </span>
@@ -136,7 +136,7 @@ export async function UsersTable({ searchParams }: UsersTableProps) {
                     </Badge>
                   </td>
                   <td
-                    className={`${border} px-4 py-3 align-middle text-[13px] text-[#6f6f6f]`}
+                    className={`${border} px-4 py-3 align-middle text-[13px] text-foreground-muted`}
                   >
                     {row.lastLoginAt ? (
                       <RelativeTime iso={row.lastLoginAt} />
@@ -145,7 +145,7 @@ export async function UsersTable({ searchParams }: UsersTableProps) {
                     )}
                   </td>
                   <td
-                    className={`${border} px-4 py-3 align-middle text-[13px] text-[#6f6f6f]`}
+                    className={`${border} px-4 py-3 align-middle text-[13px] text-foreground-muted`}
                   >
                     {formatDate(row.createdAt)}
                   </td>
@@ -163,7 +163,7 @@ export async function UsersTable({ searchParams }: UsersTableProps) {
                         canDelete={canDeleteUsers(viewer.role)}
                       />
                     ) : (
-                      <span className="text-xs font-medium text-[#a0a0a0]">
+                      <span className="text-xs font-medium text-foreground-disabled">
                         {row.isYou ? "—" : "No access"}
                       </span>
                     )}
@@ -179,7 +179,7 @@ export async function UsersTable({ searchParams }: UsersTableProps) {
         <div className="flex w-full justify-center pt-4">
           <Link
             href={buildHref({ ...searchParams, cursor: nextCursor })}
-            className="flex h-[26px] items-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 text-xs font-medium text-[#030303] hover:bg-black/4"
+            className="flex h-[26px] items-center rounded-md border border-border-strong bg-background px-2.5 text-xs font-medium text-foreground hover:bg-hover"
           >
             Load more
           </Link>
@@ -191,7 +191,7 @@ export async function UsersTable({ searchParams }: UsersTableProps) {
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="border-b border-black/8 px-4 py-3 text-[13px] font-medium text-[#464646]">
+    <th className="border-b border-border px-4 py-3 text-[13px] font-medium text-foreground-secondary">
       {children}
     </th>
   );
@@ -216,10 +216,10 @@ function Badge({
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex flex-col">
-      <span className="font-mono text-xs uppercase tracking-[0.6px] text-[#696969]">
+      <span className="font-mono text-xs uppercase tracking-[0.6px] text-foreground-muted">
         {label}
       </span>
-      <span className="font-display text-lg font-semibold text-[#030303]">
+      <span className="font-display text-lg font-semibold text-foreground">
         {value}
       </span>
     </div>

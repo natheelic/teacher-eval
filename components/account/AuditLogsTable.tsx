@@ -34,17 +34,17 @@ export async function AuditLogsTable({ searchParams }: AuditLogsTableProps) {
         total={total}
       />
 
-      <div className="w-full overflow-x-auto rounded-md border border-black/8">
+      <div className="w-full overflow-x-auto rounded-md border border-border">
         <table className="w-full min-w-[640px] border-collapse text-left">
           <thead>
-            <tr className="bg-black/[0.03]">
-              <th className="border-b border-black/8 px-4 py-3 text-[13px] font-medium text-[#464646]">
+            <tr className="bg-hover">
+              <th className="border-b border-border px-4 py-3 text-[13px] font-medium text-foreground-secondary">
                 Action
               </th>
-              <th className="border-b border-black/8 px-4 py-3 text-[13px] font-medium text-[#464646]">
+              <th className="border-b border-border px-4 py-3 text-[13px] font-medium text-foreground-secondary">
                 {canSeeAll && filters.scope === "all" ? "Actor" : "Target"}
               </th>
-              <th className="border-b border-black/8 px-4 py-3 text-[13px] font-medium text-[#464646]">
+              <th className="border-b border-border px-4 py-3 text-[13px] font-medium text-foreground-secondary">
                 <span className="inline-flex items-center gap-2">
                   Date
                   <ArrowDown className="size-3.5" />
@@ -54,10 +54,10 @@ export async function AuditLogsTable({ searchParams }: AuditLogsTableProps) {
           </thead>
           <tbody>
             {rows.length === 0 && (
-              <tr className="bg-white">
+              <tr className="bg-surface">
                 <td
                   colSpan={3}
-                  className="px-4 py-8 text-center text-[13px] font-medium text-[#696969]"
+                  className="px-4 py-8 text-center text-[13px] font-medium text-foreground-muted"
                 >
                   No activity in this period.
                 </td>
@@ -81,7 +81,7 @@ export async function AuditLogsTable({ searchParams }: AuditLogsTableProps) {
         <div className="flex w-full justify-center pt-4">
           <Link
             href={buildHref({ ...searchParams, cursor: nextCursor })}
-            className="flex h-[26px] items-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 text-xs font-medium text-[#030303] hover:bg-black/4"
+            className="flex h-[26px] items-center rounded-md border border-border-strong bg-background px-2.5 text-xs font-medium text-foreground hover:bg-hover"
           >
             Load older
           </Link>

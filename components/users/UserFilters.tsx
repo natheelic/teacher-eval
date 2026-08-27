@@ -10,7 +10,7 @@ const ROLES: Role[] = ["ADMIN", "MANAGER", "MEMBER", "VIEWER"];
 const STATUSES: UserStatus[] = ["ACTIVE", "INVITED", "SUSPENDED"];
 
 const controlClass =
-  "h-[26px] rounded-md border border-black/15 bg-[#fdfdfd] px-2 text-xs font-medium text-[#030303] outline-none hover:bg-black/4 disabled:opacity-50";
+  "h-[26px] rounded-md border border-border-strong bg-background px-2 text-xs font-medium text-foreground outline-none hover:bg-hover disabled:opacity-50";
 
 export function UserFilters({
   query,
@@ -53,7 +53,7 @@ export function UserFilters({
     >
       <div className="flex flex-wrap items-center gap-2">
         <span className="relative">
-          <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-[#696969]" />
+          <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-foreground-muted" />
           {/* Uncontrolled with a key: no mirrored state to keep in sync, and
               changing the URL (back button, Clear filters) remounts it with
               the new value. */}
@@ -97,8 +97,8 @@ export function UserFilters({
           ))}
         </select>
 
-        <span className="mx-2 h-5 w-px bg-black/15" />
-        <span className="text-xs font-medium text-[#464646]">
+        <span className="mx-2 h-5 w-px bg-hover" />
+        <span className="text-xs font-medium text-foreground-secondary">
           {total} {total === 1 ? "user" : "users"}
         </span>
       </div>

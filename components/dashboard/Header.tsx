@@ -25,7 +25,7 @@ export async function Header() {
 
   return (
     <>
-      <header className="flex h-12 items-center border-b border-black/8">
+      <header className="flex h-12 items-center border-b border-border">
         <div className="flex min-w-0 flex-1 h-[47px] items-center justify-between gap-2 pl-2 pr-3 sm:pl-4">
           <div className="flex min-w-0 items-center gap-2">
             <MobileMenuButton />
@@ -37,10 +37,10 @@ export async function Header() {
             </Link>
 
             <div className="flex min-w-0 items-center gap-2 pl-1 lg:pl-2">
-              <span className="truncate text-[13px] font-medium text-[#030303]">
+              <span className="truncate text-[13px] font-medium text-foreground">
                 {appName}
               </span>
-              <span className="flex shrink-0 items-center rounded-full border border-black/15 bg-white px-[5.5px] py-[3px] text-[9px] font-medium uppercase tracking-[0.63px] text-[#464646]">
+              <span className="flex shrink-0 items-center rounded-full border border-border-strong bg-surface px-[5.5px] py-[3px] text-[9px] font-medium uppercase tracking-[0.63px] text-foreground-secondary">
                 {ROLE_LABELS[user.role]}
               </span>
             </div>
@@ -52,9 +52,9 @@ export async function Header() {
               <SearchTrigger />
               <Link
                 href="/docs"
-                className="hidden size-8 items-center justify-center rounded-full border border-black/15 hover:bg-black/4 lg:flex"
+                className="hidden size-8 items-center justify-center rounded-full border border-border-strong hover:bg-hover lg:flex"
               >
-                <Book className="size-4 text-[#464646]" />
+                <Book className="size-4 text-foreground-secondary" />
               </Link>
             </div>
             <AccountMenu

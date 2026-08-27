@@ -17,12 +17,12 @@ export function ForgotPasswordForm() {
   if (state.ok) {
     return (
       <div className="flex w-full flex-col gap-4">
-        <p className="text-[13px] font-medium text-[#464646]">
+        <p className="text-[13px] font-medium text-foreground-secondary">
           If an account exists for that email, we&apos;ve sent a link to
           reset the password. The link expires in 1 hour.
         </p>
-        <p className="text-center text-[13px] font-medium text-[#696969]">
-          <Link href="/signin" className="text-[#030303] hover:underline">
+        <p className="text-center text-[13px] font-medium text-foreground-muted">
+          <Link href="/signin" className="text-foreground hover:underline">
             Back to sign in
           </Link>
         </p>
@@ -47,8 +47,8 @@ export function ForgotPasswordForm() {
         {pending ? "Sending..." : "Send reset link"}
       </SubmitButton>
 
-      <p className="text-center text-[13px] font-medium text-[#696969]">
-        <Link href="/signin" className="text-[#030303] hover:underline">
+      <p className="text-center text-[13px] font-medium text-foreground-muted">
+        <Link href="/signin" className="text-foreground hover:underline">
           Back to sign in
         </Link>
       </p>

@@ -26,7 +26,7 @@ export function Connections({
           <div
             key={connection.provider}
             className={`flex w-full flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between ${
-              i < connections.length - 1 ? "border-b border-black/8" : ""
+              i < connections.length - 1 ? "border-b border-border" : ""
             }`}
           >
             <div className="flex min-w-0 items-center gap-4">
@@ -35,16 +35,16 @@ export function Connections({
               </span>
               <div className="flex min-w-0 flex-col items-start">
                 <div className="flex items-center gap-2">
-                  <p className="text-[13px] font-medium text-[#030303]">
+                  <p className="text-[13px] font-medium text-foreground">
                     {connection.providerLabel}
                   </p>
                   {connection.connected && (
-                    <span className="flex items-center rounded-full border border-[#16b674] bg-[#3fcf8e]/10 px-[5.5px] py-[3px] text-[9px] font-medium uppercase tracking-[0.63px] text-[#097c4f]">
+                    <span className="flex items-center rounded-full border border-success bg-success/10 px-[5.5px] py-[3px] text-[9px] font-medium uppercase tracking-[0.63px] text-success-strong">
                       Connected
                     </span>
                   )}
                 </div>
-                <p className="text-[13px] font-medium text-[#696969]">
+                <p className="text-[13px] font-medium text-foreground-muted">
                   {connection.accountLabel ??
                     DESCRIPTIONS[connection.provider] ??
                     "Not connected"}

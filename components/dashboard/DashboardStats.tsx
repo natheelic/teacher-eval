@@ -22,12 +22,12 @@ export async function DashboardStats() {
         <Link
           key={card.key}
           href={card.href}
-          className="flex flex-col gap-1 rounded-lg border border-black/8 bg-white p-4 hover:border-black/15"
+          className="flex flex-col gap-1 rounded-lg border border-border bg-surface p-4 hover:border-border-strong"
         >
-          <span className="font-mono text-xs uppercase tracking-[0.6px] text-[#696969]">
+          <span className="font-mono text-xs uppercase tracking-[0.6px] text-foreground-muted">
             {card.label}
           </span>
-          <span className="font-display text-2xl font-semibold text-[#030303]">
+          <span className="font-display text-2xl font-semibold text-foreground">
             {stats[card.key]}
           </span>
         </Link>

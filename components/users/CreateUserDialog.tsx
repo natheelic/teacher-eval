@@ -10,7 +10,7 @@ import type { Role } from "@/lib/generated/prisma/enums";
 const initialState: ActionState = {};
 
 const inputClass =
-  "h-[34px] w-full rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30";
+  "h-[34px] w-full rounded-md border border-border-strong bg-hover px-3 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis";
 
 export function CreateUserDialog({
   assignableRoles,
@@ -42,25 +42,25 @@ export function CreateUserDialog({
           role="dialog"
           aria-modal="true"
           aria-label="Invite user"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setOpen(false);
           }}
         >
           <form
             action={formAction}
-            className="flex w-full max-w-[420px] flex-col gap-4 rounded-lg border border-black/8 bg-white p-6 text-left shadow-lg"
+            className="flex w-full max-w-[420px] flex-col gap-4 rounded-lg border border-border bg-surface p-6 text-left shadow-lg"
           >
-            <h2 className="font-display text-lg font-semibold text-[#030303]">
+            <h2 className="font-display text-lg font-semibold text-foreground">
               Invite user
             </h2>
-            <p className="text-[13px] font-medium text-[#696969]">
+            <p className="text-[13px] font-medium text-foreground-muted">
               They&apos;ll receive an email with a link to set their own
               password and activate the account.
             </p>
 
             {state.error && (
-              <p className="text-xs font-medium text-[#ab413e]">
+              <p className="text-xs font-medium text-danger">
                 {state.error}
               </p>
             )}
@@ -88,7 +88,7 @@ export function CreateUserDialog({
             />
 
             <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium text-[#030303]">
+              <span className="text-[13px] font-medium text-foreground">
                 Role
               </span>
               <select
@@ -107,7 +107,7 @@ export function CreateUserDialog({
                 ))}
               </select>
               {state.fieldErrors?.role && (
-                <span className="text-xs font-medium text-[#ab413e]">
+                <span className="text-xs font-medium text-danger">
                   {state.fieldErrors.role}
                 </span>
               )}
@@ -117,7 +117,7 @@ export function CreateUserDialog({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="flex h-[26px] items-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 text-xs font-medium text-[#030303] hover:bg-black/4"
+                className="flex h-[26px] items-center rounded-md border border-border-strong bg-background px-2.5 text-xs font-medium text-foreground hover:bg-hover"
               >
                 Cancel
               </button>
@@ -153,7 +153,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-1 flex-col gap-1.5">
-      <span className="text-[13px] font-medium text-[#030303]">{label}</span>
+      <span className="text-[13px] font-medium text-foreground">{label}</span>
       <input
         name={name}
         type={type}
@@ -161,7 +161,7 @@ function Field({
         autoFocus={autoFocus}
         className={inputClass}
       />
-      {error && <span className="text-xs font-medium text-[#ab413e]">{error}</span>}
+      {error && <span className="text-xs font-medium text-danger">{error}</span>}
     </label>
   );
 }

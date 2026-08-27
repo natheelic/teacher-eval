@@ -36,11 +36,11 @@ export function CopyButton({
       type="button"
       onClick={handleCopy}
       aria-label={`${label} ${value}`}
-      className="flex h-[26px] items-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4"
+      className="flex h-[26px] items-center gap-2 rounded-md border border-border-strong bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-hover"
     >
       {copied ? "Copied" : label}
       {copied ? (
-        <Check className="size-3.5 text-[#16b674]" />
+        <Check className="size-3.5 text-success" />
       ) : (
         <Copy className="size-3.5" />
       )}

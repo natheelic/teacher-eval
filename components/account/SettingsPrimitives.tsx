@@ -7,17 +7,17 @@ export function SectionHeading({
 }) {
   return (
     <div className="flex w-full flex-col gap-1">
-      <h2 className="font-display text-lg font-semibold text-[#030303]">
+      <h2 className="font-display text-lg font-semibold text-foreground">
         {title}
       </h2>
-      <p className="text-[13px] font-medium text-[#464646]">{description}</p>
+      <p className="text-[13px] font-medium text-foreground-secondary">{description}</p>
     </div>
   );
 }
 
 export function SettingsCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex w-full max-w-[688px] flex-col items-start overflow-hidden rounded-lg border border-black/8 bg-white shadow-sm">
+    <div className="flex w-full max-w-[688px] flex-col items-start overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
       {children}
     </div>
   );
@@ -37,13 +37,13 @@ export function SettingsRow({
   return (
     <div
       className={`flex w-full flex-col items-start gap-3 p-4 sm:flex-row sm:items-start sm:gap-6 ${
-        bordered ? "border-b border-black/8" : ""
+        bordered ? "border-b border-border" : ""
       }`}
     >
       <div className="flex min-w-0 flex-1 flex-col items-start sm:flex-[368]">
-        <p className="text-[13px] font-medium text-[#030303]">{label}</p>
+        <p className="text-[13px] font-medium text-foreground">{label}</p>
         {description && (
-          <p className="text-[13px] font-medium text-[#696969]">
+          <p className="text-[13px] font-medium text-foreground-muted">
             {description}
           </p>
         )}

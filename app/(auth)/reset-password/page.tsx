@@ -19,10 +19,10 @@ export default async function ResetPasswordPage({
           title="Invalid reset link"
           description="This link is missing its token. Check the URL, or request a new one."
         />
-        <p className="text-center text-[13px] font-medium text-[#696969]">
+        <p className="text-center text-[13px] font-medium text-foreground-muted">
           <Link
             href="/forgot-password"
-            className="text-[#030303] hover:underline"
+            className="text-foreground hover:underline"
           >
             Request a new link
           </Link>

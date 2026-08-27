@@ -41,12 +41,12 @@ export default async function TermsPage() {
   const { logoUrl } = await getAppSettings();
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-[#fdfdfd]">
-      <header className="flex h-12 shrink-0 items-center border-b border-black/8">
+    <div className="flex min-h-screen w-full flex-col bg-background">
+      <header className="flex h-12 shrink-0 items-center border-b border-border">
         <div className="mx-auto flex w-full max-w-[720px] items-center justify-between gap-4 px-4 sm:px-0">
           <Link href="/" className="flex min-w-0 items-center gap-2">
             <AppLogo className="h-[18px] w-auto" src={logoUrl} />
-            <span className="truncate text-[13px] font-medium text-[#030303]">
+            <span className="truncate text-[13px] font-medium text-foreground">
               {appName}
             </span>
           </Link>
@@ -56,10 +56,10 @@ export default async function TermsPage() {
       <main className="flex-1">
         <div className="mx-auto flex w-full max-w-[720px] flex-col gap-8 px-4 py-16 sm:px-0">
           <div className="flex flex-col gap-2">
-            <h1 className="font-display text-[28px] font-semibold tracking-[-0.7px] text-[#030303]">
+            <h1 className="font-display text-[28px] font-semibold tracking-[-0.7px] text-foreground">
               Terms of Service
             </h1>
-            <p className="text-[13px] font-medium text-[#ab413e]">
+            <p className="text-[13px] font-medium text-danger">
               Placeholder text — this page has not been reviewed by a lawyer
               and should not be treated as a real legal agreement until it
               has been.
@@ -69,10 +69,10 @@ export default async function TermsPage() {
           <div className="flex flex-col gap-8">
             {SECTIONS.map((section) => (
               <div key={section.title} className="flex flex-col gap-2">
-                <h2 className="font-display text-[17px] font-semibold text-[#030303]">
+                <h2 className="font-display text-[17px] font-semibold text-foreground">
                   {section.title}
                 </h2>
-                <p className="text-[14px] font-medium leading-relaxed text-[#464646]">
+                <p className="text-[14px] font-medium leading-relaxed text-foreground-secondary">
                   {section.body}
                 </p>
               </div>

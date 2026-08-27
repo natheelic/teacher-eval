@@ -10,7 +10,7 @@ import type { ActionState } from "@/lib/actions/profile";
 const initialState: ActionState = {};
 
 const inputClass =
-  "h-[34px] w-full rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30";
+  "h-[34px] w-full rounded-md border border-border-strong bg-hover px-3 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis";
 
 export function AccountDeletionButton({
   requested,
@@ -34,16 +34,16 @@ export function AccountDeletionButton({
           role="dialog"
           aria-modal="true"
           aria-label="Cancel deletion request"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setCancelConfirming(false);
           }}
         >
-          <div className="flex w-full max-w-[400px] flex-col gap-4 rounded-lg border border-black/8 bg-white p-6 shadow-lg">
-            <h2 className="font-display text-lg font-semibold text-[#030303]">
+          <div className="flex w-full max-w-[400px] flex-col gap-4 rounded-lg border border-border bg-surface p-6 shadow-lg">
+            <h2 className="font-display text-lg font-semibold text-foreground">
               Cancel deletion request
             </h2>
-            <p className="text-[13px] font-medium text-[#464646]">
+            <p className="text-[13px] font-medium text-foreground-secondary">
               Your account will stay scheduled for deletion until you confirm
               this. Cancelling stops the countdown — your data was never
               touched either way.
@@ -53,7 +53,7 @@ export function AccountDeletionButton({
               <button
                 type="button"
                 onClick={() => setCancelConfirming(false)}
-                className="flex h-[26px] items-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 text-xs font-medium text-[#030303] hover:bg-black/4"
+                className="flex h-[26px] items-center rounded-md border border-border-strong bg-background px-2.5 text-xs font-medium text-foreground hover:bg-hover"
               >
                 Keep deletion scheduled
               </button>
@@ -80,7 +80,7 @@ export function AccountDeletionButton({
       <button
         type="button"
         onClick={() => setCancelConfirming(true)}
-        className="flex h-[26px] items-center justify-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4"
+        className="flex h-[26px] items-center justify-center rounded-md border border-border-strong bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-hover"
       >
         Cancel deletion request
       </button>
@@ -92,7 +92,7 @@ export function AccountDeletionButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex h-[26px] items-center justify-center rounded-md border border-[#ab413e]/30 bg-[#fff0ee] px-2.5 py-1 text-xs font-medium text-[#030303] hover:brightness-95"
+        className="flex h-[26px] items-center justify-center rounded-md border border-danger/30 bg-danger-soft px-2.5 py-1 text-xs font-medium text-foreground hover:brightness-95"
       >
         Request to delete account
       </button>
@@ -102,19 +102,19 @@ export function AccountDeletionButton({
           role="dialog"
           aria-modal="true"
           aria-label="Request account deletion"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setOpen(false);
           }}
         >
           <form
             action={formAction}
-            className="flex w-full max-w-[400px] flex-col gap-4 rounded-lg border border-black/8 bg-white p-6 shadow-lg"
+            className="flex w-full max-w-[400px] flex-col gap-4 rounded-lg border border-border bg-surface p-6 shadow-lg"
           >
-            <h2 className="font-display text-lg font-semibold text-[#030303]">
+            <h2 className="font-display text-lg font-semibold text-foreground">
               Request account deletion
             </h2>
-            <p className="text-[13px] font-medium text-[#464646]">
+            <p className="text-[13px] font-medium text-foreground-secondary">
               This signs you out immediately. Your data is permanently
               deleted after 30 days unless you cancel before then — signing
               back in cancels it automatically too.
@@ -122,7 +122,7 @@ export function AccountDeletionButton({
 
             {hasPassword && (
               <label className="flex flex-col gap-1.5">
-                <span className="text-[13px] font-medium text-[#030303]">
+                <span className="text-[13px] font-medium text-foreground">
                   Confirm your password
                 </span>
                 <input
@@ -132,7 +132,7 @@ export function AccountDeletionButton({
                   className={inputClass}
                 />
                 {state.fieldErrors?.currentPassword && (
-                  <span className="text-xs font-medium text-[#ab413e]">
+                  <span className="text-xs font-medium text-danger">
                     {state.fieldErrors.currentPassword}
                   </span>
                 )}
@@ -143,14 +143,14 @@ export function AccountDeletionButton({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="flex h-[26px] items-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 text-xs font-medium text-[#030303] hover:bg-black/4"
+                className="flex h-[26px] items-center rounded-md border border-border-strong bg-background px-2.5 text-xs font-medium text-foreground hover:bg-hover"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={pending}
-                className="flex h-[26px] items-center rounded-md border border-[#ab413e]/40 bg-[#ab413e]/10 px-2.5 text-xs font-medium text-[#ab413e] hover:brightness-95 disabled:opacity-50"
+                className="flex h-[26px] items-center rounded-md border border-danger/40 bg-danger/10 px-2.5 text-xs font-medium text-danger hover:brightness-95 disabled:opacity-50"
               >
                 {pending ? "Requesting..." : "Yes, request deletion"}
               </button>

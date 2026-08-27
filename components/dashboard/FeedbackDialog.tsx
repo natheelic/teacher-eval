@@ -18,7 +18,7 @@ export function FeedbackDialog() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden h-8 items-center justify-center rounded-full px-2.5 py-1 text-xs font-medium text-[#464646] hover:bg-black/4 sm:flex"
+        className="hidden h-8 items-center justify-center rounded-full px-2.5 py-1 text-xs font-medium text-foreground-secondary hover:bg-hover sm:flex"
       >
         Feedback
       </button>
@@ -28,25 +28,25 @@ export function FeedbackDialog() {
           role="dialog"
           aria-modal="true"
           aria-label="Send feedback"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setOpen(false);
           }}
         >
-          <div className="flex w-full max-w-[400px] flex-col gap-4 rounded-lg border border-black/8 bg-white p-6 shadow-lg">
+          <div className="flex w-full max-w-[400px] flex-col gap-4 rounded-lg border border-border bg-surface p-6 shadow-lg">
             {state.ok ? (
               <>
-                <h2 className="font-display text-lg font-semibold text-[#030303]">
+                <h2 className="font-display text-lg font-semibold text-foreground">
                   Thanks!
                 </h2>
-                <p className="text-[13px] font-medium text-[#464646]">
+                <p className="text-[13px] font-medium text-foreground-secondary">
                   We got your feedback.
                 </p>
                 <div className="flex items-center justify-end pt-2">
                   <button
                     type="button"
                     onClick={() => setOpen(false)}
-                    className="flex h-[26px] items-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 text-xs font-medium text-[#030303] hover:bg-black/4"
+                    className="flex h-[26px] items-center rounded-md border border-border-strong bg-background px-2.5 text-xs font-medium text-foreground hover:bg-hover"
                   >
                     Close
                   </button>
@@ -54,20 +54,20 @@ export function FeedbackDialog() {
               </>
             ) : (
               <form action={formAction} className="flex flex-col gap-4">
-                <h2 className="font-display text-lg font-semibold text-[#030303]">
+                <h2 className="font-display text-lg font-semibold text-foreground">
                   Send feedback
                 </h2>
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-[13px] font-medium text-[#030303]">
+                  <span className="text-[13px] font-medium text-foreground">
                     What&apos;s on your mind?
                   </span>
                   <textarea
                     name="message"
                     rows={4}
-                    className="w-full rounded-md border border-black/15 bg-black/[0.01] px-3 py-2 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30"
+                    className="w-full rounded-md border border-border-strong bg-hover px-3 py-2 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis"
                   />
                   {state.fieldErrors?.message && (
-                    <span className="text-xs font-medium text-[#ab413e]">
+                    <span className="text-xs font-medium text-danger">
                       {state.fieldErrors.message}
                     </span>
                   )}
@@ -76,7 +76,7 @@ export function FeedbackDialog() {
                   <button
                     type="button"
                     onClick={() => setOpen(false)}
-                    className="flex h-[26px] items-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 text-xs font-medium text-[#030303] hover:bg-black/4"
+                    className="flex h-[26px] items-center rounded-md border border-border-strong bg-background px-2.5 text-xs font-medium text-foreground hover:bg-hover"
                   >
                     Cancel
                   </button>

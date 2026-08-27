@@ -58,9 +58,9 @@ export function SignUpForm({ callbackUrl }: { callbackUrl: string }) {
         {pending ? "Creating account..." : "Create account"}
       </SubmitButton>
 
-      <p className="text-center text-[13px] font-medium text-[#696969]">
+      <p className="text-center text-[13px] font-medium text-foreground-muted">
         Already have an account?{" "}
-        <Link href="/signin" className="text-[#030303] hover:underline">
+        <Link href="/signin" className="text-foreground hover:underline">
           Sign in
         </Link>
       </p>

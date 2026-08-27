@@ -19,8 +19,8 @@ export default async function AcceptInvitationPage({
           title="Invalid invitation link"
           description="This link is missing its token. Check the URL, or ask whoever invited you to resend it."
         />
-        <p className="text-center text-[13px] font-medium text-[#696969]">
-          <Link href="/signin" className="text-[#030303] hover:underline">
+        <p className="text-center text-[13px] font-medium text-foreground-muted">
+          <Link href="/signin" className="text-foreground hover:underline">
             Back to sign in
           </Link>
         </p>

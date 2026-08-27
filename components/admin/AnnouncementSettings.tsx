@@ -66,10 +66,10 @@ export function AnnouncementSettings({
                 defaultValue={current?.message ?? ""}
                 placeholder="We're updating our Terms of Service..."
                 maxLength={500}
-                className="w-full rounded-md border border-black/15 bg-black/[0.01] px-3 py-2 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30"
+                className="w-full rounded-md border border-border-strong bg-hover px-3 py-2 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis"
               />
               {state.error && (
-                <span className="text-xs font-medium text-[#ab413e]">
+                <span className="text-xs font-medium text-danger">
                   {state.error}
                 </span>
               )}
@@ -79,7 +79,7 @@ export function AnnouncementSettings({
                     type="button"
                     disabled={deactivating || submitting}
                     onClick={handleDeactivate}
-                    className="flex h-[26px] items-center gap-1.5 rounded-md border border-[#ab413e]/30 bg-[#fff0ee] px-2.5 text-xs font-medium text-[#030303] hover:brightness-95 disabled:opacity-50"
+                    className="flex h-[26px] items-center gap-1.5 rounded-md border border-danger/30 bg-danger-soft px-2.5 text-xs font-medium text-foreground hover:brightness-95 disabled:opacity-50"
                   >
                     <Trash2 className="size-3.5" />
                     Deactivate

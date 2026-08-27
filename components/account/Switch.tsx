@@ -46,12 +46,12 @@ export function Switch({
         disabled={disabled}
         onClick={toggle}
         className={`flex h-5 w-[34px] items-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-          value ? "border-black/8 bg-[#3fcf8e]" : "border-black/8 bg-black/4"
+          value ? "border-border bg-success" : "border-border bg-hover"
         }`}
       >
         <span
-          className={`size-4 rounded-full bg-white shadow-md transition-transform ${
-            value ? "translate-x-[17px] bg-white" : "translate-x-0.5 bg-[#696969]"
+          className={`size-4 rounded-full bg-surface shadow-md transition-transform ${
+            value ? "translate-x-[17px] bg-surface" : "translate-x-0.5 bg-foreground-muted"
           }`}
         />
       </button>

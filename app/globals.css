@@ -2,18 +2,63 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #ffffff;
+  --background: #fdfdfd;
+  --surface: #ffffff;
   --foreground: #030303;
+  --foreground-secondary: #464646;
+  --foreground-muted: #696969;
+  --foreground-disabled: #a0a0a0;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.15);
+  --border-emphasis: rgba(0, 0, 0, 0.3);
+  --hover: rgba(0, 0, 0, 0.04);
+  --overlay: rgba(0, 0, 0, 0.3);
+  --success: #16b674;
+  --success-strong: #097c4f;
+  --danger: #ab413e;
+  --danger-soft: #fff0ee;
+  --pending: #f3ba63;
+  --pending-strong: #dc7b18;
 }
 
 [data-theme="dark"] {
   --background: #121212;
+  --surface: #1c1c1c;
   --foreground: #fdfdfd;
+  --foreground-secondary: #c7c7c7;
+  --foreground-muted: #9a9a9a;
+  --foreground-disabled: #6b6b6b;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --border-emphasis: rgba(255, 255, 255, 0.3);
+  --hover: rgba(255, 255, 255, 0.06);
+  --overlay: rgba(0, 0, 0, 0.5);
+  --success: #34d399;
+  --success-strong: #6ee7b7;
+  --danger: #f2726d;
+  --danger-soft: rgba(242, 114, 109, 0.14);
+  --pending: #f0a94e;
+  --pending-strong: #fbbf74;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-foreground-disabled: var(--foreground-disabled);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-border-emphasis: var(--border-emphasis);
+  --color-hover: var(--hover);
+  --color-overlay: var(--overlay);
+  --color-success: var(--success);
+  --color-success-strong: var(--success-strong);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-pending: var(--pending);
+  --color-pending-strong: var(--pending-strong);
   --font-sans: var(--font-inter);
   --font-display: var(--font-manrope);
   --font-mono: var(--font-source-code-pro);

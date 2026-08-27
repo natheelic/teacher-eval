@@ -76,7 +76,7 @@ export function LogoSettings({
           bordered={false}
           control={
             <div className="flex w-full flex-col items-end gap-3">
-              <div className="flex size-16 shrink-0 items-center justify-center rounded-md border border-black/8 bg-black/[0.02] p-2">
+              <div className="flex size-16 shrink-0 items-center justify-center rounded-md border border-border bg-hover p-2">
                 <AppLogo
                   className="h-full w-full"
                   src={preview ?? currentLogoUrl}
@@ -93,10 +93,10 @@ export function LogoSettings({
                   name="logo"
                   accept="image/png,image/jpeg,image/webp"
                   onChange={handleFileChange}
-                  className="w-full text-xs font-medium text-[#696969] file:mr-2 file:rounded-md file:border file:border-black/15 file:bg-[#fdfdfd] file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-[#030303] hover:file:bg-black/4"
+                  className="w-full text-xs font-medium text-foreground-muted file:mr-2 file:rounded-md file:border file:border-border-strong file:bg-background file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-foreground hover:file:bg-hover"
                 />
                 {state.error && (
-                  <span className="text-xs font-medium text-[#ab413e]">
+                  <span className="text-xs font-medium text-danger">
                     {state.error}
                   </span>
                 )}
@@ -106,7 +106,7 @@ export function LogoSettings({
                       type="button"
                       disabled={removing || submitting}
                       onClick={handleRemove}
-                      className="flex h-[26px] items-center gap-1.5 rounded-md border border-[#ab413e]/30 bg-[#fff0ee] px-2.5 text-xs font-medium text-[#030303] hover:brightness-95 disabled:opacity-50"
+                      className="flex h-[26px] items-center gap-1.5 rounded-md border border-danger/30 bg-danger-soft px-2.5 text-xs font-medium text-foreground hover:brightness-95 disabled:opacity-50"
                     >
                       <Trash2 className="size-3.5" />
                       Remove

@@ -21,20 +21,20 @@ function NavItem({
   href?: string;
   onNavigate?: () => void;
 }) {
-  const className = `relative flex h-9 w-full items-center gap-2.5 overflow-visible rounded-md px-2.5 hover:bg-black/4 lg:size-8 lg:w-8 lg:justify-center lg:px-0 lg:py-2 ${
-    active ? "bg-black/4" : ""
+  const className = `relative flex h-9 w-full items-center gap-2.5 overflow-visible rounded-md px-2.5 hover:bg-hover lg:size-8 lg:w-8 lg:justify-center lg:px-0 lg:py-2 ${
+    active ? "bg-hover" : ""
   }`;
 
   const content = (
     <>
-      <Icon className="size-5 shrink-0 text-[#030303]" />
+      <Icon className="size-5 shrink-0 text-foreground" />
       {label && (
-        <span className="text-[13px] font-medium text-[#696969] whitespace-nowrap lg:hidden">
+        <span className="text-[13px] font-medium text-foreground-muted whitespace-nowrap lg:hidden">
           {label}
         </span>
       )}
       {dot && (
-        <span className="absolute left-[30px] top-2 size-2 rounded-full bg-[#dc7b18] lg:left-[18px]" />
+        <span className="absolute left-[30px] top-2 size-2 rounded-full bg-pending-strong lg:left-[18px]" />
       )}
     </>
   );
@@ -57,7 +57,7 @@ function NavItem({
 function Divider() {
   return (
     <div className="flex w-full flex-col items-center">
-      <div className="h-px w-full bg-black/8 lg:w-[31px]" />
+      <div className="h-px w-full bg-hover lg:w-[31px]" />
     </div>
   );
 }
@@ -70,9 +70,9 @@ export function IconSidebar({ showAdmin = false }: { showAdmin?: boolean }) {
   return (
     <MobileDrawer open={open} onClose={close} widthClassName="w-[240px] lg:w-[47px]">
       <div className="flex h-12 items-center justify-between px-3 lg:hidden">
-        <p className="text-[13px] font-semibold text-[#030303]">Menu</p>
-        <button onClick={close} aria-label="Close navigation" className="flex size-7 items-center justify-center rounded-md hover:bg-black/4">
-          <X className="size-4 text-[#464646]" />
+        <p className="text-[13px] font-semibold text-foreground">Menu</p>
+        <button onClick={close} aria-label="Close navigation" className="flex size-7 items-center justify-center rounded-md hover:bg-hover">
+          <X className="size-4 text-foreground-secondary" />
         </button>
       </div>
       <div className="flex flex-1 flex-col overflow-hidden">

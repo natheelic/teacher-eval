@@ -28,7 +28,7 @@ const DEVICE_ICONS = {
 } as const;
 
 const inputClass =
-  "h-[34px] w-full shrink-0 rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30 sm:w-[262px]";
+  "h-[34px] w-full shrink-0 rounded-md border border-border-strong bg-hover px-3 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis sm:w-[262px]";
 
 const initialState: ActionState = {};
 
@@ -50,16 +50,16 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
       />
       <SettingsCard>
         {hasPassword && (
-          <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
+          <div className="flex w-full flex-col items-start gap-3 border-b border-border p-4 sm:flex-row sm:gap-6">
             <div className="flex flex-1 flex-col items-start">
               <label
                 htmlFor="currentPassword"
-                className="text-[13px] font-medium text-[#030303]"
+                className="text-[13px] font-medium text-foreground"
               >
                 Current password
               </label>
               {state.fieldErrors?.currentPassword && (
-                <p className="text-xs font-medium text-[#ab413e]">
+                <p className="text-xs font-medium text-danger">
                   {state.fieldErrors.currentPassword}
                 </p>
               )}
@@ -79,12 +79,12 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
           <div className="flex flex-1 flex-col items-start">
             <label
               htmlFor="newPassword"
-              className="text-[13px] font-medium text-[#030303]"
+              className="text-[13px] font-medium text-foreground"
             >
               New password
             </label>
             {state.fieldErrors?.newPassword && (
-              <p className="text-xs font-medium text-[#ab413e]">
+              <p className="text-xs font-medium text-danger">
                 {state.fieldErrors.newPassword}
               </p>
             )}
@@ -101,7 +101,7 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
 
         <div className="flex w-full items-center justify-end gap-3 p-4">
           {state.ok && (
-            <span className="text-xs font-medium text-[#16b674]">Updated</span>
+            <span className="text-xs font-medium text-success">Updated</span>
           )}
           <button
             type="submit"
@@ -145,7 +145,7 @@ function ActiveSessionsSection({ sessions }: { sessions: DeviceSessionView[] }) 
                 await revokeAllOtherSessions();
               })
             }
-            className="flex h-[26px] shrink-0 items-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 text-xs font-medium text-[#030303] hover:bg-black/4 disabled:opacity-50"
+            className="flex h-[26px] shrink-0 items-center rounded-md border border-border-strong bg-background px-2.5 text-xs font-medium text-foreground hover:bg-hover disabled:opacity-50"
           >
             Sign out others
           </button>
@@ -153,7 +153,7 @@ function ActiveSessionsSection({ sessions }: { sessions: DeviceSessionView[] }) 
       </div>
       <SettingsCard>
         {optimistic.length === 0 && (
-          <p className="p-4 text-[13px] font-medium text-[#696969]">
+          <p className="p-4 text-[13px] font-medium text-foreground-muted">
             No active sessions.
           </p>
         )}
@@ -163,25 +163,25 @@ function ActiveSessionsSection({ sessions }: { sessions: DeviceSessionView[] }) 
             <div
               key={session.id}
               className={`flex w-full flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between ${
-                i < optimistic.length - 1 ? "border-b border-black/8" : ""
+                i < optimistic.length - 1 ? "border-b border-border" : ""
               }`}
             >
               <div className="flex min-w-0 items-center gap-4">
-                <span className="flex size-[30px] shrink-0 items-center justify-center rounded-md bg-black/4 text-[#464646]">
+                <span className="flex size-[30px] shrink-0 items-center justify-center rounded-md bg-hover text-foreground-secondary">
                   <Icon className="size-4" />
                 </span>
                 <div className="flex min-w-0 flex-col items-start">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-[13px] font-medium text-[#030303]">
+                    <p className="text-[13px] font-medium text-foreground">
                       {session.deviceLabel}
                     </p>
                     {session.isCurrent && (
-                      <span className="flex items-center rounded-full border border-[#16b674] bg-[#3fcf8e]/10 px-[5.5px] py-[3px] text-[9px] font-medium uppercase tracking-[0.63px] text-[#097c4f]">
+                      <span className="flex items-center rounded-full border border-success bg-success/10 px-[5.5px] py-[3px] text-[9px] font-medium uppercase tracking-[0.63px] text-success-strong">
                         This device
                       </span>
                     )}
                   </div>
-                  <p className="text-[13px] font-medium text-[#696969]">
+                  <p className="text-[13px] font-medium text-foreground-muted">
                     {session.location ?? "Unknown location"} ·{" "}
                     <RelativeTime iso={session.lastActiveAt} />
                   </p>
@@ -198,9 +198,9 @@ function ActiveSessionsSection({ sessions }: { sessions: DeviceSessionView[] }) 
                       await revokeDeviceSession(session.id);
                     })
                   }
-                  className="flex size-7 items-center justify-center rounded-md hover:bg-black/4 disabled:opacity-50"
+                  className="flex size-7 items-center justify-center rounded-md hover:bg-hover disabled:opacity-50"
                 >
-                  <X className="size-3.5 text-[#464646]" />
+                  <X className="size-3.5 text-foreground-secondary" />
                 </button>
               )}
             </div>

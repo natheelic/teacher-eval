@@ -65,7 +65,7 @@ export function UserRowActions({
   }
 
   const itemClass =
-    "flex w-full items-center px-3 py-2 text-left text-[13px] font-medium text-[#030303] hover:bg-black/4 disabled:opacity-50";
+    "flex w-full items-center px-3 py-2 text-left text-[13px] font-medium text-foreground hover:bg-hover disabled:opacity-50";
 
   return (
     <div ref={rootRef} className="relative inline-flex">
@@ -74,16 +74,16 @@ export function UserRowActions({
         aria-label={`Actions for ${user.label}`}
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex size-7 items-center justify-center rounded-md hover:bg-black/4"
+        className="flex size-7 items-center justify-center rounded-md hover:bg-hover"
       >
-        <MoreHorizontal className="size-3.5 text-[#464646]" />
+        <MoreHorizontal className="size-3.5 text-foreground-secondary" />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+4px)] z-40 flex w-60 flex-col overflow-hidden rounded-lg border border-black/8 bg-white py-1 shadow-lg">
+        <div className="absolute right-0 top-[calc(100%+4px)] z-40 flex w-60 flex-col overflow-hidden rounded-lg border border-border bg-surface py-1 shadow-lg">
           {assignableRoles.length > 0 && (
             <>
-              <p className="px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.6px] text-[#696969]">
+              <p className="px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.6px] text-foreground-muted">
                 Change role
               </p>
               {assignableRoles.map((role) => (
@@ -96,13 +96,13 @@ export function UserRowActions({
                 >
                   {ROLE_LABELS[role]}
                   {role === user.role && (
-                    <span className="ml-auto text-xs text-[#696969]">
+                    <span className="ml-auto text-xs text-foreground-muted">
                       current
                     </span>
                   )}
                 </button>
               ))}
-              <div className="my-1 h-px w-full bg-black/8" />
+              <div className="my-1 h-px w-full bg-hover" />
             </>
           )}
 
@@ -142,10 +142,10 @@ export function UserRowActions({
 
           {canDelete && (
             <>
-              <div className="my-1 h-px w-full bg-black/8" />
+              <div className="my-1 h-px w-full bg-hover" />
               {confirmingDelete ? (
                 <div className="flex flex-col gap-2 px-3 py-2">
-                  <p className="text-[13px] font-medium text-[#030303]">
+                  <p className="text-[13px] font-medium text-foreground">
                     Delete {user.label}?
                   </p>
                   <div className="flex items-center gap-2">
@@ -153,14 +153,14 @@ export function UserRowActions({
                       type="button"
                       disabled={pending}
                       onClick={() => run(() => deleteUser(user.id))}
-                      className="flex h-[26px] items-center rounded-md border border-[#ab413e]/40 bg-[#ab413e]/10 px-2.5 text-xs font-medium text-[#ab413e] hover:brightness-95 disabled:opacity-50"
+                      className="flex h-[26px] items-center rounded-md border border-danger/40 bg-danger/10 px-2.5 text-xs font-medium text-danger hover:brightness-95 disabled:opacity-50"
                     >
                       {pending ? "Deleting..." : "Delete"}
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirmingDelete(false)}
-                      className="flex h-[26px] items-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 text-xs font-medium text-[#030303] hover:bg-black/4"
+                      className="flex h-[26px] items-center rounded-md border border-border-strong bg-background px-2.5 text-xs font-medium text-foreground hover:bg-hover"
                     >
                       Cancel
                     </button>
@@ -171,7 +171,7 @@ export function UserRowActions({
                   type="button"
                   disabled={pending}
                   onClick={() => setConfirmingDelete(true)}
-                  className={`${itemClass} text-[#ab413e]`}
+                  className={`${itemClass} text-danger`}
                 >
                   Delete user
                 </button>
@@ -180,7 +180,7 @@ export function UserRowActions({
           )}
 
           {error && (
-            <p className="px-3 py-2 text-xs font-medium text-[#ab413e]">
+            <p className="px-3 py-2 text-xs font-medium text-danger">
               {error}
             </p>
           )}

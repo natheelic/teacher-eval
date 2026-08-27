@@ -23,8 +23,8 @@ export function AnnouncementBanner({
   if (dismissed) return null;
 
   return (
-    <div className="flex w-full items-start justify-between gap-3 border-b border-black/8 bg-[#fdfdfd] px-4 py-2.5 sm:px-10">
-      <p className="min-w-0 flex-1 text-[13px] font-medium text-[#030303]">
+    <div className="flex w-full items-start justify-between gap-3 border-b border-border bg-background px-4 py-2.5 sm:px-10">
+      <p className="min-w-0 flex-1 text-[13px] font-medium text-foreground">
         {message}
       </p>
       <button
@@ -39,9 +39,9 @@ export function AnnouncementBanner({
             await dismissAnnouncement(id);
           });
         }}
-        className="flex size-6 shrink-0 items-center justify-center rounded hover:bg-black/4"
+        className="flex size-6 shrink-0 items-center justify-center rounded hover:bg-hover"
       >
-        <X className="size-3.5 text-[#464646]" />
+        <X className="size-3.5 text-foreground-secondary" />
       </button>
     </div>
   );

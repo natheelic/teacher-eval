@@ -20,7 +20,7 @@ export function ConnectionButton({
         type="button"
         disabled={pending}
         onClick={() => startTransition(async () => { await linkProvider(provider); })}
-        className="flex h-[26px] shrink-0 items-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4 disabled:opacity-50"
+        className="flex h-[26px] shrink-0 items-center gap-2 rounded-md border border-border-strong bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-hover disabled:opacity-50"
       >
         {pending ? "Connecting..." : "Connect"}
       </button>
@@ -36,7 +36,7 @@ export function ConnectionButton({
         canDisconnect ? undefined : "Set a password before disconnecting this."
       }
       onClick={() => startTransition(async () => { await unlinkProvider(provider); })}
-      className="flex h-[26px] shrink-0 items-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4 disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex h-[26px] shrink-0 items-center gap-2 rounded-md border border-border-strong bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50"
     >
       {pending ? "Disconnecting..." : "Disconnect"}
     </button>

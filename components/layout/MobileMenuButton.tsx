@@ -10,9 +10,9 @@ export function MobileMenuButton() {
     <button
       onClick={() => setOpen(true)}
       aria-label="Open navigation"
-      className="flex size-8 shrink-0 items-center justify-center rounded-md hover:bg-black/4 lg:hidden"
+      className="flex size-8 shrink-0 items-center justify-center rounded-md hover:bg-hover lg:hidden"
     >
-      <Menu className="size-[18px] text-[#464646]" />
+      <Menu className="size-[18px] text-foreground-secondary" />
     </button>
   );
 }

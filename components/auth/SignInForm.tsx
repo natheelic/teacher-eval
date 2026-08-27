@@ -48,7 +48,7 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
       />
       <Link
         href="/forgot-password"
-        className="-mt-2 self-end text-xs font-medium text-[#696969] hover:text-[#030303] hover:underline"
+        className="-mt-2 self-end text-xs font-medium text-foreground-muted hover:text-foreground hover:underline"
       >
         Forgot password?
       </Link>
@@ -69,9 +69,9 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
         {pending ? "Signing in..." : showCode ? "Verify" : "Sign in"}
       </SubmitButton>
 
-      <p className="text-center text-[13px] font-medium text-[#696969]">
+      <p className="text-center text-[13px] font-medium text-foreground-muted">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="text-[#030303] hover:underline">
+        <Link href="/signup" className="text-foreground hover:underline">
           Sign up
         </Link>
       </p>

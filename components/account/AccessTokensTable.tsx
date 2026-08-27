@@ -73,10 +73,10 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
       <SettingsCard>
         {optimistic.length === 0 ? (
           <div className="flex w-full flex-col items-center gap-1 p-8 text-center">
-            <p className="text-[13px] font-medium text-[#030303]">
+            <p className="text-[13px] font-medium text-foreground">
               No access tokens yet
             </p>
-            <p className="text-[13px] font-medium text-[#696969]">
+            <p className="text-[13px] font-medium text-foreground-muted">
               Generate one to authenticate with the API.
             </p>
           </div>
@@ -85,21 +85,21 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
             <div
               key={token.id}
               className={`flex w-full flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between ${
-                i < optimistic.length - 1 ? "border-b border-black/8" : ""
+                i < optimistic.length - 1 ? "border-b border-border" : ""
               }`}
             >
               <div className="flex min-w-0 items-center gap-4">
-                <span className="flex size-[30px] shrink-0 items-center justify-center rounded-md bg-black/4 text-[#464646]">
+                <span className="flex size-[30px] shrink-0 items-center justify-center rounded-md bg-hover text-foreground-secondary">
                   <KeyRound className="size-4" />
                 </span>
                 <div className="flex min-w-0 flex-col items-start">
-                  <p className="text-[13px] font-medium text-[#030303]">
+                  <p className="text-[13px] font-medium text-foreground">
                     {token.name}
                   </p>
-                  <p className="truncate font-mono text-xs font-medium text-[#696969]">
+                  <p className="truncate font-mono text-xs font-medium text-foreground-muted">
                     {token.preview}
                   </p>
-                  <p className="text-xs font-medium text-[#696969]">
+                  <p className="text-xs font-medium text-foreground-muted">
                     {token.scopes.length > 0
                       ? token.scopes.join(", ")
                       : "No scopes — every route will reject this token"}
@@ -108,10 +108,10 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
               </div>
               <div className="flex w-full shrink-0 items-center justify-between gap-6 sm:w-auto">
                 <div className="flex flex-col items-start sm:items-end">
-                  <p className="text-xs font-medium text-[#696969]">
+                  <p className="text-xs font-medium text-foreground-muted">
                     Created {formatDate(token.createdAt)}
                   </p>
-                  <p className="text-xs font-medium text-[#696969]">
+                  <p className="text-xs font-medium text-foreground-muted">
                     Last used:{" "}
                     {token.lastUsedAt ? (
                       <RelativeTime iso={token.lastUsedAt} />
@@ -130,7 +130,7 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
                       await revokeApiToken(token.id);
                     })
                   }
-                  className="flex h-[26px] shrink-0 items-center gap-2 rounded-md border border-[#ab413e]/30 bg-[#fff0ee] px-2.5 py-1 text-xs font-medium text-[#030303] hover:brightness-95 disabled:opacity-50"
+                  className="flex h-[26px] shrink-0 items-center gap-2 rounded-md border border-danger/30 bg-danger-soft px-2.5 py-1 text-xs font-medium text-foreground hover:brightness-95 disabled:opacity-50"
                 >
                   <Trash2 className="size-3.5" />
                   Revoke
@@ -146,42 +146,42 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
           role="dialog"
           aria-modal="true"
           aria-label="Generate access token"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setDialogOpen(false);
           }}
         >
           <form
             action={formAction}
-            className="flex w-full max-w-[400px] flex-col gap-4 rounded-lg border border-black/8 bg-white p-6 shadow-lg"
+            className="flex w-full max-w-[400px] flex-col gap-4 rounded-lg border border-border bg-surface p-6 shadow-lg"
           >
-            <h2 className="font-display text-lg font-semibold text-[#030303]">
+            <h2 className="font-display text-lg font-semibold text-foreground">
               Generate access token
             </h2>
             <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium text-[#030303]">
+              <span className="text-[13px] font-medium text-foreground">
                 Token name
               </span>
               <input
                 name="name"
                 autoFocus
                 placeholder="CLI token"
-                className="h-[34px] w-full rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30"
+                className="h-[34px] w-full rounded-md border border-border-strong bg-hover px-3 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis"
               />
               {state.fieldErrors?.name && (
-                <span className="text-xs font-medium text-[#ab413e]">
+                <span className="text-xs font-medium text-danger">
                   {state.fieldErrors.name}
                 </span>
               )}
             </label>
             <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium text-[#030303]">
+              <span className="text-[13px] font-medium text-foreground">
                 Expiration
               </span>
               <select
                 name="expiresIn"
                 defaultValue=""
-                className="h-[34px] w-full rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30"
+                className="h-[34px] w-full rounded-md border border-border-strong bg-hover px-3 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis"
               >
                 <option value="">No expiration</option>
                 <option value="7">7 days</option>
@@ -191,13 +191,13 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
               </select>
             </label>
             <div className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium text-[#030303]">
+              <span className="text-[13px] font-medium text-foreground">
                 Scopes
               </span>
               {API_TOKEN_SCOPES.map((scope) => (
                 <label
                   key={scope.value}
-                  className="flex items-start gap-2 text-[13px] font-medium text-[#030303]"
+                  className="flex items-start gap-2 text-[13px] font-medium text-foreground"
                 >
                   <input
                     type="checkbox"
@@ -208,7 +208,7 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
                   />
                   <span className="flex flex-col">
                     {scope.label}
-                    <span className="text-xs font-medium text-[#696969]">
+                    <span className="text-xs font-medium text-foreground-muted">
                       {scope.description}
                     </span>
                   </span>
@@ -219,7 +219,7 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
               <button
                 type="button"
                 onClick={() => setDialogOpen(false)}
-                className="flex h-[26px] items-center rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 text-xs font-medium text-[#030303] hover:bg-black/4"
+                className="flex h-[26px] items-center rounded-md border border-border-strong bg-background px-2.5 text-xs font-medium text-foreground hover:bg-hover"
               >
                 Cancel
               </button>
@@ -258,7 +258,7 @@ function ExpiryLabel({ iso }: { iso: string | null }) {
 
   if (!iso) {
     return (
-      <p className="text-xs font-medium text-[#696969]">No expiration</p>
+      <p className="text-xs font-medium text-foreground-muted">No expiration</p>
     );
   }
 
@@ -266,7 +266,7 @@ function ExpiryLabel({ iso }: { iso: string | null }) {
 
   return (
     <p
-      className={`text-xs font-medium ${expired ? "text-[#ab413e]" : "text-[#696969]"}`}
+      className={`text-xs font-medium ${expired ? "text-danger" : "text-foreground-muted"}`}
     >
       {expired ? "Expired" : "Expires"} {formatDate(iso)}
     </p>
@@ -288,13 +288,13 @@ function RevealPanel({
   onDismiss: () => void;
 }) {
   return (
-    <div className="flex w-full max-w-[688px] flex-col gap-3 rounded-lg border border-[#16b674]/40 bg-[#3fcf8e]/5 p-4">
+    <div className="flex w-full max-w-[688px] flex-col gap-3 rounded-lg border border-success/40 bg-success/5 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col">
-          <p className="text-[13px] font-semibold text-[#030303]">
+          <p className="text-[13px] font-semibold text-foreground">
             Copy “{name}” now
           </p>
-          <p className="text-[13px] font-medium text-[#464646]">
+          <p className="text-[13px] font-medium text-foreground-secondary">
             This is the only time the token is shown. It cannot be retrieved
             later.
           </p>
@@ -303,13 +303,13 @@ function RevealPanel({
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss"
-          className="flex size-7 shrink-0 items-center justify-center rounded-md hover:bg-black/4"
+          className="flex size-7 shrink-0 items-center justify-center rounded-md hover:bg-hover"
         >
-          <X className="size-3.5 text-[#464646]" />
+          <X className="size-3.5 text-foreground-secondary" />
         </button>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <code className="min-w-0 flex-1 break-all rounded border border-black/8 bg-white px-2 py-1.5 font-mono text-xs text-[#030303]">
+        <code className="min-w-0 flex-1 break-all rounded border border-border bg-surface px-2 py-1.5 font-mono text-xs text-foreground">
           {token}
         </code>
         <CopyButton value={token} />

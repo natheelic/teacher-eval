@@ -104,15 +104,15 @@ function CommandPaletteDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/30 pt-[15vh]"
+      className="fixed inset-0 z-[60] flex items-start justify-center bg-overlay pt-[15vh]"
       onClick={onClose}
     >
       <div
-        className="flex w-[560px] max-w-[90vw] flex-col overflow-hidden rounded-lg border border-black/8 bg-white shadow-xl"
+        className="flex w-[560px] max-w-[90vw] flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2 border-b border-black/8 px-4 py-3">
-          <Search className="size-4 text-[#696969]" />
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+          <Search className="size-4 text-foreground-muted" />
           <input
             ref={inputRef}
             value={query}
@@ -129,12 +129,12 @@ function CommandPaletteDialog({ onClose }: { onClose: () => void }) {
               }
             }}
             placeholder="Search pages..."
-            className="w-full text-[13px] font-medium text-[#030303] outline-none placeholder:text-[#696969]"
+            className="w-full text-[13px] font-medium text-foreground outline-none placeholder:text-foreground-muted"
           />
         </div>
         <div className="max-h-[320px] overflow-y-auto p-2">
           {results.length === 0 ? (
-            <p className="px-2 py-6 text-center text-[13px] font-medium text-[#696969]">
+            <p className="px-2 py-6 text-center text-[13px] font-medium text-foreground-muted">
               No results found.
             </p>
           ) : (
@@ -145,20 +145,20 @@ function CommandPaletteDialog({ onClose }: { onClose: () => void }) {
                 onMouseEnter={() => setHighlight(i)}
                 className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-[13px] font-medium ${
                   i === highlight
-                    ? "bg-black/4 text-[#030303]"
-                    : "text-[#464646]"
+                    ? "bg-hover text-foreground"
+                    : "text-foreground-secondary"
                 }`}
               >
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate">{item.label}</span>
                   {item.sublabel && (
-                    <span className="truncate text-xs font-medium text-[#696969]">
+                    <span className="truncate text-xs font-medium text-foreground-muted">
                       {item.sublabel}
                     </span>
                   )}
                 </span>
                 {i === highlight && (
-                  <CornerDownLeft className="size-3.5 shrink-0 text-[#696969]" />
+                  <CornerDownLeft className="size-3.5 shrink-0 text-foreground-muted" />
                 )}
               </button>
             ))

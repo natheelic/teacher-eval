@@ -31,24 +31,24 @@ function ThemeSwatch({
       type="button"
       onClick={onSelect}
       className={`flex w-full flex-col items-start gap-2 rounded-md border p-3 text-left shadow-sm sm:w-[206px] ${
-        selected ? "border-black/30 bg-black/4" : "border-black/15 bg-black/[0.03]"
+        selected ? "border-border-emphasis bg-hover" : "border-border-strong bg-hover"
       }`}
     >
       <div
-        className="h-[97px] w-full rounded border border-black/10"
+        className="h-[97px] w-full rounded border border-border-strong"
         style={{ background: option.preview }}
       />
       <div className="flex items-start gap-2">
         <span
           className={`mt-0.5 flex size-3 shrink-0 items-center justify-center rounded-full border ${
-            selected ? "border-[#030303]" : "border-black/20"
+            selected ? "border-foreground" : "border-border-strong"
           }`}
         >
           {selected && <span className="size-[10px] rounded-full border border-white bg-[#030303]" />}
         </span>
         <span
           className={`text-xs font-medium ${
-            selected ? "text-[#030303]" : "text-[#464646]"
+            selected ? "text-foreground" : "text-foreground-secondary"
           }`}
         >
           {option.label}
@@ -74,8 +74,8 @@ export function AppearanceSettings({ theme }: AppearanceSettingsProps) {
       <SettingsCard>
         <div className="flex w-full flex-col gap-6 p-4 sm:flex-row">
           <div className="flex w-full shrink-0 flex-col items-start gap-2 sm:w-[202px]">
-            <p className="text-[13px] font-medium text-[#030303]">Theme mode</p>
-            <p className="text-[13px] font-medium text-[#464646]">
+            <p className="text-[13px] font-medium text-foreground">Theme mode</p>
+            <p className="text-[13px] font-medium text-foreground-secondary">
               Choose how {appName} looks to you. Select a single theme, or sync
               with your system.
             </p>

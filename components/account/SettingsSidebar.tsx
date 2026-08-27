@@ -18,8 +18,8 @@ function NavLink({
 }) {
   const className = `flex w-full items-center rounded-md px-3 py-[3px] text-[13px] ${
     active
-      ? "bg-black/4 font-semibold text-[#030303]"
-      : "font-medium text-[#464646] hover:bg-black/4"
+      ? "bg-hover font-semibold text-foreground"
+      : "font-medium text-foreground-secondary hover:bg-hover"
   }`;
 
   if (href.startsWith("/")) {
@@ -48,23 +48,23 @@ export function SettingsSidebar({
   return (
     <MobileDrawer open={open} onClose={close} widthClassName="w-[255px]">
       <div className="flex h-full w-full flex-col">
-        <div className="flex h-12 items-center justify-between border-b border-black/8 px-6">
+        <div className="flex h-12 items-center justify-between border-b border-border px-6">
           <Link
             href="/dashboard"
             onClick={close}
-            className="flex items-center gap-2 text-[13px] font-medium text-[#696969] hover:text-[#030303]"
+            className="flex items-center gap-2 text-[13px] font-medium text-foreground-muted hover:text-foreground"
           >
             <ArrowLeft className="size-4" />
             Back to dashboard
           </Link>
-          <button onClick={close} aria-label="Close navigation" className="flex size-7 items-center justify-center rounded-md hover:bg-black/4 lg:hidden">
-            <X className="size-4 text-[#696969]" />
+          <button onClick={close} aria-label="Close navigation" className="flex size-7 items-center justify-center rounded-md hover:bg-hover lg:hidden">
+            <X className="size-4 text-foreground-muted" />
           </button>
         </div>
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="flex flex-col py-4">
             <div className="flex flex-col px-3">
-              <p className="px-3 font-mono text-[13px] uppercase text-[#696969]">
+              <p className="px-3 font-mono text-[13px] uppercase text-foreground-muted">
                 Account Settings
               </p>
               <div className="flex flex-col gap-px pt-2">
@@ -73,9 +73,9 @@ export function SettingsSidebar({
                 <NavLink label="Security" href="/account/security" active={active === "Security"} onNavigate={close} />
               </div>
             </div>
-            <div className="mt-4 h-px w-full bg-black/8" />
+            <div className="mt-4 h-px w-full bg-hover" />
             <div className="flex flex-col px-3 pt-4">
-              <p className="px-3 font-mono text-[13px] uppercase text-[#696969]">
+              <p className="px-3 font-mono text-[13px] uppercase text-foreground-muted">
                 Logs
               </p>
               <div className="flex flex-col gap-px pt-2">

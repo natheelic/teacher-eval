@@ -15,7 +15,7 @@ export function GoogleButton({ callbackUrl }: { callbackUrl: string }) {
     >
       <button
         type="submit"
-        className="flex h-[34px] w-full items-center justify-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 text-[13px] font-medium text-[#030303] hover:bg-black/4"
+        className="flex h-[34px] w-full items-center justify-center gap-2 rounded-md border border-border-strong bg-background px-2.5 text-[13px] font-medium text-foreground hover:bg-hover"
       >
         <GoogleMark />
         Continue with Google

@@ -21,14 +21,14 @@ export async function AccountHeader() {
 
   return (
     <>
-      <header className="flex h-12 items-center border-b border-black/8">
+      <header className="flex h-12 items-center border-b border-border">
         <div className="flex min-w-0 flex-1 h-[47px] items-center justify-between gap-2 pl-2 pr-3 sm:pl-4">
           <div className="flex min-w-0 items-center gap-2">
             <MobileMenuButton />
             <Link href="/dashboard" className="hidden shrink-0 items-center justify-center sm:flex">
               <AppLogo className="h-[18px] w-auto" src={logoUrl} />
             </Link>
-            <span className="truncate text-[13px] font-medium text-[#030303]">Account</span>
+            <span className="truncate text-[13px] font-medium text-foreground">Account</span>
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
@@ -37,9 +37,9 @@ export async function AccountHeader() {
               <SearchTrigger />
               <Link
                 href="/docs"
-                className="hidden size-8 items-center justify-center rounded-full border border-black/15 hover:bg-black/4 sm:flex"
+                className="hidden size-8 items-center justify-center rounded-full border border-border-strong hover:bg-hover sm:flex"
               >
-                <Book className="size-4 text-[#464646]" />
+                <Book className="size-4 text-foreground-secondary" />
               </Link>
             </div>
             <AccountMenu

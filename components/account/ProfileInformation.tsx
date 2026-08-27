@@ -28,11 +28,11 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex w-full flex-col items-start gap-3 border-b border-black/8 p-4 sm:flex-row sm:gap-6">
+    <div className="flex w-full flex-col items-start gap-3 border-b border-border p-4 sm:flex-row sm:gap-6">
       <div className="flex flex-1 flex-col items-start">
-        <label className="text-[13px] font-medium text-[#030303]">{label}</label>
+        <label className="text-[13px] font-medium text-foreground">{label}</label>
         {description && (
-          <p className="text-[13px] font-medium text-[#696969]">{description}</p>
+          <p className="text-[13px] font-medium text-foreground-muted">{description}</p>
         )}
       </div>
       <div className="flex w-full shrink-0 flex-col gap-1 sm:w-[262px]">
@@ -43,7 +43,7 @@ function Row({
 }
 
 const inputClass =
-  "h-[34px] w-full rounded-md border border-black/15 bg-black/[0.01] px-3 text-[13px] font-medium text-[#030303] outline-none focus:border-black/30";
+  "h-[34px] w-full rounded-md border border-border-strong bg-hover px-3 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis";
 
 export function ProfileInformation({
   user,
@@ -101,19 +101,19 @@ export function ProfileInformation({
             readOnly
             disabled
             aria-label="Primary email"
-            className={`${inputClass} cursor-not-allowed text-[#696969] opacity-70`}
+            className={`${inputClass} cursor-not-allowed text-foreground-muted opacity-70`}
           />
           {user.emailVerified ? (
-            <span className="text-xs font-medium text-[#16b674]">
+            <span className="text-xs font-medium text-success">
               Verified
             </span>
           ) : verifyState.ok ? (
-            <span className="text-xs font-medium text-[#16b674]">
+            <span className="text-xs font-medium text-success">
               Verification email sent
             </span>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-[#dc7b18]">
+              <span className="text-xs font-medium text-pending-strong">
                 Not verified
               </span>
               {canResendVerification && (
@@ -121,13 +121,13 @@ export function ProfileInformation({
                   type="button"
                   onClick={resendVerification}
                   disabled={verifyPending}
-                  className="text-xs font-medium text-[#030303] underline hover:no-underline disabled:opacity-50"
+                  className="text-xs font-medium text-foreground underline hover:no-underline disabled:opacity-50"
                 >
                   {verifyPending ? "Sending..." : "Resend"}
                 </button>
               )}
               {verifyState.error && (
-                <span className="text-xs font-medium text-[#ab413e]">
+                <span className="text-xs font-medium text-danger">
                   {verifyState.error}
                 </span>
               )}
@@ -149,10 +149,10 @@ export function ProfileInformation({
 
         <div className="flex w-full items-center justify-end gap-3 p-4">
           {state.ok && (
-            <span className="text-xs font-medium text-[#16b674]">Saved</span>
+            <span className="text-xs font-medium text-success">Saved</span>
           )}
           {state.error && (
-            <span className="text-xs font-medium text-[#ab413e]">
+            <span className="text-xs font-medium text-danger">
               {state.error}
             </span>
           )}
@@ -170,5 +170,5 @@ export function ProfileInformation({
 }
 
 function FieldError({ message }: { message: string }) {
-  return <p className="text-xs font-medium text-[#ab413e]">{message}</p>;
+  return <p className="text-xs font-medium text-danger">{message}</p>;
 }

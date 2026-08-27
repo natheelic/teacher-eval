@@ -19,7 +19,7 @@ function humanizeActionCode(code: string): string {
 }
 
 const controlClass =
-  "h-[26px] rounded-md border border-black/15 bg-[#fdfdfd] px-2 text-xs font-medium text-[#030303] outline-none hover:bg-black/4 disabled:opacity-50";
+  "h-[26px] rounded-md border border-border-strong bg-background px-2 text-xs font-medium text-foreground outline-none hover:bg-hover disabled:opacity-50";
 
 /**
  * Filters live in the URL and re-render the server component, so the table
@@ -81,7 +81,7 @@ export function AuditLogFilters({
       }}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="pr-2 text-xs font-medium text-[#464646]">
+        <span className="pr-2 text-xs font-medium text-foreground-secondary">
           Filter by
         </span>
 
@@ -100,7 +100,7 @@ export function AuditLogFilters({
         )}
 
         <span className="inline-flex items-center gap-1">
-          <Clock className="size-3.5 text-[#464646]" />
+          <Clock className="size-3.5 text-foreground-secondary" />
           <select
             aria-label="Filter by time range"
             value={range}
@@ -132,7 +132,7 @@ export function AuditLogFilters({
         </select>
 
         <span className="relative">
-          <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-[#696969]" />
+          <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-foreground-muted" />
           {/* Uncontrolled with a key, same as UserFilters' search box: no
               mirrored state to keep in sync, and changing the URL remounts
               it with the new value. */}
@@ -147,8 +147,8 @@ export function AuditLogFilters({
           />
         </span>
 
-        <span className="mx-2 h-5 w-px bg-black/15" />
-        <span className="text-xs font-medium text-[#464646]">
+        <span className="mx-2 h-5 w-px bg-hover" />
+        <span className="text-xs font-medium text-foreground-secondary">
           Viewing {total} {total === 1 ? "log" : "logs"} in total
         </span>
       </div>
@@ -156,7 +156,7 @@ export function AuditLogFilters({
       <div className="flex items-center gap-2">
         <a
           href={exportHref}
-          className="flex h-[26px] items-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4"
+          className="flex h-[26px] items-center gap-2 rounded-md border border-border-strong bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-hover"
         >
           <Download className="size-3.5" />
           Export CSV
@@ -180,7 +180,7 @@ export function AuditLogFilters({
           type="button"
           disabled={pending}
           onClick={() => startTransition(() => router.refresh())}
-          className="flex h-[26px] items-center gap-2 rounded-md border border-black/15 bg-[#fdfdfd] px-2.5 py-1 text-xs font-medium text-[#030303] hover:bg-black/4 disabled:opacity-50"
+          className="flex h-[26px] items-center gap-2 rounded-md border border-border-strong bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-hover disabled:opacity-50"
         >
           <RefreshCw className={`size-3.5 ${pending ? "animate-spin" : ""}`} />
           Refresh
