@@ -1,6 +1,7 @@
 import { Header } from "@/components/dashboard/Header";
 import { IconSidebar } from "@/components/dashboard/IconSidebar";
 import { LogoSettings } from "@/components/admin/LogoSettings";
+import { FeedbackList } from "@/components/admin/FeedbackList";
 import { requireAdmin } from "@/lib/auth/require-session";
 import { getAppSettings } from "@/lib/queries/settings";
 
@@ -24,7 +25,10 @@ export default async function AdminPage() {
               </p>
             </div>
 
-            <LogoSettings currentLogoUrl={logoUrl} />
+            <div className="flex w-full flex-col gap-16">
+              <LogoSettings currentLogoUrl={logoUrl} />
+              <FeedbackList />
+            </div>
           </div>
         </main>
       </div>

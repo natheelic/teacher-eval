@@ -245,9 +245,8 @@ model AppSettings {
   updatedAt DateTime @updatedAt
 }
 
-/// Submitted from the header's Feedback button. No admin viewing UI yet —
-/// intentional, to avoid rebuilding the "no admin panel exists" problem for
-/// a first-cut feature; read via psql/Prisma Studio for now.
+/// Submitted from the header's Feedback button. Viewable (read-only) by
+/// admins at /admin — lib/queries/feedback.ts (ROADMAP 6.2).
 model Feedback {
   id        String   @id @default(cuid())
   userId    String?

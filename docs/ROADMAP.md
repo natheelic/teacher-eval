@@ -533,10 +533,25 @@ feature asks for it first.
     `logoUrl` was cleared in the DB, and every page fell back to the default SVG. Confirmed a signed-in
     `MANAGER` account sees no "Admin" sidebar item and, on directly navigating to `/admin`, is
     server-side redirected to `/dashboard` rather than shown the page — not just hidden in the UI.
-- **6.2 — A real view for submitted feedback.** `Feedback` (added alongside 6.1's motivating
-  request) has no admin-facing read UI yet — rows are only inspectable via `psql`/Prisma Studio.
-  Once 6.1's admin route exists, add a simple list view here rather than building a second,
-  separate admin surface for it.
+- **6.2** ✅ **A real view for submitted feedback.** `components/admin/FeedbackList.tsx` — a
+  second section on `/admin`, below 6.1's Branding — lists every `Feedback` row, most recent
+  first, each showing the submitter and message. Read-only: no reply, resolve, or delete action,
+  since none was asked for and the row itself is already the record (`submitFeedback()` never
+  wrote an audit entry either, for the same reason).
+  - **`lib/queries/feedback.ts`'s `getFeedbackList()`** is capped at 100 rows rather than
+    paginated — "simple list view" was the explicit brief, and the audit-log CSV export already
+    established row-capping-over-pagination as an accepted tradeoff at this app's scale. Calls
+    `requireAdmin()` itself, same defense-in-depth pattern `getAuditLogs()` uses.
+  - **Submitter resolution:** `Feedback.userId` is `SetNull`'d when the submitting account is
+    deleted, which could look like an anonymous submission — but every `submitFeedback()` call
+    requires `requireUser()` first, so a null `userId` here always means "submitted, then the
+    account was later deleted," never "anonymous." Labelled "Deleted user" rather than
+    "Anonymous" to reflect that.
+  - **Verified end-to-end in Chrome against the dev DB:** submitted real feedback as a signed-in
+    `MANAGER` account via the existing header Feedback dialog, confirmed the row appeared in
+    Postgres via `psql`, then signed in as `ADMIN` and confirmed `/admin` rendered that exact
+    submitter name and message text, with no changes needed to `FeedbackDialog.tsx` or
+    `submitFeedback()` — the write side was already correct from before this item existed.
 - **6.3 — Admin-authored announcements.** The old `NoticeBanner` (deleted in 1.7) was really this
   feature attempted without the infrastructure it needs: an `ADMIN`-authored message shown to
   users until they dismiss it, not a hardcoded client component. Needs a Prisma model (message,
