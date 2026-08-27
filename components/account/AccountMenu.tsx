@@ -16,14 +16,16 @@ const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
 export function AccountMenu({
   initial = "U",
   theme = "SYSTEM",
+  userId,
 }: {
   initial?: string;
   theme?: "LIGHT" | "DARK" | "SYSTEM";
+  userId: string;
 }) {
   const [open, setOpen] = useState(false);
   const [signingOut, startSignOut] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
-  const { mode, setMode } = useSyncedTheme(theme);
+  const { mode, setMode } = useSyncedTheme(theme, userId);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {

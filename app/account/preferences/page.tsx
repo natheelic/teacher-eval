@@ -50,7 +50,7 @@ export default async function PreferencesPage() {
                 connections={connections}
                 canDisconnect={canDisconnect}
               />
-              <AppearanceSettings theme={preferences.theme} />
+              <AppearanceSettings theme={preferences.theme} userId={user.id} />
               <DangerZone
                 deletionRequestedAt={toIso(user.deletionRequestedAt)}
                 hasPassword={user.hasPassword}

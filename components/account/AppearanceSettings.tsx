@@ -60,10 +60,11 @@ function ThemeSwatch({
 
 export type AppearanceSettingsProps = {
   theme: "LIGHT" | "DARK" | "SYSTEM";
+  userId: string;
 };
 
-export function AppearanceSettings({ theme }: AppearanceSettingsProps) {
-  const { mode, setMode } = useSyncedTheme(theme);
+export function AppearanceSettings({ theme, userId }: AppearanceSettingsProps) {
+  const { mode, setMode } = useSyncedTheme(theme, userId);
 
   return (
     <div className="flex w-full flex-col items-start gap-6">

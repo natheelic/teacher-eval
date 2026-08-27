@@ -45,6 +45,7 @@ export async function AccountHeader() {
             <AccountMenu
               initial={(user.name?.trim() || user.email)[0]!.toUpperCase()}
               theme={preferences.theme}
+              userId={user.id}
             />
           </div>
         </div>

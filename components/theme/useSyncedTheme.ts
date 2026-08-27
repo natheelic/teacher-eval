@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useTheme, type ThemeMode } from "./useTheme";
 import { updateTheme } from "@/lib/actions/preferences";
 
-const STORAGE_KEY = "theme";
+const OWNER_KEY = "theme-owner";
 
 export function toThemeMode(value: string): ThemeMode {
   return value === "LIGHT" ? "light" : value === "DARK" ? "dark" : "system";
@@ -21,8 +21,14 @@ function toDbTheme(mode: ThemeMode): "LIGHT" | "DARK" | "SYSTEM" {
  * app/layout.tsx reads synchronously to avoid a flash; UserPreferences.theme is
  * the durable, cross-device source of truth. Writes go to localStorage first so
  * the UI is instant, then to the database in the background.
+ *
+ * localStorage is shared by every account that ever signs in on this browser,
+ * so the cached value is only trustworthy for whichever account last wrote
+ * it — tracked separately via OWNER_KEY. If a different account (or none) is
+ * signed in now, the cache is stale and this account's own DB value wins
+ * instead, the same way a fresh browser with no cache at all does.
  */
-export function useSyncedTheme(dbTheme: "LIGHT" | "DARK" | "SYSTEM") {
+export function useSyncedTheme(dbTheme: "LIGHT" | "DARK" | "SYSTEM", userId: string) {
   const { mode, setMode } = useTheme();
   const adopted = useRef(false);
 
@@ -30,18 +36,25 @@ export function useSyncedTheme(dbTheme: "LIGHT" | "DARK" | "SYSTEM") {
     if (adopted.current) return;
     adopted.current = true;
 
-    // On a fresh browser there is no cached value, so take the account's.
-    let stored: string | null = null;
+    let storedOwner: string | null = null;
     try {
-      stored = localStorage.getItem(STORAGE_KEY);
+      storedOwner = localStorage.getItem(OWNER_KEY);
     } catch {
       return;
     }
-    if (!stored) setMode(toThemeMode(dbTheme));
-  }, [dbTheme, setMode]);
+    if (storedOwner !== userId) {
+      setMode(toThemeMode(dbTheme));
+      try {
+        localStorage.setItem(OWNER_KEY, userId);
+      } catch {}
+    }
+  }, [dbTheme, userId, setMode]);
 
   function setThemeMode(next: ThemeMode) {
     setMode(next); // instant, no flash
+    try {
+      localStorage.setItem(OWNER_KEY, userId);
+    } catch {}
     void updateTheme(toDbTheme(next)); // durable, best effort
   }
 
