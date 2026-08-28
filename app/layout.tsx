@@ -3,6 +3,7 @@ import { Inter, Manrope, Source_Code_Pro } from "next/font/google";
 import { SearchProvider } from "@/components/search/SearchProvider";
 import { CommandPalette } from "@/components/search/CommandPalette";
 import { MobileNavProvider } from "@/components/layout/MobileNavProvider";
+import { ToastProvider } from "@/components/layout/ToastProvider";
 import { getAppSettings } from "@/lib/queries/settings";
 import "./globals.css";
 
@@ -60,8 +61,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col font-sans">
         <MobileNavProvider>
           <SearchProvider>
-            {children}
-            <CommandPalette />
+            <ToastProvider>
+              {children}
+              <CommandPalette />
+            </ToastProvider>
           </SearchProvider>
         </MobileNavProvider>
       </body>

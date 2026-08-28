@@ -9,6 +9,7 @@ import {
   setUserSuspended,
 } from "@/lib/actions/users";
 import { ROLE_LABELS } from "@/lib/permissions";
+import { useToast } from "@/components/layout/ToastProvider";
 import type { Role, UserStatus } from "@/lib/generated/prisma/enums";
 import { ResetPasswordDialog } from "./ResetPasswordDialog";
 
@@ -35,6 +36,7 @@ export function UserRowActions({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -49,15 +51,18 @@ export function UserRowActions({
 
   /**
    * Server-side guards (last-admin, permission) throw, so surface the message
-   * instead of silently doing nothing.
+   * instead of silently doing nothing. Errors stay inline in the open menu;
+   * only the success path toasts, since the menu closes on success and several
+   * of these actions leave no visible trace in the row.
    */
-  function run(fn: () => Promise<void>) {
+  function run(fn: () => Promise<void>, success: string) {
     startTransition(async () => {
       setError(null);
       try {
         await fn();
         setOpen(false);
         setConfirmingDelete(false);
+        toast(success);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong");
       }
@@ -91,7 +96,12 @@ export function UserRowActions({
                   key={role}
                   type="button"
                   disabled={pending || role === user.role}
-                  onClick={() => run(() => changeUserRole(user.id, role))}
+                  onClick={() =>
+                    run(
+                      () => changeUserRole(user.id, role),
+                      `${user.label} is now ${ROLE_LABELS[role]}.`,
+                    )
+                  }
                   className={itemClass}
                 >
                   {ROLE_LABELS[role]}
@@ -110,7 +120,12 @@ export function UserRowActions({
             <button
               type="button"
               disabled={pending}
-              onClick={() => run(() => resendInvitation(user.id))}
+              onClick={() =>
+                run(
+                  () => resendInvitation(user.id),
+                  `Invitation resent to ${user.label}.`,
+                )
+              }
               className={itemClass}
             >
               Resend invite
@@ -133,7 +148,12 @@ export function UserRowActions({
             type="button"
             disabled={pending}
             onClick={() =>
-              run(() => setUserSuspended(user.id, !user.suspended))
+              run(
+                () => setUserSuspended(user.id, !user.suspended),
+                user.suspended
+                  ? `${user.label} reactivated.`
+                  : `${user.label} suspended.`,
+              )
             }
             className={itemClass}
           >
@@ -152,7 +172,12 @@ export function UserRowActions({
                     <button
                       type="button"
                       disabled={pending}
-                      onClick={() => run(() => deleteUser(user.id))}
+                      onClick={() =>
+                        run(
+                          () => deleteUser(user.id),
+                          `${user.label} deleted.`,
+                        )
+                      }
                       className="flex h-[26px] items-center rounded-md border border-danger/40 bg-danger/10 px-2.5 text-xs font-medium text-danger hover:brightness-95 disabled:opacity-50"
                     >
                       {pending ? "Deleting..." : "Delete"}
