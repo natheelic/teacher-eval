@@ -3,7 +3,8 @@
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { changePassword } from "@/lib/actions/security";
-import { Field, FormError, SubmitButton } from "./AuthPrimitives";
+import { Field, SubmitButton } from "./AuthPrimitives";
+import { useActionToast } from "@/components/layout/useActionToast";
 import type { ActionState } from "@/lib/actions/profile";
 import { DEFAULT_SIGNED_IN_PATH } from "@/auth.config";
 
@@ -15,6 +16,9 @@ export function SetPasswordForm() {
     changePassword,
     initialState,
   );
+  // ToastProvider lives in the root layout, so this survives the redirect
+  // below and lands on /dashboard.
+  useActionToast(state, "Password set.");
 
   // requireUser() re-checks hasPassword from the database on every request,
   // so once the write above succeeds this redirect just needs to happen —
@@ -25,7 +29,6 @@ export function SetPasswordForm() {
 
   return (
     <form action={formAction} className="flex w-full flex-col gap-4">
-      {state.error && <FormError message={state.error} />}
 
       <Field
         label="New password"

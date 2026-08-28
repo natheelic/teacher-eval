@@ -4,7 +4,8 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { requestPasswordReset } from "@/lib/actions/password-reset";
 import type { ActionState } from "@/lib/actions/profile";
-import { Field, FormError, SubmitButton } from "./AuthPrimitives";
+import { Field, SubmitButton } from "./AuthPrimitives";
+import { useActionToast } from "@/components/layout/useActionToast";
 
 const initialState: ActionState = {};
 
@@ -13,6 +14,10 @@ export function ForgotPasswordForm() {
     requestPasswordReset,
     initialState,
   );
+  // Failures only. Success is a whole screen rather than a message: it tells
+  // the user to go and check their inbox, which is the next step in the flow
+  // and must not vanish on a timer.
+  useActionToast(state);
 
   if (state.ok) {
     return (
@@ -32,7 +37,6 @@ export function ForgotPasswordForm() {
 
   return (
     <form action={formAction} className="flex w-full flex-col gap-4">
-      {state.error && <FormError message={state.error} />}
 
       <Field
         label="Email"

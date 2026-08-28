@@ -13,6 +13,8 @@ import {
 import type { ApiTokenView } from "@/lib/queries/account";
 import { formatDate } from "@/lib/format";
 import { API_TOKEN_SCOPES } from "@/lib/auth/scopes";
+import { useActionToast } from "@/components/layout/useActionToast";
+import { useToast } from "@/components/layout/ToastProvider";
 
 const initialState: CreateTokenState = {};
 
@@ -35,6 +37,11 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
     createApiToken,
     initialState,
   );
+  const { toast } = useToast();
+  // Failures toast; a *success* does not, because the reveal panel below is
+  // the confirmation — and it must not auto-dismiss, since it is the only
+  // time the plaintext token is ever shown.
+  useActionToast(state, () => null);
 
   const showReveal = Boolean(state.plaintext) && state.plaintext !== dismissedToken;
   // Once a token exists, the reveal panel takes over from the dialog.
@@ -128,6 +135,7 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
                     startTransition(async () => {
                       removeOptimistic(token.id);
                       await revokeApiToken(token.id);
+                      toast(`Revoked “${token.name}”.`);
                     })
                   }
                   className="flex h-[26px] shrink-0 items-center gap-2 rounded-md border border-danger/30 bg-danger-soft px-2.5 py-1 text-xs font-medium text-foreground hover:brightness-95 disabled:opacity-50"
@@ -168,11 +176,6 @@ export function AccessTokensTable({ tokens }: { tokens: ApiTokenView[] }) {
                 placeholder="CLI token"
                 className="h-[34px] w-full rounded-md border border-border-strong bg-hover px-3 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis"
               />
-              {state.fieldErrors?.name && (
-                <span className="text-xs font-medium text-danger">
-                  {state.fieldErrors.name}
-                </span>
-              )}
             </label>
             <label className="flex flex-col gap-1.5">
               <span className="text-[13px] font-medium text-foreground">

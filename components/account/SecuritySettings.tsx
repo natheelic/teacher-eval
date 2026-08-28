@@ -12,6 +12,8 @@ import {
 } from "@/lib/actions/security";
 import type { ActionState } from "@/lib/actions/profile";
 import type { DeviceSessionView } from "@/lib/queries/account";
+import { useActionToast } from "@/components/layout/useActionToast";
+import { useToast } from "@/components/layout/ToastProvider";
 
 export type SecuritySettingsProps = {
   /** False for OAuth-only accounts — they set a password rather than change one. */
@@ -37,6 +39,7 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
     changePassword,
     initialState,
   );
+  useActionToast(state, "Password updated.");
 
   return (
     <form action={formAction} className="flex w-full flex-col items-start gap-6">
@@ -58,11 +61,6 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
               >
                 Current password
               </label>
-              {state.fieldErrors?.currentPassword && (
-                <p className="text-xs font-medium text-danger">
-                  {state.fieldErrors.currentPassword}
-                </p>
-              )}
             </div>
             <input
               id="currentPassword"
@@ -83,11 +81,6 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
             >
               New password
             </label>
-            {state.fieldErrors?.newPassword && (
-              <p className="text-xs font-medium text-danger">
-                {state.fieldErrors.newPassword}
-              </p>
-            )}
           </div>
           <input
             id="newPassword"
@@ -100,9 +93,6 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
         </div>
 
         <div className="flex w-full items-center justify-end gap-3 p-4">
-          {state.ok && (
-            <span className="text-xs font-medium text-success">Updated</span>
-          )}
           <button
             type="submit"
             disabled={pending}
@@ -118,6 +108,7 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
 
 function ActiveSessionsSection({ sessions }: { sessions: DeviceSessionView[] }) {
   const [pending, startTransition] = useTransition();
+  const { toast } = useToast();
   const [optimistic, removeOptimistic] = useOptimistic(
     sessions,
     (state, id: string | "others") =>
@@ -143,6 +134,7 @@ function ActiveSessionsSection({ sessions }: { sessions: DeviceSessionView[] }) 
               startTransition(async () => {
                 removeOptimistic("others");
                 await revokeAllOtherSessions();
+                toast("Signed out all other devices.");
               })
             }
             className="flex h-[26px] shrink-0 items-center rounded-md border border-border-strong bg-background px-2.5 text-xs font-medium text-foreground hover:bg-hover disabled:opacity-50"
@@ -196,6 +188,7 @@ function ActiveSessionsSection({ sessions }: { sessions: DeviceSessionView[] }) 
                     startTransition(async () => {
                       removeOptimistic(session.id);
                       await revokeDeviceSession(session.id);
+                      toast(`Signed out ${session.deviceLabel}.`);
                     })
                   }
                   className="flex size-7 items-center justify-center rounded-md hover:bg-hover disabled:opacity-50"

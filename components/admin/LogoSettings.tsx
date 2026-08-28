@@ -13,6 +13,8 @@ import {
   updateLogo,
   type LogoActionState,
 } from "@/lib/actions/settings";
+import { useActionToast } from "@/components/layout/useActionToast";
+import { useToast } from "@/components/layout/ToastProvider";
 
 const initialState: LogoActionState = {};
 
@@ -27,6 +29,8 @@ export function LogoSettings({
   );
   const [preview, setPreview] = useState<string | null>(null);
   const [removing, startRemoveTransition] = useTransition();
+  const { toast } = useToast();
+  useActionToast(state, "Logo updated.");
   // Bumped whenever a submission actually succeeds, and used as the file
   // input's `key` — remounting is the standard way to reset an uncontrolled
   // file input's displayed filename, rather than an effect reaching into the
@@ -57,8 +61,10 @@ export function LogoSettings({
 
   function handleRemove() {
     startRemoveTransition(async () => {
-      await removeLogo();
+      const result = await removeLogo();
       setPreview(null);
+      if (result?.error) toast(result.error, "danger");
+      else toast("Logo removed.");
     });
   }
 
@@ -95,11 +101,6 @@ export function LogoSettings({
                   onChange={handleFileChange}
                   className="w-full text-xs font-medium text-foreground-muted file:mr-2 file:rounded-md file:border file:border-border-strong file:bg-background file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-foreground hover:file:bg-hover"
                 />
-                {state.error && (
-                  <span className="text-xs font-medium text-danger">
-                    {state.error}
-                  </span>
-                )}
                 <div className="flex items-center gap-2">
                   {currentLogoUrl && (
                     <button

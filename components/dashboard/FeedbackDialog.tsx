@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { submitFeedback } from "@/lib/actions/feedback";
 import type { ActionState } from "@/lib/actions/profile";
+import { useActionToast } from "@/components/layout/useActionToast";
 
 const initialState: ActionState = {};
 
@@ -12,6 +13,17 @@ export function FeedbackDialog() {
     submitFeedback,
     initialState,
   );
+  useActionToast(state, "Thanks — we got your feedback.");
+
+  // Closing on a new successful result, rather than branching the dialog body
+  // on `state.ok`: that branch stayed true until the next dispatch, so
+  // reopening Feedback after sending once showed the thank-you screen with no
+  // way back to the form.
+  const [prevState, setPrevState] = useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state.ok) setOpen(false);
+  }
 
   return (
     <>
@@ -34,25 +46,6 @@ export function FeedbackDialog() {
           }}
         >
           <div className="flex w-full max-w-[400px] flex-col gap-4 rounded-lg border border-border bg-surface p-6 shadow-lg">
-            {state.ok ? (
-              <>
-                <h2 className="font-display text-lg font-semibold text-foreground">
-                  Thanks!
-                </h2>
-                <p className="text-[13px] font-medium text-foreground-secondary">
-                  We got your feedback.
-                </p>
-                <div className="flex items-center justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setOpen(false)}
-                    className="flex h-[26px] items-center rounded-md border border-border-strong bg-background px-2.5 text-xs font-medium text-foreground hover:bg-hover"
-                  >
-                    Close
-                  </button>
-                </div>
-              </>
-            ) : (
               <form action={formAction} className="flex flex-col gap-4">
                 <h2 className="font-display text-lg font-semibold text-foreground">
                   Send feedback
@@ -66,11 +59,6 @@ export function FeedbackDialog() {
                     rows={4}
                     className="w-full rounded-md border border-border-strong bg-hover px-3 py-2 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis"
                   />
-                  {state.fieldErrors?.message && (
-                    <span className="text-xs font-medium text-danger">
-                      {state.fieldErrors.message}
-                    </span>
-                  )}
                 </label>
                 <div className="flex items-center justify-end gap-2 pt-2">
                   <button
@@ -89,7 +77,6 @@ export function FeedbackDialog() {
                   </button>
                 </div>
               </form>
-            )}
           </div>
         </div>
       )}

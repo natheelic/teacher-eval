@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useCallback, useEffect, useState, useTransition } from "react";
 import { SectionHeading, SettingsCard, SettingsRow } from "./SettingsPrimitives";
 import {
   confirmTwoFactorEnrollment,
@@ -9,6 +9,8 @@ import {
 } from "@/lib/actions/twoFactor";
 import type { ActionState } from "@/lib/actions/profile";
 import type { TwoFactorSetupState } from "@/lib/actions/twoFactor";
+import { useActionToast } from "@/components/layout/useActionToast";
+import { useToast } from "@/components/layout/ToastProvider";
 
 const inputClass =
   "h-[34px] w-full shrink-0 rounded-md border border-border-strong bg-hover px-3 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis sm:w-[262px]";
@@ -18,23 +20,25 @@ const disableInitialState: ActionState = {};
 
 function EnrollmentForm({
   pending: setup,
+  onDone,
   onCancel,
 }: {
   pending: { qrDataUrl: string; manualKey: string; token: string };
+  onDone: () => void;
   onCancel: () => void;
 }) {
   const [state, formAction, pending] = useActionState(
     confirmTwoFactorEnrollment,
     setupInitialState,
   );
+  useActionToast(state, "Two-factor authentication is on.");
 
-  if (state.ok) {
-    return (
-      <p className="p-4 text-[13px] font-medium text-success-strong">
-        Two-factor authentication is on.
-      </p>
-    );
-  }
+  // Enrolling revalidates /account/security, so dropping the setup state
+  // hands the card back to the settled "is on" row rather than leaving the
+  // QR form on screen behind the toast.
+  useEffect(() => {
+    if (state.ok) onDone();
+  }, [state.ok, onDone]);
 
   return (
     <form action={formAction} className="flex w-full flex-col items-start gap-4 p-4">
@@ -72,14 +76,6 @@ function EnrollmentForm({
           placeholder="123456"
           className={inputClass}
         />
-        {state.fieldErrors?.code && (
-          <span className="text-xs font-medium text-danger">
-            {state.fieldErrors.code}
-          </span>
-        )}
-        {state.error && (
-          <span className="text-xs font-medium text-danger">{state.error}</span>
-        )}
       </label>
 
       <div className="flex items-center gap-2">
@@ -102,11 +98,21 @@ function EnrollmentForm({
   );
 }
 
-function DisableForm({ hasPassword }: { hasPassword: boolean }) {
+function DisableForm({
+  hasPassword,
+  onDone,
+}: {
+  hasPassword: boolean;
+  onDone: () => void;
+}) {
   const [state, formAction, pending] = useActionState(
     disableTwoFactor,
     disableInitialState,
   );
+  useActionToast(state, "Two-factor authentication is off.");
+  useEffect(() => {
+    if (state.ok) onDone();
+  }, [state.ok, onDone]);
 
   return (
     <form action={formAction} className="flex w-full flex-col items-start gap-3 p-4">
@@ -121,11 +127,6 @@ function DisableForm({ hasPassword }: { hasPassword: boolean }) {
             autoComplete="current-password"
             className={inputClass}
           />
-          {state.fieldErrors?.currentPassword && (
-            <span className="text-xs font-medium text-danger">
-              {state.fieldErrors.currentPassword}
-            </span>
-          )}
         </label>
       )}
       <button
@@ -149,16 +150,27 @@ export function TwoFactorSettings({
   const [pendingSetup, startTransition] = useTransition();
   const [setup, setSetup] = useState<TwoFactorSetupState["pending"] | null>(null);
   const [disabling, setDisabling] = useState(false);
+  const { toast } = useToast();
+
+  // Stable identity so EnrollmentForm's effect does not re-run every render.
+  const finishEnrollment = useCallback(() => {
+    setSetup(null);
+    setDisabling(false);
+  }, []);
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
       <SectionHeading title="Two-factor authentication" description="" />
       <SettingsCard>
         {setup ? (
-          <EnrollmentForm pending={setup} onCancel={() => setSetup(null)} />
+          <EnrollmentForm
+            pending={setup}
+            onDone={finishEnrollment}
+            onCancel={() => setSetup(null)}
+          />
         ) : enabled ? (
           disabling ? (
-            <DisableForm hasPassword={hasPassword} />
+            <DisableForm hasPassword={hasPassword} onDone={finishEnrollment} />
           ) : (
             <SettingsRow
               bordered={false}
@@ -188,6 +200,7 @@ export function TwoFactorSettings({
                   startTransition(async () => {
                     const result = await startTwoFactorEnrollment();
                     if (result.pending) setSetup(result.pending);
+                    else if (result.error) toast(result.error, "danger");
                   })
                 }
                 className="flex h-[26px] items-center justify-center rounded-md border border-border-strong bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-hover disabled:opacity-50"

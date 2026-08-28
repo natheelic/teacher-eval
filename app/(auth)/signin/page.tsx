@@ -4,9 +4,9 @@ import { GoogleButton } from "@/components/auth/GoogleButton";
 import {
   AuthCard,
   AuthHeading,
-  FormError,
   OrDivider,
 } from "@/components/auth/AuthPrimitives";
+import { AuthErrorToast } from "@/components/auth/AuthErrorToast";
 import { googleEnabled } from "@/lib/env";
 import { DEFAULT_SIGNED_IN_PATH } from "@/auth.config";
 
@@ -48,7 +48,7 @@ export default async function SignInPage({
         description="Welcome back. Enter your details to continue."
       />
 
-      {errorMessage && <FormError message={errorMessage} />}
+      {errorMessage && <AuthErrorToast message={errorMessage} />}
 
       <SignInForm callbackUrl={callbackUrl} />
 

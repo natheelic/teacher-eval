@@ -12,6 +12,8 @@ import {
   type AnnouncementActionState,
 } from "@/lib/actions/announcements";
 import type { AnnouncementView } from "@/lib/queries/announcements";
+import { useActionToast } from "@/components/layout/useActionToast";
+import { useToast } from "@/components/layout/ToastProvider";
 
 const initialState: AnnouncementActionState = {};
 
@@ -25,10 +27,14 @@ export function AnnouncementSettings({
     initialState,
   );
   const [deactivating, startDeactivateTransition] = useTransition();
+  const { toast } = useToast();
+  useActionToast(state, "Announcement saved.");
 
   function handleDeactivate() {
     startDeactivateTransition(async () => {
-      await deactivateAnnouncement();
+      const result = await deactivateAnnouncement();
+      if (result?.error) toast(result.error, "danger");
+      else toast("Announcement deactivated.");
     });
   }
 
@@ -45,17 +51,20 @@ export function AnnouncementSettings({
           }
           bordered={false}
           control={
-            // Keyed by the current announcement's id so the textarea remounts
-            // with a fresh defaultValue whenever `current` changes identity
-            // (published, then deactivated) — same trick LogoSettings uses
-            // to reset its file input, rather than a controlled value synced
-            // via effect.
             <form
-              key={current?.id ?? "none"}
               action={formAction}
               className="flex w-full flex-col items-end gap-2"
             >
+              {/* Keyed by the current announcement's id so the textarea
+                  remounts with a fresh defaultValue whenever `current` changes
+                  identity (published, then deactivated) — same trick
+                  LogoSettings uses to reset its file input, rather than a
+                  controlled value synced via effect. The key stays on the
+                  textarea and not on the <form>: remounting the form would
+                  reset useActionState and wipe the confirmation the save just
+                  produced. */}
               <textarea
+                key={current?.id ?? "none"}
                 name="message"
                 rows={3}
                 defaultValue={current?.message ?? ""}
@@ -63,11 +72,6 @@ export function AnnouncementSettings({
                 maxLength={500}
                 className="w-full rounded-md border border-border-strong bg-hover px-3 py-2 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis"
               />
-              {state.error && (
-                <span className="text-xs font-medium text-danger">
-                  {state.error}
-                </span>
-              )}
               <div className="flex items-center gap-2">
                 {current && (
                   <button

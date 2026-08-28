@@ -12,6 +12,7 @@ import {
   updateAppName,
   type SettingsActionState,
 } from "@/lib/actions/settings";
+import { useActionToast } from "@/components/layout/useActionToast";
 
 const initialState: SettingsActionState = {};
 
@@ -20,6 +21,7 @@ export function AppNameSettings({ currentName }: { currentName: string }) {
     updateAppName,
     initialState,
   );
+  useActionToast(state, "Name saved.");
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
@@ -28,12 +30,16 @@ export function AppNameSettings({ currentName }: { currentName: string }) {
         description="Shown in headers, page titles, and every email the app sends."
       />
       <SettingsCard>
-        {/* Remounted on the resolved name so the input picks up the saved
-            value after a successful save, rather than holding stale text. */}
-        <form key={currentName} action={formAction} className="flex w-full flex-col">
+        <form action={formAction} className="flex w-full flex-col">
           <SettingsBlock bordered={false}>
             <SettingsField label="Name" htmlFor="appName">
+              {/* Keyed on the resolved name so the input picks up the saved
+                  value after a save, rather than holding stale text. The key
+                  stays on the input and not on the <form>: remounting the
+                  form would reset useActionState and wipe the confirmation
+                  the save just produced. */}
               <input
+                key={currentName}
                 id="appName"
                 name="appName"
                 defaultValue={currentName}
@@ -42,15 +48,6 @@ export function AppNameSettings({ currentName }: { currentName: string }) {
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] text-foreground outline-none focus:border-border-strong"
               />
             </SettingsField>
-
-            {state.error && (
-              <p className="text-[13px] font-medium text-danger">{state.error}</p>
-            )}
-            {state.ok && (
-              <p className="text-[13px] font-medium text-foreground-secondary">
-                Name saved.
-              </p>
-            )}
 
             <div className="flex items-center justify-end">
               <button

@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { linkProvider, unlinkProvider } from "@/lib/actions/connections";
+import { useToast } from "@/components/layout/ToastProvider";
 
 export function ConnectionButton({
   provider,
@@ -13,6 +14,7 @@ export function ConnectionButton({
   canDisconnect: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   if (!connected) {
     return (
@@ -35,7 +37,12 @@ export function ConnectionButton({
       title={
         canDisconnect ? undefined : "Set a password before disconnecting this."
       }
-      onClick={() => startTransition(async () => { await unlinkProvider(provider); })}
+      onClick={() =>
+        startTransition(async () => {
+          await unlinkProvider(provider);
+          toast(`Disconnected ${provider}.`);
+        })
+      }
       className="flex h-[26px] shrink-0 items-center gap-2 rounded-md border border-border-strong bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50"
     >
       {pending ? "Disconnecting..." : "Disconnect"}

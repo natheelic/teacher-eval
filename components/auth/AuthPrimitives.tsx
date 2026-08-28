@@ -1,5 +1,3 @@
-import { AlertCircle } from "lucide-react";
-
 /** Card shell shared by the sign-in and sign-up forms. */
 export function AuthCard({ children }: { children: React.ReactNode }) {
   return (
@@ -36,6 +34,11 @@ export function Field({
   defaultValue,
   value,
   onChange,
+  /**
+   * Marks the field as the one at fault — red border and `aria-invalid`. The
+   * message itself is announced by a toast, so it is deliberately not
+   * rendered here; the highlight is what says *which* of four inputs to fix.
+   */
   error,
   inputMode,
   maxLength,
@@ -53,8 +56,6 @@ export function Field({
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   maxLength?: number;
 }) {
-  const describedBy = error ? `${name}-error` : undefined;
-
   return (
     <div className="flex w-full flex-col gap-1.5">
       <label
@@ -76,28 +77,10 @@ export function Field({
         inputMode={inputMode}
         maxLength={maxLength}
         aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
         className={`h-[34px] w-full rounded-md border bg-hover px-3 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis ${
           error ? "border-danger/60" : "border-border-strong"
         }`}
       />
-      {error && (
-        <p id={describedBy} className="text-xs font-medium text-danger">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
-export function FormError({ message }: { message: string }) {
-  return (
-    <div
-      role="alert"
-      className="flex items-start gap-2 rounded-md border border-danger/25 bg-danger/5 px-3 py-2"
-    >
-      <AlertCircle className="mt-px size-3.5 shrink-0 text-danger" />
-      <p className="text-[13px] font-medium text-danger">{message}</p>
     </div>
   );
 }

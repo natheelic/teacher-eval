@@ -6,6 +6,7 @@ import { createUser } from "@/lib/actions/users";
 import { ROLE_LABELS } from "@/lib/permissions";
 import type { ActionState } from "@/lib/actions/profile";
 import type { Role } from "@/lib/generated/prisma/enums";
+import { useActionToast } from "@/components/layout/useActionToast";
 
 const initialState: ActionState = {};
 
@@ -19,9 +20,19 @@ export function CreateUserDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(createUser, initialState);
+  useActionToast(state, "Invitation sent.");
 
-  // Derived rather than closed from an effect.
-  const showDialog = open && !state.ok;
+  // Close on success by reacting to a genuinely new result (adjusting own
+  // state during render, the pattern LogoSettings uses) rather than deriving
+  // `open && !state.ok`. That derivation could never reopen: `state.ok` stays
+  // true until the next dispatch, so after one invite the button was dead for
+  // the rest of the page's life — the same shape as the access-token reveal
+  // bug in ROADMAP 5.10.
+  const [prevState, setPrevState] = useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state.ok) setOpen(false);
+  }
 
   // A manager with nothing they may assign cannot create users at all.
   if (assignableRoles.length === 0) return null;
@@ -37,7 +48,7 @@ export function CreateUserDialog({
         Invite user
       </button>
 
-      {showDialog && (
+      {open && (
         <div
           role="dialog"
           aria-modal="true"
@@ -59,23 +70,15 @@ export function CreateUserDialog({
               password and activate the account.
             </p>
 
-            {state.error && (
-              <p className="text-xs font-medium text-danger">
-                {state.error}
-              </p>
-            )}
-
             <div className="flex gap-3">
               <Field
                 label="First name"
                 name="firstName"
-                error={state.fieldErrors?.firstName}
                 autoFocus
               />
               <Field
                 label="Last name"
                 name="lastName"
-                error={state.fieldErrors?.lastName}
               />
             </div>
 
@@ -106,11 +109,6 @@ export function CreateUserDialog({
                   </option>
                 ))}
               </select>
-              {state.fieldErrors?.role && (
-                <span className="text-xs font-medium text-danger">
-                  {state.fieldErrors.role}
-                </span>
-              )}
             </label>
 
             <div className="flex items-center justify-end gap-2">

@@ -3,7 +3,8 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { signUpAction, type AuthFormState } from "@/lib/actions/auth";
-import { Field, FormError, SubmitButton } from "./AuthPrimitives";
+import { Field, SubmitButton } from "./AuthPrimitives";
+import { useActionToast } from "@/components/layout/useActionToast";
 
 const initialState: AuthFormState = {};
 
@@ -12,12 +13,14 @@ export function SignUpForm({ callbackUrl }: { callbackUrl: string }) {
     signUpAction,
     initialState,
   );
+  // Only failures reach here: a successful sign-up signs the user in and
+  // redirects, so there is no success result to announce.
+  useActionToast(state);
 
   return (
     <form action={formAction} className="flex w-full flex-col gap-4">
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
 
-      {state.error && <FormError message={state.error} />}
 
       <div className="flex w-full flex-col gap-4 sm:flex-row">
         <Field

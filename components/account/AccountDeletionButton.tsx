@@ -6,6 +6,8 @@ import {
   requestAccountDeletion,
 } from "@/lib/actions/profile";
 import type { ActionState } from "@/lib/actions/profile";
+import { useActionToast } from "@/components/layout/useActionToast";
+import { useToast } from "@/components/layout/ToastProvider";
 
 const initialState: ActionState = {};
 
@@ -26,6 +28,10 @@ export function AccountDeletionButton({
     requestAccountDeletion,
     initialState,
   );
+  const { toast } = useToast();
+  // No success message: a granted request signs the user straight out, so
+  // there is no page left to toast onto.
+  useActionToast(state, () => null);
 
   if (requested) {
     if (cancelConfirming) {
@@ -64,6 +70,7 @@ export function AccountDeletionButton({
                   startCancel(async () => {
                     await cancelAccountDeletion();
                     setCancelConfirming(false);
+                    toast("Deletion request cancelled.");
                   })
                 }
                 className="flex h-[26px] items-center rounded-md border border-[#16b674]/75 bg-[#72e3ad] px-2.5 text-xs font-medium text-[#030303] hover:bg-[#62d79f] disabled:opacity-50"
@@ -131,11 +138,6 @@ export function AccountDeletionButton({
                   autoComplete="current-password"
                   className={inputClass}
                 />
-                {state.fieldErrors?.currentPassword && (
-                  <span className="text-xs font-medium text-danger">
-                    {state.fieldErrors.currentPassword}
-                  </span>
-                )}
               </label>
             )}
 

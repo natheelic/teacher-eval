@@ -20,6 +20,8 @@ import {
   getEmailProvider,
   type EmailProviderId,
 } from "@/lib/email-providers";
+import { useActionToast } from "@/components/layout/useActionToast";
+import { useToast } from "@/components/layout/ToastProvider";
 
 const initialState: EmailSettingsActionState = {};
 
@@ -65,7 +67,9 @@ export function EmailSettings({
     initialState,
   );
   const [clearing, startClearTransition] = useTransition();
-  const [clearError, setClearError] = useState<string | null>(null);
+  const { toast } = useToast();
+  useActionToast(state, "Settings saved.");
+  useActionToast(testState, (result) => `Test email sent to ${result.sentTo}.`);
 
   // Defaults to whatever was saved; "custom" for a fresh install, which keeps
   // the full host/port form visible rather than presuming a provider.
@@ -81,10 +85,10 @@ export function EmailSettings({
   // resolved, so the button would never show its pending state and a failure
   // would surface as an unhandled rejection.
   function handleClear() {
-    setClearError(null);
     startClearTransition(async () => {
       const result = await clearEmailSettings();
-      if (result?.error) setClearError(result.error);
+      if (result?.error) toast(result.error, "danger");
+      else toast("Email settings cleared.");
     });
   }
 
@@ -111,11 +115,7 @@ export function EmailSettings({
       </div>
 
       <SettingsCard>
-        <form
-          key={`${settings.provider}-${settings.host}-${settings.port}-${settings.from}-${settings.user}`}
-          action={formAction}
-          className="flex w-full flex-col"
-        >
+        <form action={formAction} className="flex w-full flex-col">
           {/* The picker is inside the form so its value submits directly,
               while onChange re-renders the fields below it. */}
           <SettingsBlock
@@ -144,7 +144,12 @@ export function EmailSettings({
             </p>
           </SettingsBlock>
 
+          {/* Keyed on the saved config so the fields below pick up their new
+              defaults after a save. The key stays here and not on the <form>:
+              remounting the form would reset useActionState and wipe the
+              "Settings saved." confirmation the save just produced. */}
           <SettingsBlock
+            key={`${settings.provider}-${settings.host}-${settings.port}-${settings.from}-${settings.user}`}
             title={isCustom ? "Server" : "Credentials"}
             description={
               isCustom
@@ -243,17 +248,6 @@ export function EmailSettings({
               />
             </SettingsField>
 
-            {(state.error || clearError) && (
-              <p className="text-[13px] font-medium text-danger">
-                {state.error ?? clearError}
-              </p>
-            )}
-            {state.ok && (
-              <p className="text-[13px] font-medium text-foreground-secondary">
-                Settings saved.
-              </p>
-            )}
-
             <div className="flex items-center justify-end gap-2">
               {isConfigured && settings.provider !== null && (
                 <button
@@ -291,17 +285,6 @@ export function EmailSettings({
                 className={FIELD_CLASS}
               />
             </SettingsField>
-
-            {testState.error && (
-              <p className="break-words rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-[13px] font-medium text-danger">
-                {testState.error}
-              </p>
-            )}
-            {testState.ok && (
-              <p className="text-[13px] font-medium text-foreground-secondary">
-                Test email sent to {testState.sentTo}.
-              </p>
-            )}
 
             <div className="flex items-center justify-end">
               <button

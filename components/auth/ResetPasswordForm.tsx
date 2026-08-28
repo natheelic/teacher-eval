@@ -3,7 +3,8 @@
 import { useActionState } from "react";
 import { resetPassword } from "@/lib/actions/password-reset";
 import type { AuthFormState } from "@/lib/actions/auth";
-import { Field, FormError, SubmitButton } from "./AuthPrimitives";
+import { Field, SubmitButton } from "./AuthPrimitives";
+import { useActionToast } from "@/components/layout/useActionToast";
 
 const initialState: AuthFormState = {};
 
@@ -12,12 +13,13 @@ export function ResetPasswordForm({ token }: { token: string }) {
     resetPassword,
     initialState,
   );
+  // Success signs the user straight in and redirects, so failures only.
+  useActionToast(state);
 
   return (
     <form action={formAction} className="flex w-full flex-col gap-4">
       <input type="hidden" name="token" value={token} />
 
-      {state.error && <FormError message={state.error} />}
 
       <Field
         label="New password"

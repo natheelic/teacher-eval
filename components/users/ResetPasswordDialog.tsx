@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { resetUserPassword } from "@/lib/actions/users";
 import type { ActionState } from "@/lib/actions/profile";
+import { useActionToast } from "@/components/layout/useActionToast";
 
 const initialState: ActionState = {};
 
@@ -19,6 +20,15 @@ export function ResetPasswordDialog({
     resetUserPassword,
     initialState,
   );
+  useActionToast(
+    state,
+    `Password reset for ${label}. Their sessions were signed out.`,
+  );
+  // The toast carries the confirmation, so the dialog closes itself rather
+  // than holding a success panel behind it.
+  useEffect(() => {
+    if (state.ok) onClose();
+  }, [state.ok, onClose]);
 
   return (
     <div
@@ -39,26 +49,6 @@ export function ResetPasswordDialog({
           Reset password
         </h2>
 
-        {/* Explicit success state rather than auto-dismissing: the reset also
-            signed the user out everywhere, which is worth confirming. */}
-        {state.ok ? (
-          <>
-            <p className="text-[13px] font-medium text-foreground-secondary">
-              Password reset for {label}. Their existing sessions were signed
-              out.
-            </p>
-            <div className="flex items-center justify-end">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex h-[26px] items-center rounded-md border border-border-strong bg-background px-2.5 text-xs font-medium text-foreground hover:bg-hover"
-              >
-                Done
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
         <p className="text-[13px] font-medium text-foreground-secondary">
           Sets a new password for {label} and signs them out everywhere.
         </p>
@@ -74,11 +64,6 @@ export function ResetPasswordDialog({
             autoComplete="new-password"
             className="h-[34px] w-full rounded-md border border-border-strong bg-hover px-3 text-[13px] font-medium text-foreground outline-none focus:border-border-emphasis"
           />
-          {state.fieldErrors?.password && (
-            <span className="text-xs font-medium text-danger">
-              {state.fieldErrors.password}
-            </span>
-          )}
         </label>
 
         <div className="flex items-center justify-end gap-2">
@@ -97,8 +82,6 @@ export function ResetPasswordDialog({
             {pending ? "Resetting..." : "Reset password"}
           </button>
         </div>
-          </>
-        )}
       </form>
     </div>
   );

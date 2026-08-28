@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { signInAction, type AuthFormState } from "@/lib/actions/auth";
-import { Field, FormError, SubmitButton } from "./AuthPrimitives";
+import { Field, SubmitButton } from "./AuthPrimitives";
+import { useActionToast } from "@/components/layout/useActionToast";
 
 const initialState: AuthFormState = {};
 
@@ -13,6 +14,15 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
     initialState,
   );
   const showCode = state.needsCode ?? false;
+
+  // A `needsCode` result is the prompt for the field that just appeared —
+  // "Enter the 6-digit code from your authenticator app." is an instruction,
+  // not a failed submission, and it has to stay on screen while the user digs
+  // their phone out rather than expiring on a 5s timer. So that one message
+  // stays inline (its retry, "Incorrect code. Try again.", stays with it) and
+  // everything else — bad credentials, rate limiting — toasts.
+  const toastable = useMemo(() => (state.needsCode ? {} : state), [state]);
+  useActionToast(toastable);
 
   // Controlled rather than relying on the browser retaining uncontrolled
   // input DOM state across the two submissions this flow needs once 2FA is
@@ -24,7 +34,6 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
     <form action={formAction} className="flex w-full flex-col gap-4">
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
 
-      {state.error && <FormError message={state.error} />}
 
       <Field
         label="Email"
@@ -52,6 +61,14 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
       >
         Forgot password?
       </Link>
+      {showCode && state.error && (
+        <p
+          role="alert"
+          className="text-[13px] font-medium text-foreground-secondary"
+        >
+          {state.error}
+        </p>
+      )}
       {showCode && (
         <Field
           label="Authentication code"

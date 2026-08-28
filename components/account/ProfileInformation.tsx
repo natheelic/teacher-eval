@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import { updateProfile, type ActionState } from "@/lib/actions/profile";
 import { resendVerificationEmail } from "@/lib/actions/email-verification";
 import { SectionHeading, SettingsCard } from "./SettingsPrimitives";
+import { useActionToast } from "@/components/layout/useActionToast";
 
 export type ProfileInformationProps = {
   user: {
@@ -55,6 +56,8 @@ export function ProfileInformation({
   );
   const [verifyState, setVerifyState] = useState<ActionState>({});
   const [verifyPending, startVerifying] = useTransition();
+  useActionToast(state, "Profile saved.");
+  useActionToast(verifyState, "Verification email sent.");
 
   function resendVerification() {
     startVerifying(async () => {
@@ -73,9 +76,6 @@ export function ProfileInformation({
             placeholder="First name"
             className={inputClass}
           />
-          {state.fieldErrors?.firstName && (
-            <FieldError message={state.fieldErrors.firstName} />
-          )}
         </Row>
 
         <Row label="Last name">
@@ -85,9 +85,6 @@ export function ProfileInformation({
             placeholder="Last name"
             className={inputClass}
           />
-          {state.fieldErrors?.lastName && (
-            <FieldError message={state.fieldErrors.lastName} />
-          )}
         </Row>
 
         <Row
@@ -103,13 +100,12 @@ export function ProfileInformation({
             aria-label="Primary email"
             className={`${inputClass} cursor-not-allowed text-foreground-muted opacity-70`}
           />
+          {/* Verified / Not verified is account *status*, not action
+              feedback, so it stays inline; whether the resend succeeded is
+              announced by a toast. */}
           {user.emailVerified ? (
             <span className="text-xs font-medium text-success">
               Verified
-            </span>
-          ) : verifyState.ok ? (
-            <span className="text-xs font-medium text-success">
-              Verification email sent
             </span>
           ) : (
             <div className="flex items-center gap-2">
@@ -126,11 +122,6 @@ export function ProfileInformation({
                   {verifyPending ? "Sending..." : "Resend"}
                 </button>
               )}
-              {verifyState.error && (
-                <span className="text-xs font-medium text-danger">
-                  {verifyState.error}
-                </span>
-              )}
             </div>
           )}
         </Row>
@@ -142,20 +133,9 @@ export function ProfileInformation({
             placeholder="username"
             className={inputClass}
           />
-          {state.fieldErrors?.username && (
-            <FieldError message={state.fieldErrors.username} />
-          )}
         </Row>
 
         <div className="flex w-full items-center justify-end gap-3 p-4">
-          {state.ok && (
-            <span className="text-xs font-medium text-success">Saved</span>
-          )}
-          {state.error && (
-            <span className="text-xs font-medium text-danger">
-              {state.error}
-            </span>
-          )}
           <button
             type="submit"
             disabled={pending}
@@ -167,8 +147,4 @@ export function ProfileInformation({
       </SettingsCard>
     </form>
   );
-}
-
-function FieldError({ message }: { message: string }) {
-  return <p className="text-xs font-medium text-danger">{message}</p>;
 }
