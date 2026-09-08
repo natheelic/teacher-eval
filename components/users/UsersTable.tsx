@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MoreHorizontal } from "lucide-react";
 import { UserFilters } from "./UserFilters";
 import { UserRowActions } from "./UserRowActions";
 import { CreateUserDialog } from "./CreateUserDialog";
@@ -29,11 +30,16 @@ const STATUS_STYLES: Record<UserStatus, string> = {
   SUSPENDED: "border-danger/40 bg-danger/10 text-danger",
 };
 
+/**
+ * Distinct per role so the permission ladder (ADMIN > MANAGER > MEMBER >
+ * VIEWER) reads at a glance — MANAGER and MEMBER used to share identical
+ * styling, making them indistinguishable in the table.
+ */
 const ROLE_STYLES: Record<Role, string> = {
-  ADMIN: "border-foreground/20 bg-hover text-foreground",
-  MANAGER: "border-border-strong bg-surface text-foreground-secondary",
+  ADMIN: "border-foreground bg-foreground text-background",
+  MANAGER: "border-success/40 bg-success/10 text-success-strong",
   MEMBER: "border-border-strong bg-surface text-foreground-secondary",
-  VIEWER: "border-border-strong bg-surface text-foreground-muted",
+  VIEWER: "border-border bg-hover text-foreground-muted",
 };
 
 /**
@@ -162,9 +168,19 @@ export async function UsersTable({ searchParams }: UsersTableProps) {
                         assignableRoles={assignable}
                         canDelete={canDeleteUsers(viewer.role)}
                       />
+                    ) : row.isYou ? (
+                      <button
+                        type="button"
+                        disabled
+                        title="You can't manage your own account here — use Account settings instead."
+                        aria-label="No actions available for your own account"
+                        className="ml-auto flex size-7 items-center justify-center rounded-md text-foreground-disabled disabled:cursor-not-allowed"
+                      >
+                        <MoreHorizontal className="size-3.5" />
+                      </button>
                     ) : (
                       <span className="text-xs font-medium text-foreground-disabled">
-                        {row.isYou ? "—" : "No access"}
+                        No access
                       </span>
                     )}
                   </td>
