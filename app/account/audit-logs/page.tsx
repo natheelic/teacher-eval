@@ -15,7 +15,7 @@ export default async function AuditLogsPage({
         <SettingsSidebar active="Audit Logs" />
         <main className="flex-1 min-w-0 overflow-x-auto">
           <div className="flex flex-col items-center pt-12">
-            <div className="flex w-full max-w-[1200px] flex-col gap-1 px-4 sm:px-10">
+            <div className="flex w-full flex-col gap-1 px-4 sm:px-10">
               <h1 className="font-display text-[22px] font-semibold tracking-[-0.55px] text-foreground">
                 Audit Logs
               </h1>
@@ -24,7 +24,7 @@ export default async function AuditLogsPage({
               </p>
             </div>
 
-            <div className="flex w-full max-w-[1200px] flex-col px-4 pb-24 pt-12 sm:px-10">
+            <div className="flex w-full flex-col px-4 pb-24 pt-12 sm:px-10">
               <AuditLogsTable searchParams={params} />
             </div>
           </div>
