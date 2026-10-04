@@ -1,718 +1,254 @@
-# Roadmap
+# Teacher Performance Evaluation System — Roadmap
 
-Where Portal is, and what it needs next. Every item below is derived from the actual state of the
-code — nothing here is aspirational filler. Requirement identifiers (`FR-nn`) and deviation
-identifiers (`D-n`) refer to [`SRS.md`](./SRS.md).
+Implementation roadmap for the system described in [PLAN.md](./PLAN.md), for
+วิทยาลัยการอาชีพลอง (Long Industrial and Community Education College). The goal is a real,
+role-secured application for managing evaluation rounds, assignments, scoring, review, and reports —
+not a static mockup.
 
-**Ordering principle:** the highest-value work is not new features. It is closing the gap between
-what the interface *claims* and what the system *does*. A toggle that persists a boolean nothing
-reads is worse than no toggle at all — it misleads the person using it.
+## Current state
 
----
+The repository currently contains a user-management application, not the teacher-evaluation system.
+There are no teacher, department, committee-assignment, evaluation, scoring, or result modules to
+count as shipped. The existing Next.js, Auth.js, Prisma, PostgreSQL, audit, and settings
+infrastructure may be reusable, but its current user roles and administrative workflows do not
+implement this project. Treat evaluation functionality below as **not started** until it exists and
+meets its exit criteria.
 
-## Phase 0 — Shipped ✅
+The requirements for every phase are specified in [`SRS.md`](./SRS.md) (FR-100 and above for the
+evaluation system), where each not-yet-built requirement is marked **[PLANNED — Phase n]**.
 
-Complete and working today.
+| Phase | Status |
+|---|---|
+| 0 — Policy and foundation | Policy **pending HR confirmation**; the system ships PLAN.md's examples as editable defaults (SRS Appendix C, P-1 – P-10). Foundation done: Supabase schema `portal`, Vitest available. |
+| 1 — Identity, access, navigation | In progress |
+| 2 — Core records | In progress |
+| 3 — Criteria and assignments | In progress |
+| 4 — Committee scoring | In progress |
+| 5 — HR monitoring, review, finalization | In progress |
+| 6 — Results and reports | In progress |
+| 7 — Search, notifications, usability | In progress |
+| 8 — Production readiness | Not started (out of scope for the current implementation pass) |
 
-- ✅ **Credentials authentication** with case-insensitive email, constant-work verification, and
-  rejection of soft-deleted accounts — `auth.ts`
-- ✅ **Optional Google OAuth**, registered only when both credentials are configured, with
-  dangerous email linking disabled — `auth.config.ts`
-- ✅ **Bootstrap admin**: the first account created becomes `ADMIN`, making a fresh database
-  usable — `lib/bootstrap.ts`
-- ✅ **Role-based authorization** with the escalation guards intact: no self-action, managers act
-  only on strictly lower ranks, managers assign only below their own rank, delete is admin-only,
-  and the last active admin cannot be demoted, suspended or deleted — `lib/permissions.ts`,
-  `lib/actions/users.ts`
-- ✅ **Single authorization boundary** — `requireUser()` is the only place revocation, suspension
-  and deletion are enforced, so all three take effect on the very next request —
-  `lib/auth/require-session.ts`
-- ✅ **User administration**: create, change role, suspend/reactivate, reset password, soft delete
-  with email rewriting — `lib/actions/users.ts`
-- ✅ **Users table** with search, role and status filters, cursor pagination, and unfiltered
-  population stats — `lib/queries/users.ts`, `components/users/`
-- ✅ **Device sessions** — created on sign-in, labelled from the user agent, listable, revocable
-  individually or in bulk, and revoked automatically on suspension and password change
-- ✅ **API token issuance** — SHA-256 storage, one-time plaintext reveal, masked preview,
-  revocation — `lib/actions/tokens.ts`
-- ✅ **Audit log** with 18 action codes, best-effort writes that can never fail the underlying
-  operation, and scope enforcement that constrains non-managers to their own rows even when they
-  request `scope=all` — `lib/audit.ts`, `lib/queries/audit.ts`
-- ✅ **Preferences** persisted per user, with theme applied before first paint via a
-  paint-blocking script and a `localStorage` cache — `lib/actions/preferences.ts`
-- ✅ **Mobile navigation** and a ⌘K command palette shell
+Confirmed implementation decisions (2026-10-04):
 
----
+- Roles are **replaced**: `ADMIN` (HR) / `COMMITTEE` / `TEACHER`. The old
+  `MANAGER`/`MEMBER`/`VIEWER` roles are removed, not mapped.
+- **No public registration.** The first admin is provisioned with `scripts/create-admin.mts`; HR
+  creates all other accounts and links them to teacher or committee records.
+- Data lives in the Supabase Postgres schema `portal`. The unrelated tables in `public`
+  (`teachers`, `committees`, `evaluations`, `profiles`) belong to another application and are not
+  imported or touched.
+- The rubric is stored **per round** and frozen when the round opens. That frozen copy is the
+  snapshot every evaluation in the round is scored against.
+- PDF output uses the browser's print-to-PDF on the A4 print page. There is no server-side PDF
+  renderer.
 
-## Phase 1 — Close the honesty gaps 🔴
+`PLAN.md` is the product brief. Before implementing official scoring, HR must confirm the current
+approved evaluation form, score limits and weights, result bands, averaging policy, required
+comments, and who may see feedback. The example criteria and result bands in the plan are not
+official policy and must remain configurable.
 
-**Why first:** every item here is a control that a user can operate and reasonably believe took
-effect, when it did not. This is the only category of defect in the codebase that actively
-misleads. None of it is large work.
+## Delivery principles
 
-| # | Item | Why | Files |
-|---|---|---|---|
-| 1.1 | ✅ **`lastLoginAt` written** on successful authentication | The users table renders this column; administrators can now tell an abandoned account from an active one. Stamped in the `jwt` callback's initial-sign-in branch (Credentials and OAuth alike), alongside `DeviceSession` creation. | `auth.ts` |
-| 1.2 | ✅ **Two-factor authentication implemented for real** — TOTP enrollment (QR + manual key + confirm code before anything is persisted), a sign-in challenge step on the Credentials path, and a password-confirmed disable flow | Done — see FR-62. Google sign-in is deliberately not gated by this. | `lib/auth/totp.ts`, `lib/actions/twoFactor.ts`, `components/account/TwoFactorSettings.tsx`, `auth.ts` |
-| 1.3 | ✅ **`sidebarBehavior` removed** — dropped rather than wired up | Nothing ever read it (D-3, FR-71); the `UserPreferences` column and `SidebarBehavior` enum are gone. | — |
-| 1.4 | ✅ **`telemetryEnabled`, `editEntitiesInCode`, `queueTableOperations` removed** | Three inert switches (D-4), dropped rather than implemented — no telemetry client, no code-editor mode, no batched edits exist anywhere in the app to wire them to. | — |
-| 1.5 | ✅ **Keyboard shortcuts section removed** | The list was hardcoded, several entries named features deleted with the tenancy layer ("New project", "Publish OAuth app", "Add project connection"), and none of the 13 toggles — including the one for ⌘K — were ever read; ⌘K itself is hardcoded in `CommandPalette.tsx` independent of the toggle and is unaffected (D-5). | — |
-| 1.6 | ✅ **Fixed stale copy on `/signup`** — no longer promises the account "creates your organization and a first project" | Directly contradicted what the product does; replaced with neutral copy (D-10, resolved). | `app/(auth)/signup/page.tsx` |
-| 1.7 | ✅ **`NoticeBanner` removed** | It showed fixed marketing copy claiming an in-progress Terms of Service update, forever, on every page — and its dismissal wasn't persisted, so it reappeared on every navigation. This is properly an admin-authored-announcement feature, which needs the same admin panel the logo-upload and feedback-viewing items are waiting on — deferred there as 6.3 rather than rebuilt as a one-off. Deleted the hardcoded version now rather than leave it lying to users in the meantime. | — |
-| 1.8 | ✅ **Dead chrome wired or removed** — `Header`'s Feedback and Docs buttons now use the same real `FeedbackDialog`/`/docs` link `AccountHeader` already had; its Notifications (Bell) button was removed outright, since no notification feature exists anywhere to wire it to; `IconSidebar`'s decorative collapse control (no collapsed state existed anywhere) was removed the same way. The "Users" nav item was already correctly conditional on `pathname` — that part of D-15 no longer described the code. | Done (D-15, resolved). | `components/dashboard/{Header,IconSidebar}.tsx` |
+- Build a functional end-to-end workflow before adding secondary dashboard polish.
+- Keep UI, authorization, scoring, persistence, notifications, and report generation in separate,
+  testable layers.
+- Enforce permissions on the server for every page, query, action, and export; hiding a control is
+  not authorization.
+- Derive totals and status from persisted, validated records. Never trust client-submitted totals or
+  a teacher/committee identifier without checking the signed-in user's assignment.
+- Preserve a history of submitted, reopened, reviewed, and finalized work. Do not silently overwrite
+  submitted evaluations or published criteria.
+- Keep sample data confined to development/demo use; do not seed real-looking accounts or scores
+  into production.
+- Use readable Thai typography, responsive layouts, accessible controls, and print-specific A4
+  styles throughout.
+- Close each phase against its exit criteria before treating it as complete.
 
-**Exit criteria:** no control in the interface persists state that nothing reads, and no copy
-describes a capability the system lacks.
+## Phases
 
----
+### Phase 0 — Confirm policy and prepare the foundation
 
-## Phase 2 — Make API tokens real 🟠
+**Outcome:** agreed business rules and a safe base for the new application.
 
-**Why:** tokens are fully implemented on the issuing side — hashing, preview, revocation, audit —
-and completely unimplemented on the consuming side. Nothing authenticates with them, so the
-feature currently produces secrets that do nothing (D-6).
+- Confirm the official evaluation form and the meaning, minimum, maximum, and weighting of each
+  criterion.
+- Decide how committee scores combine (initial recommendation: arithmetic average of submitted,
+  valid evaluations, unless HR policy requires a different method).
+- Confirm review and finalization authority, reopening rules, comment visibility, result access, and
+  any appeal or correction process.
+- Confirm the Buddhist/academic year convention, round dates, and required Thai report wording.
+- Inventory existing authentication, role, audit, email, database, and deployment behavior before
+  reusing it. Plan any role/schema migration; do not map existing roles to evaluation roles by
+  assumption.
+- Establish a test baseline and document environment setup and database migration practices.
 
-- **2.1** ✅ Bearer-token authentication path added: `authenticateApiToken(request)` in
-  `lib/auth/api-token.ts` hashes the presented token via the existing `hashToken()`, looks it up
-  by the unique `tokenHash`, and rejects a missing/malformed header, an unknown hash, a revoked
-  token, an expired one, or one belonging to a deleted/suspended account — mirroring
-  `getCurrentUser()`'s account-state checks. Returns `null` uniformly rather than distinguishing
-  the failure reason. Scopes are returned but not enforced (2.5).
-- **2.2** ✅ `GET /api/me` (`app/api/me/route.ts`) is the first machine route this path protects —
-  returns the token holder's id/email/role/status, or 401 with `WWW-Authenticate: Bearer`. Wiring
-  it up surfaced a real bug: the proxy's session-redirect gate covered `/api/*` too, so an
-  unauthenticated machine request was 307-redirected to the HTML `/signin` page before the route
-  handler ever ran — `PUBLIC_PREFIXES` in `auth.config.ts` only excluded `/api/auth`. Widened it to
-  `/api`, since every route under `app/api/` (NextAuth's own handlers included) already owns its
-  authentication and its own 401/error response; the proxy's redirect-based gate was never the
-  right mechanism for a machine client. Verified end-to-end: minted a real token via
-  `/account/access-tokens`, confirmed `GET /api/me` with it returns 200 with the right identity,
-  confirmed a request with no token or a garbage token gets 401 (not a redirect), and confirmed
-  revoking the token immediately breaks it. Session-gated pages (e.g. `/dashboard`) still redirect
-  to `/signin` as before — only `/api/*` changed.
-- **2.3** ✅ `authenticateApiToken()` now writes `ApiToken.lastUsedAt` on each successful
-  authentication, fired without awaiting so the write never adds latency to (or, on failure, ever
-  breaks) the request it's authenticating — mirroring `touchDeviceSession()`'s best-effort pattern
-  in `require-session.ts`. The `/account/access-tokens` list already read this column (it was one
-  of the stored-but-never-written fields), so it now shows "Last used: just now" without any UI
-  change needed.
-- **2.4** ✅ The creation form (`AccessTokensTable.tsx`) now offers an "Expiration" `<select>`
-  (No expiration / 7 / 30 / 90 / 365 days) alongside the name field; `createApiToken()` resolves it
-  server-side to an `expiresAt` timestamp (an unrecognized or missing value — including a tampered
-  request — falls back to "never expires" rather than erroring, since it's a closed set driven by
-  a `<select>`, not free text). `authenticateApiToken()` already enforced `expiresAt` from 2.1; the
-  token list now also renders it ("Expires 2 Sept 2026" / "No expiration" / "Expired 25 Aug 2026"
-  in red), with the expired/not-expired comparison deferred to after hydration
-  (`useSyncExternalStore`, the same pattern `RelativeTime` uses) so the server render and the
-  client's hydration pass can't disagree about whether "now" has crossed the threshold.
-- **2.5** ✅ `lib/auth/scopes.ts` defines the controlled vocabulary — `API_TOKEN_SCOPES`, currently
-  just `identity:read` — as the single source of truth, so the column can't accumulate ad-hoc
-  strings as more routes are added. The creation form renders a checkbox per entry (defaulting to
-  checked, so a freshly minted token works out of the box); `createApiToken()` filters submitted
-  values against the vocabulary before writing `ApiToken.scopes`, silently dropping anything
-  unrecognized (a tampered request just doesn't get that scope, rather than erroring). `GET
-  /api/me` calls the new `hasScope(auth, "identity:read")` and returns `403` (not `401` — the
-  token is valid, just not permitted) when it's missing. The token list shows each token's scopes,
-  with an explicit warning ("No scopes — every route will reject this token") when empty.
-  **Found and left in place, not fixed (out of scope for this item):** the creation dialog's
-  `showDialog = dialogOpen && !state.plaintext` never re-opens after the first successful mint in
-  a session, since `useActionState`'s `state.plaintext` only clears when the action runs again —
-  which it can't, because the dialog won't show. A page reload works around it. Pre-existing, not
-  introduced by 2.1–2.5; worth its own item.
-- **2.6** ✅ `lib/queries/account.ts` now calls `tokenPreview()` instead of re-inlining its exact
-  logic (`` `${prefix}_${"•".repeat(8)}${last4}` ``); the duplicate expression is gone, output is
-  unchanged.
+**Exit criteria:** HR-approved rules are recorded; role and data migration risks are understood; the
+development environment and test commands are reproducible.
 
-**Exit criteria:** a token minted in the UI can authenticate a request, and its `lastUsedAt`
-updates.
+### Phase 1 — Application identity, access, and navigation
 
----
+**Outcome:** users can sign in to a coherent Thai evaluation application and see only the areas
+their role may access.
 
-## Phase 3 — Account lifecycle 🟡
+- Replace the Portal/user-management product identity with the college and system identity from
+  `PLAN.md`; implement the navy/blue, white, and restrained gold visual system and Thai font choice.
+- Define and enforce the project roles: `ADMIN`/HR, `COMMITTEE`, and `TEACHER`. Add explicit
+  permissions for committee assignment, evaluation, review, reopening, finalization, and result
+  viewing.
+- Provide sign-in, sign-out, protected routes, session handling, and safe unauthorized responses.
+  Decide whether account creation is invitation-only; do not expose public registration by default
+  for a staff-only evaluation system.
+- Add responsive role-aware navigation and page shells. Provide useful empty/loading/error states.
+- Add development-only demo accounts and data setup instructions once the access model exists.
 
-**Why:** three schema features describe a lifecycle the code does not implement. Each requires
-email transport, which the system did not have — the first decision in this phase was whether to
-add a mail dependency at all. **Decided: yes** (3.1's implementation). 3.2 and 3.3 can now build
-on the same transport rather than re-litigating the question.
+**Exit criteria:** each role can authenticate in a test environment; server-side authorization tests
+prove cross-role and cross-record access is denied; the app shell works on phone, tablet, and
+desktop.
 
-- **3.1** ✅ **Invitations.** `createUser()` now invites rather than creates directly: it sets
-  `status: INVITED` with **no password** (the admin never sees or sets one) and emails a one-time
-  acceptance link. Accepting it (`/invite/accept`, public) sets the invitee's own password, flips
-  `status` to `ACTIVE`, and signs them in immediately — mirroring sign-up's create-then-`signIn()`
-  shape. A manager/admin can resend the invite to any still-`INVITED` row from the row actions
-  menu, which correctly shows "Resend invite" there instead of "Reset password" (there's no
-  password yet to reset). `D-7` resolved (FR-40, FR-40a – FR-40d).
-  - **Email transport chosen:** `nodemailer` against SMTP, gated behind `emailEnabled`
-    (`SMTP_HOST`/`SMTP_PORT`/`SMTP_FROM`, mirroring how `googleEnabled` gates Google) rather than a
-    hosted-API provider (Resend, Postmark, …) — this app runs as a long-lived Node server, not a
-    serverless/edge target, so there's no runtime constraint pushing toward a fetch-based API, and
-    plain SMTP means local dev needs no third-party account: `docker-compose.yml` runs Mailpit,
-    caught mail viewable at `http://localhost:8025`. Swapping to a hosted provider later is a
-    `lib/email.ts` change, not an application-wide one.
-  - **Token storage:** reused the Auth.js adapter's existing `VerificationToken` model
-    (`identifier`/`token`/`expires`) rather than a new table — it already exists, unused, in the
-    schema (no Email provider is registered). Stored as a `hashToken()` hash, one-time (deleted on
-    consumption), 7-day expiry.
-  - **Verified end-to-end in Chrome + Mailpit:** invited a real address, confirmed the `INVITED`
-    badge (previously unreachable) rendered, opened the actual sent email, followed its link,
-    activated the account, landed auto-signed-in on `/dashboard` with the audit trail correct on
-    both sides (`user.invited` for the inviter, `user.invitation.accepted` for the invitee).
-    Re-visiting the same link afterward correctly showed "This invitation link is invalid or has
-    expired." Resending produced a second, independent email.
-- **3.2** ✅ **Email verification.** `emailVerified` is now stamped on every path that can prove
-  address control: a Credentials sign-up sends a best-effort verification link (never a gate on
-  using the account — a fresh install with no SMTP configured yet, or a transient send failure,
-  must not block registration); a Google sign-in stamps it directly from the provider's own
-  `email_verified` claim (no link needed — Google already checked); accepting an invitation stamps
-  it too, since clicking a link mailed to that address is already proof. `/account/preferences`
-  shows "Verified" / "Not verified" + a resend action for the unverified case.
-  - **Token machinery generalized rather than duplicated:** `lib/auth/invitations.ts`'s
-    create/consume-token logic moved to a new `lib/auth/verification-tokens.ts` (generic
-    `createVerificationToken(email, ttlMs)` / `consumeVerificationToken()`), which both
-    invitations (7-day expiry) and email verification (24-hour) now call — same primitive, two
-    TTLs, no copy-pasted hashing/expiry logic. `lib/email.ts` gained a shared `escapeHtml()` for
-    both email templates.
-  - **`/verify-email?token=...` verifies on render, not behind a button** — a plain async
-    function call from a Server Component, not a `"use server"` action, matching how
-    `requireUser()`'s own soft-delete-on-expiry already establishes that a state-changing side
-    effect triggered by navigation (not a form submit) is an accepted pattern here. A single-use
-    link is conventionally expected to "just work" on click.
-  - **Verified end-to-end in Chrome + Mailpit:** signed up fresh — account usable immediately, a
-    real verification email arrived without any explicit trigger; clicked its link → "Email
-    verified" page → DB confirmed `emailVerified` stamped and the token row consumed. Separately,
-    triggered "Resend" on an existing unverified seed account from `/account/preferences`,
-    followed that link, and watched the badge flip from "Not verified" to "Verified" on reload.
-- **3.3** ✅ **Forgot password.** `/forgot-password` (email only) and `/reset-password?token=...`
-  (new password) give a locked-out user a self-service path that doesn't depend on an admin being
-  available. Shares `verification-tokens.ts` with 3.1/3.2 — a 1-hour expiry, tighter than email
-  verification's 24 hours, since a password reset is more sensitive than an address-ownership
-  check.
-  - **Enumeration deliberately closed off:** `requestPasswordReset()` returns the identical
-    `{ ok: true }` regardless of whether the email matches an `ACTIVE` account — no message that
-    varies by outcome, unlike sign-up's "already in use" check. This is the one flow in the app
-    worth that protection, since (unlike sign-up) it's the natural target for probing which
-    addresses have accounts. Whether email is configured at all is still revealed up front — that's
-    operational state, not account data, so it can fail loudly before the enumeration-safe check.
-  - **Session handling mirrors the admin-initiated reset, not a signed-in password change:** every
-    `DeviceSession` is revoked, with no "current session" exemption — the requester isn't
-    authenticated yet, so there's nothing to exempt. A distinct audit code
-    (`account.password.reset_completed`) keeps it separable from an admin's `user.password.reset`
-    in the log.
-  - **Verified end-to-end in Chrome + Mailpit:** requested a reset for a real account → real email
-    arrived → followed its link → set a new password → landed auto-signed-in on `/dashboard`, with
-    both "Requested a password reset" and "Reset password via emailed link" in the audit trail.
-    Requesting a reset for a nonexistent email produced the byte-identical on-screen confirmation
-    and, confirmed via Mailpit, sent no email at all. Re-submitting the same (now-consumed) link
-    was correctly rejected as invalid/expired, matching invitations' and email-verification's
-    single-use behavior.
-- ✅ **3.4 — Honour deletion requests.** `deletionRequestedAt` is now enforced: `requireUser()`
-  soft-deletes any account past the 30-day window on its next request (no scheduled job — there is
-  no job runner in this app, so it piggybacks on the same chokepoint that already enforces
-  revocation and suspension), reusing the soft-delete semantics of FR-44 via `softDeleteUser()` in
-  `lib/auth/deletion.ts`. Requesting deletion now also requires a password confirmation and
-  revokes every `DeviceSession`, including the current one, so the request takes effect
-  immediately rather than leaving the session live for up to 30 days. Formerly D-8, now resolved.
+### Phase 2 — Core records and administration
 
-**Exit criteria:** a user can be onboarded and can recover access without administrator
-intervention — or the unreachable states have been removed from the schema.
+**Outcome:** HR can maintain the records needed to open an evaluation round.
 
----
+- Add departments and teacher profiles, including staff ID, name/prefix, position, academic rank,
+  department, contact details, employment type, active status, and optional profile image.
+- Add committee-member profiles and committee groups, including member role (chair, member,
+  secretary), contact details, and active status.
+- Add evaluation rounds with academic year, round number, title, date range, description, and
+  controlled lifecycle (`DRAFT`, `OPEN`, `IN_PROGRESS`, `CLOSED`, `FINALIZED`).
+- Add searchable, filterable HR management screens for teachers, departments, committee members,
+  and rounds. Prefer deactivation or archival over destructive deletion when records are in use.
+- Add audited create/update/deactivate operations and validation for unique identifiers and
+  required fields.
 
-## Phase 4 — Audit depth 🟡
+**Exit criteria:** HR can create, update, search, filter, and deactivate records; referential
+integrity and duplicate constraints are enforced in the database and application; changes are
+audited.
 
-**Why:** the audit log stores considerably more than it shows. `actionCode`, `targetUserId`,
-`method`, `statusCode`, `ipAddress`, `userAgent` and `metadata` are all written and none are
-filterable; the view offers only range and scope (D-9).
+### Phase 3 — Configurable criteria and assignments
 
-- **4.1** ✅ **Centralised the action codes.** `lib/audit.ts` now exports `ACTION_CODES` (22
-  codes — grown from FR-85's original 18 as Phase 3 added invitation/reset lifecycle events) as a
-  `const` tuple plus the derived `ActionCode` union, and `AuditInput.actionCode` is typed against
-  it instead of `string`. Every existing call site's literal matched the vocabulary exactly
-  (`pnpm typecheck` passed with zero changes needed elsewhere) — verified the guard is real, not
-  just quiet, by deliberately typo-ing one call site (`"user.role.change"`) and confirming `tsc`
-  rejected it with a "Did you mean" pointing at the correct code, then reverting.
-- **4.2** ✅ **Filters for action code and target added.** `/account/audit-logs` gained an "All
-  actions" `<select>` (options rendered directly from `ACTION_CODES`, humanized —
-  `"user.role.changed"` → `"User role changed"` — so there's no separate label map to keep in
-  sync) and a "Search target" free-text box matching `targetLabel` case-insensitively, mirroring
-  `UserFilters`' existing search-box pattern (uncontrolled input keyed by the current value, so
-  the URL — not React state — is the source of truth). Both compose with the existing range/scope
-  filters and reset pagination on change; a "Clear filters" button appears only once one is
-  active.
-  - **Split `ACTION_CODES` out of `lib/audit.ts` into `lib/action-codes.ts`:** the filter select is
-    a Client Component, and `lib/audit.ts` imports `next/headers` and the Prisma client — pulling
-    that into the browser bundle broke the build (`pg`/`@prisma/adapter-pg` have no browser
-    build). `lib/audit.ts` re-exports both `ACTION_CODES` and `ActionCode` from the new module, so
-    every existing server-side import kept working unchanged.
-  - **Verified live:** selecting an action filtered the table to only matching rows, with the URL
-    reflecting `?actionCode=...`; searching a target's name matched case-insensitively; "Clear
-    filters" reset both filters and returned to the full unfiltered log. Also caught, via the
-    build, that a Client Component transitively importing Prisma is a real error, not just a
-    lint nit — confirms the fix actually mattered rather than being defensive-only.
-- **4.3** ✅ **IP, user agent and `metadata` surfaced in an expandable row detail.** Each row in
-  `/account/audit-logs` is now a small client component (`AuditLogRow.tsx`) rather than a plain
-  `<tr>` — needed for per-row expand/collapse state, which a server component can't hold. Clicking
-  a row with at least one of the three present toggles a detail line below it (IP address, user
-  agent, and pretty-printed `metadata` when set); a row with none of them shows no chevron and
-  isn't clickable, which in practice only happens for a request-less write like the grace-period
-  deletion sweep.
-  - **`metadata` is genuinely never populated by any call site today** — despite the original
-    "Why" framing above listing it alongside the other written-but-unsurfaced columns, `grep`
-    turned up zero uses. The detail view still renders it whenever present, so a future call site
-    that starts passing it needs no UI change — but there's nothing to see yet.
-  - **Verified live:** expanded a row, confirmed the real IP (`::1`, this session's Mailpit-fronted
-    localhost) and user agent (this session's actual Chrome/Mac string) rendered correctly;
-    collapsed it back; expanded two different rows simultaneously to confirm state is per-row, not
-    shared.
-- **4.4** ✅ **CSV export for a filtered range.** "Export CSV" on `/account/audit-logs` mirrors the
-  current filters (range/scope/actionCode/target, minus pagination) into
-  `GET /account/audit-logs/export`, which returns an RFC 4180 CSV covering the whole filtered
-  range in one file (capped at 5,000 newest rows) rather than just the loaded page.
-  - **Refactored `lib/queries/audit.ts` rather than duplicating its where-clause:** extracted
-    `buildAuditWhere()` and a shared `toView()` mapper, used by both the existing paginated
-    `getAuditLogs()` and the new unpaginated `getAuditLogsForExport()` — same authorization
-    (`requireUser()`) and scope-clamping logic in one place, not copy-pasted.
-  - **Route placement was a real decision, not default:** the export route is `GET
-    app/account/audit-logs/export/route.ts`, deliberately *not* under `app/api/` — that prefix is
-    public (skips the proxy's session-redirect gate, per Phase 2's bearer-token routes), which is
-    wrong for a route that needs the ordinary session-cookie protection every other page gets.
-    Verified with `curl`: an unauthenticated request to the export URL gets the same 307 to
-    `/signin` as any other protected page.
-  - **New `lib/csv.ts`:** minimal RFC 4180 serialization (quote a field only when it contains a
-    comma/quote/newline, double embedded quotes) — no library needed for nine columns.
-  - **Verified live:** rather than trust a browser file download (Chrome's automation profile
-    didn't surface it in `~/Downloads` — plausibly restricted in that context), exercised the
-    authenticated route directly via `fetch()` from the page's own JS console: `200`, correct CSV
-    header row, real DB rows, proper quoting on fields containing commas (formatted dates,
-    user-agent strings), and exactly 20 lines (header + 19 rows) matching the UI's "Viewing 19
-    logs in total".
-- **4.5** ✅ **Considered — documented, deliberately not enforced.** Decision (asked explicitly,
-  since unlike every other Phase 4 item this one is a policy call, not a build task):
-  document a recommendation rather than build enforcement now. Recorded as `DR-05` in
-  `docs/SRS.md` — retain `AuditLog` rows for 365 days from `createdAt`, then archive or
-  hard-delete, a common security-log baseline that comfortably covers this app's own longest
-  built-in look-back (`AuditRange`'s `30d`). Left unenforced because this app has **no
-  scheduled-job infrastructure at all** — the only other time-based cleanup here (the 30-day
-  deletion grace period, FR-61a) works by piggybacking on `requireUser()`, a chokepoint every
-  authenticated request already passes through, and `AuditLog` rows have no equivalent per-row
-  request trigger to piggyback on. Building a cron/job runner just for this one item would be
-  disproportionate to the rest of this phase. Revisit once the app has scheduled-job
-  infrastructure for any reason — at that point this becomes a straightforward
-  `deleteMany({ where: { createdAt: { lt: cutoff } } })`.
+**Outcome:** HR can configure a round and assign the right committee members to each teacher.
 
-**Exit criteria:** an administrator can answer "what did this user do, and from where" without a
-database query.
+- Model evaluation categories and criteria with descriptions, instructions, min/max scores,
+  weights, required-comment rules, and display order.
+- Let HR configure criteria and result bands without code changes. Validate that score ranges and
+  weights are internally consistent.
+- Snapshot the criteria and scoring configuration when a round opens so later edits cannot silently
+  change an evaluation already in progress. Define an explicit correction/versioning process.
+- Assign one or more committee members to each teacher within a round. Prevent duplicate,
+  inactive, or out-of-round assignments and make assignment status visible to HR.
+- Provide assignment search, filters, and clear create/change/remove actions with audit history.
 
----
+**Exit criteria:** an open round has a validated, versioned rubric; only its assigned active
+committee members can evaluate a teacher; HR can review assignments and their status.
 
-## Phase 5 — Engineering hygiene 🟢
+### Phase 4 — Committee scoring workflow
 
-**Why:** low urgency, but each item raises the cost of every future change while it remains.
+**Outcome:** committee members can complete accurate evaluations quickly, including on mobile.
 
-- **5.1** ✅ **Chose a test framework: Vitest.** `pnpm test` runs `vitest run`. No Vite/webpack
-  plugin needed since the first suite has zero DOM/React surface — `vitest.config.mts` just aliases
-  `@/*` to match `tsconfig.json`'s path mapping. `lib/permissions.test.ts` covers every escalation
-  guard (FR-32 – FR-37): no self-action for any role, admin acts on anyone but themselves, a
-  manager only acts on strictly lower ranks (not a peer manager, not upward on an admin), members
-  and viewers can act on no one, and `assignableRolesFor`/`canAssignRole` block a manager from
-  granting `MANAGER` or `ADMIN`. 15 tests, all passing; `pnpm typecheck` and `pnpm lint` unaffected.
-  Config file uses `.mts` rather than `.ts` to avoid Vite's CJS/ESM ambiguity warning without
-  setting `"type": "module"` in `package.json`, which could affect Next.js's own module handling.
-- **5.2** ✅ **Added CI.** `.github/workflows/ci.yml` runs on every push and pull request:
-  `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (5.1's Vitest suite —
-  added here too since it now exists, cheap to run, and the roadmap's own ordering principle is
-  "close gaps," not "match the plan verbatim"), then `pnpm build`. No Postgres service container is
-  needed: `lib/env.ts` only validates that a supported database URL/`AUTH_SECRET`/
-  `NEXT_PUBLIC_APP_NAME`/`NEXT_PUBLIC_APP_DOMAIN` are present and well-formed, and `next build` never opens a connection
-  during page-data collection — verified locally by running `pnpm build` with dummy env values and
-  no reachable database, which succeeded (21 routes generated, no Prisma connection error).
-- **5.3** ✅ **Deleted `package-lock.json`.** `pnpm-lock.yaml` is now the only lockfile in the repo,
-  so `npm install` can no longer silently create a second, divergent one (D-14, resolved).
-- **5.4** ✅ **Documented `SHADOW_DATABASE_URL` in `.env.example`**, commented out alongside the
-  `docker exec ... CREATE DATABASE portal_shadow` command that provisions it — matches the
-  optional-until-needed pattern already used for `AUTH_URL` (D-13, resolved).
-- **5.5** ✅ **Removed the dead `Authenticator` model.** Dropped the table, its FK constraint, and
-  the `authenticators` relation off `User` in `prisma/schema.prisma`
-  (`prisma/migrations/20260827013649_drop_authenticator/`) — no WebAuthn support exists anywhere
-  else in the app, so the table implied a capability that didn't exist (D-11, resolved).
-- **5.6** ✅ **Command palette search is now live data**, layered on top of the still-relevant
-  hardcoded nav list rather than replacing it (⌘K should always be able to jump to
-  `/account/security` even with an empty query — that part of the old behavior was correct, just
-  incomplete). `searchPalette()` (`lib/actions/search.ts`) now runs both a user search
-  (pre-existing `searchUsersForPalette()`) and a new `searchAuditLogsForPalette()`
-  (`lib/queries/audit.ts`) in parallel and returns `{ users, auditLogs }`; `CommandPalette.tsx`
-  renders nav + user hits + real audit-log hits together instead of the old single canned
-  `Search audit logs for "<query>"` link that appeared unconditionally regardless of whether
-  anything actually matched.
-  - **Scope enforced server-side, matching the audit log page's own rule:** a non-manager only
-    ever gets their own rows back from `searchAuditLogsForPalette()` (`actorId` filter), same as
-    `getAuditLogs()`'s scope clamping — but unlike the page, the palette always searches everything
-    the viewer is authorized to see (no "mine"-by-default), since a search box with no visible
-    scope toggle shouldn't silently narrow results.
-  - **Fixed a real bug during implementation, not just added the feature:** an early version used
-    `requireUser()` (which redirects when signed out) for the audit search, which would have broken
-    the palette for anonymous visitors — `CommandPalette` is mounted globally in `app/layout.tsx`,
-    including on the public `/` landing page. Switched to `getCurrentUser()` (returns `null`
-    instead of redirecting), matching the pattern `searchUsersForPalette()` already used.
-  - **Verified live in Chrome against the dev DB:** signed in as an existing `MANAGER` account,
-    searched "password" and got five real, distinctly-timestamped audit rows (`Reset password via
-    emailed link`, `Set a password`, etc.) rather than a canned link; searched "dana" and got a
-    real user hit (`Dana Lopez` / `dana@example.com`) whose click landed on `/users?q=dana%40example.com`
-    pre-filtered to that one row; searched "invited" and got two real invitation rows whose
-    sublabels showed the actual invitee names (`Riley`, `Casey Test`), and clicking one landed on
-    `/account/audit-logs?target=Riley` correctly filtered to that target's 2 matching rows.
-- **5.7** ✅ **Renamed the package.** `package.json`'s `name` is now `"portal"`, not
-  `"my-template"`.
-- **5.8** ✅ **Added rate limiting** to `auth.ts`'s Credentials `authorize()` — the one chokepoint
-  that covers both password sign-in and the TOTP code check added in 1.2, since a correct code is
-  only ever checked after a correct password on the same call.
-  - **New `lib/auth/rate-limit.ts`:** a plain in-memory fixed-window counter, deliberately not
-    backed by Redis or any external store — this app runs as a single long-lived Node server (see
-    CLAUDE.md), not a fleet of serverless instances that would each keep independent counters, so
-    a `Map` already gives every request the same view. Cached on `globalThis` across Next's dev-mode
-    HMR passes, same reasoning as `lib/prisma.ts`'s connection-pool cache. Expired buckets are swept
-    lazily on the next `recordFailure` call rather than by a background job — this app has no
-    scheduled-job infrastructure at all (the same reasoning already applied to `AuditLog` retention
-    in 4.5's DR-05) — capped to run at most once a minute so the sweep itself stays cheap.
-  - **Two independent limiters, both keyed off failed attempts only** (never successes — a limiter
-    that also counted successes would eventually lock out normal use): 10 failures per 15 minutes
-    per **account** (email, lower-cased) covers a targeted attack on one account and is generous
-    enough that a user mistyping a TOTP code twice doesn't get locked out; 30 failures per 15
-    minutes per **IP** is deliberately looser (a shared office NAT can legitimately produce many
-    sign-ins) and exists only to slow a credential-stuffing scan across many different accounts
-    from one source. The account limiter is checked and enforced regardless of whether the email
-    belongs to a real account, so probing many nonexistent addresses behaves identically to probing
-    one real one — no enumeration signal added on top of what already existed.
-  - **A wrong TOTP code only counts as a failure once a code was actually submitted** — the first
-    pass of the two-step 2FA flow (password only, which throws `TwoFactorRequired` to reveal the
-    code field) is not itself a guess and must not consume attempts.
-  - **Checked before querying the database or running bcrypt**, so a locked-out account/IP doesn't
-    get another round of expensive work — this also means the rate-limit check itself does not
-    become a new timing oracle for account existence, since it runs identically either way.
-  - **New `TooManySignInAttempts` error class** (mirrors `TwoFactorRequired`'s pattern, including
-    the explicit static `.type` since it doesn't survive `extends` automatically) surfaces as "Too
-    many sign-in attempts. Try again in a few minutes." in `signInAction` — a distinct message from
-    the generic "Incorrect email or password.", but one that reveals nothing about whether the
-    account exists, since it fires the same way for a made-up address.
-  - **Unit-tested** (`lib/auth/rate-limit.test.ts`, 6 tests, using `vi.useFakeTimers()` to control
-    window expiry deterministically): allows with no history, stays allowed under the limit, blocks
-    at the limit, resets after the window elapses, `clearRateLimit` un-blocks immediately, and
-    independent keys don't interfere with each other.
-  - **Verified end-to-end in Chrome against the dev server:** submitted 10 wrong passwords for a
-    real `MANAGER` account and got the generic "Incorrect email or password." each time, then hit
-    "Too many sign-in attempts. Try again in a few minutes." exactly on the next attempt — including
-    when that next attempt used a different password, confirming the lockout is enforced before
-    credential verification, not just after N wrong guesses specifically. A fresh, nonexistent
-    email in the same browser session (same IP, well under the per-IP limit) got the normal
-    "Incorrect email or password." on its first attempt, confirming per-account buckets are
-    isolated and the account limiter doesn't false-positive across different emails.
-  - **Deliberately out of scope here:** `requestPasswordReset()` (forgot-password) is a separate
-    enumeration-sensitive endpoint that could also benefit from rate limiting, but the roadmap item
-    that motivated this work named sign-in and the TOTP check specifically — worth its own item
-    rather than folded in silently.
-- **5.9** ✅ **`User.twoFactorSecret` is encrypted at rest.** Already implemented in code
-  (`lib/auth/totp.ts`'s `encryptTwoFactorSecret()`/`decryptTwoFactorSecret()`, wired into
-  enrollment in `lib/actions/twoFactor.ts` and decrypted on sign-in in `auth.ts`) using the same
-  AES-256-GCM-via-`AUTH_SECRET`-derived-key technique the pending-enrollment token already used,
-  with a distinct key label (`"2fa-secret-at-rest"` vs. `"2fa-pending"`) so the two purposes don't
-  share key material even though both derive from the same root secret. This item's remaining work
-  was verifying it end-to-end and adding coverage, not building it:
-  - **Unit-tested** (`lib/auth/totp.test.ts`, 5 tests): round-trips a secret through
-    encrypt→decrypt, confirms the ciphertext never contains the plaintext secret as a substring,
-    confirms two encryptions of the same secret produce different ciphertext (random IV per call),
-    and confirms both a malformed ciphertext and a tampered (bit-flipped) one throw rather than
-    silently returning wrong data — GCM's auth tag catches the latter.
-  - **`vitest.config.mts` now loads `.env` via `setupFiles: ["dotenv/config"]`**, since
-    `lib/auth/totp.ts` transitively imports `lib/env.ts`, which throws at import time if
-    `AUTH_SECRET` etc. aren't set — the same file `prisma.config.ts` already reads via `dotenv`, so
-    this doesn't introduce new config. A harmless no-op in CI, where those variables are already
-    set as job-level env vars (`dotenv` doesn't override variables that already exist).
-  - **Verified end-to-end in Chrome against the dev DB, not just unit-tested in isolation:**
-    enrolled a real account in 2FA through the actual UI, confirmed via `psql` that
-    `User.twoFactorSecret` holds base64url ciphertext (`iv.authTag.data`) rather than the
-    plaintext secret shown in the enrollment QR/manual-key step; signed out and back in with the
-    real password and a TOTP code computed from that same plaintext secret, confirming the
-    decrypt-on-sign-in path genuinely round-trips through Postgres and not just through the
-    encrypt/decrypt functions in memory; disabled 2FA afterward and confirmed the column was
-    cleared, restoring the test account to its original state.
-  - **Known gap, documented rather than silently accepted:** this only protects secrets enrolled
-    under the current `AUTH_SECRET`. There is no rotation path — rotating `AUTH_SECRET` would make
-    every already-encrypted `twoFactorSecret` undecryptable (`decryptStoredSecret()` in `auth.ts`
-    already fails closed in that case, forcing `TwoFactorRequired` forever rather than crashing or
-    silently skipping the check, but that still permanently locks out anyone enrolled). No
-    encryption-key-rotation story exists anywhere in this app yet; out of scope here.
-- **5.10** ✅ **Fixed the access-token dialog's stuck-closed state**, found during 2.5's
-  verification. `AccessTokensTable.tsx` now tracks the specific plaintext already
-  shown-and-dismissed (`dismissedToken`, a string, not a boolean) instead of checking
-  `!state.plaintext` — `showReveal = Boolean(state.plaintext) && state.plaintext !== dismissedToken`,
-  `showDialog = dialogOpen && !showReveal`. The old check could never go back to `true` on its own
-  because `useActionState`'s `state.plaintext` only updates on the next dispatch, and the dialog
-  wouldn't show to let that dispatch happen — comparing by value instead of by "has any reveal ever
-  happened" is what lets a *second* Generate flow open the dialog and show its own reveal panel.
-  This was already implemented and committed (bundled into `200fa3a`, alongside the `Authenticator`
-  removal) by the time this item came up for its own verification pass here — nothing left to build.
-  - **Verified live in Chrome against the dev server, in one continuous session (no reload):**
-    generated `test-token-1`, dismissed its reveal panel via the × button, clicked "Generate new
-    token" again and confirmed the dialog actually reopened (the exact failure this item names —
-    previously stuck closed for the rest of the session), generated `test-token-2`, and confirmed
-    it got its own distinct reveal panel with its own token value rather than reusing or hiding
-    behind the first. Revoked both test tokens afterward to leave the account's token list empty,
-    matching its state before this verification.
-  rather than deriving visibility from stale action state.
+- Build the primary evaluation screen with the teacher, round, committee, and rubric context always
+  visible.
+- Accept criterion scores only within the configured range. Calculate category totals, total
+  possible score, aggregate score, percentage, and result band in shared server-side scoring logic.
+- Support comments/evidence where policy requires them; clearly distinguish optional from required
+  comments.
+- Save drafts and resume later. Show incomplete criteria and validation errors before submission.
+- Require a confirmation before submission. A successful submission becomes read-only to the
+  committee member; only an authorized HR reopen action can permit edits, and that action is
+  audited.
+- Handle repeated submissions and simultaneous edits safely; prevent duplicate evaluations for the
+  same assignment unless policy explicitly allows revisions.
+- Test scoring boundaries, weighting/averaging, rounding, missing values, draft persistence,
+  submission locking, and assignment authorization.
 
----
+**Exit criteria:** a committee member can open an assigned teacher, enter scores, save a draft,
+review missing fields, submit once, and see confirmation; invalid or out-of-range scores cannot be
+persisted; unauthorized and post-submit edits are rejected server-side.
 
-## Phase 6 — A first admin panel 🟢
+### Phase 5 — HR monitoring, review, and finalization
 
-**Why:** there is currently no admin/site-wide settings page anywhere in the app — only the
-`/users` table and each user's own `/account/*` pages. A couple of requested features need one,
-so it's worth building the first version deliberately rather than as a side effect of whichever
-feature asks for it first.
+**Outcome:** HR can see progress and complete the approval workflow.
 
-- **6.1** ✅ **Logo upload.** `components/dashboard/AppLogo.tsx` now accepts an optional `src` and
-  renders it via a plain `<img>` (same `next/image`-skipping tradeoff `TwoFactorSettings.tsx`
-  already made for its QR code — the file lives outside the build with no known dimensions to
-  configure ahead of time), falling back to the original inline SVG when `src` is null. Actually
-  5 call sites needed updating, not the 4 originally listed above — `app/terms/page.tsx` was
-  missed in the original scoping.
-  - **New `AppSettings` singleton model** (`prisma/migrations/20260827001256_add_app_settings/`):
-    `id` fixed at `"singleton"`, `logoUrl String?`. The first app-wide config table in the schema —
-    a real second setting should be a new column here, not a new table. Read via
-    `lib/queries/settings.ts`'s `getAppSettings()`, a public unauthenticated read (the landing page
-    and sign-in layout have no session) cached the same way `getCurrentUser()` is.
-  - **Storage decision: `public/uploads/`, not a hosted object-storage provider.** No such package
-    (`@vercel/blob`, an S3 client, …) existed in `package.json` at all, and this app already assumes
-    a long-lived Node server (CLAUDE.md) — the same assumption `/docs` makes reading a file off disk
-    at request time. Next's built-in static file serving reads `public/` from disk per-request
-    rather than baking a build-time manifest, so a file written after boot is served immediately,
-    no restart needed. Explicitly documented as NOT portable to a serverless target (no durable
-    local disk, possibly multiple instances with no shared filesystem) — revisit if that changes.
-    `lib/logo-storage.ts` handles validation (≤2MB, PNG/JPEG/WebP only) and the actual
-    write/delete; `image/svg+xml` is deliberately excluded — an SVG served from this app's own
-    origin executes embedded script if a browser is ever pointed at the file directly (`<object>`,
-    `<iframe>`, or plain navigation), unlike an `<img src>` reference. Excluding the format removes
-    that stored-XSS surface entirely rather than trying to sanitize SVG markup.
-  - **New `ADMIN`-only route, `/admin`**, gated by a new `requireAdmin()` in `require-session.ts`
-    (stricter than `requireUserManager()` — a manager can act on lower-ranked users but has no
-    business changing app-wide settings; redirects to `/dashboard`, not `/account/preferences`,
-    since a manager landing here already belongs on the dashboard). Composed from `Header` +
-    `IconSidebar` like `/users`, plus a new "Admin" nav item in `IconSidebar` — threaded through a
-    `showAdmin` prop from `/dashboard`, `/users`, and `/admin` itself, rather than having the
-    sidebar re-derive the role, since it already takes no other data-fetching responsibility.
-  - **`lib/actions/settings.ts`'s `updateLogo()`/`removeLogo()`** follow the established Server
-    Action shape (`requireAdmin()` → mutate → `logAudit()` → `revalidatePath`), logging two new
-    action codes (`settings.logo.updated`, `settings.logo.removed`) added to `lib/action-codes.ts`.
-    Revalidation is deliberately `revalidatePath("/", "layout")`, not a per-page list — the logo
-    appears in headers and layouts across nearly every route, so a global asset gets a global
-    invalidation rather than an easily-incomplete list of specific paths.
-  - **`components/admin/LogoSettings.tsx`** (client leaf, server shell in `app/admin/page.tsx`)
-    shows an immediate local preview via `URL.createObjectURL()` before the upload round-trips,
-    then hands off to the server-refreshed `currentLogoUrl` once it actually succeeds — done by
-    adjusting state during render (comparing `state` against a `prevState` local) rather than a
-    `useEffect`, since a plain effect calling `setPreview()` synchronously trips this repo's
-    `react-hooks/set-state-in-effect` lint rule; the file input is reset by bumping a `key` (the
-    standard way to clear an uncontrolled file input) instead of an effect reaching into the DOM.
-  - **A real, unplanned build-time regression, found and fixed, not just described:** `app/page.tsx`,
-    `app/terms/page.tsx`, and `app/(auth)/layout.tsx` were previously synchronous components with no
-    database access, so `pnpm build`'s static prerendering never touched Prisma for them — this is
-    exactly why 5.2's CI could get away with a fake, unreachable `DATABASE_URL`. Making them `async`
-    to read `getAppSettings()` means Next now genuinely queries the database while statically
-    prerendering those routes at build time, and the fake CI credentials started failing the build
-    outright. Fixed by giving CI's job a real (if empty) `postgres:17` service container and running
-    `prisma migrate deploy` before `pnpm build`, rather than reverting to a dynamic-rendering
-    workaround — a real deployment already has a reachable database at build time, so this makes CI
-    match reality instead of papering over it. Confirmed locally: `pnpm build` against a live,
-    freshly-migrated dev database succeeds and correctly statically prerenders `/` and `/terms`
-    (both still show as `○` in the build output).
-  - **Verified end-to-end in Chrome against the dev DB:** uploaded a real PNG through `/admin` as an
-    `ADMIN` account — confirmed via `psql`/`ls` that the file landed on disk and `AppSettings.logoUrl`
-    was set, confirmed the uploaded file is served correctly at its `/uploads/<id>.png` URL, and
-    confirmed the new logo rendered immediately (no manual refresh) in the header **and** on the
-    fully unauthenticated `/` landing page and `/signin` page, proving `revalidatePath("/", "layout")`
-    actually invalidated every route. Clicked "Remove," confirmed the file was deleted from disk,
-    `logoUrl` was cleared in the DB, and every page fell back to the default SVG. Confirmed a signed-in
-    `MANAGER` account sees no "Admin" sidebar item and, on directly navigating to `/admin`, is
-    server-side redirected to `/dashboard` rather than shown the page — not just hidden in the UI.
-- **6.2** ✅ **A real view for submitted feedback.** `components/admin/FeedbackList.tsx` — a
-  second section on `/admin`, below 6.1's Branding — lists every `Feedback` row, most recent
-  first, each showing the submitter and message. Read-only: no reply, resolve, or delete action,
-  since none was asked for and the row itself is already the record (`submitFeedback()` never
-  wrote an audit entry either, for the same reason).
-  - **`lib/queries/feedback.ts`'s `getFeedbackList()`** is capped at 100 rows rather than
-    paginated — "simple list view" was the explicit brief, and the audit-log CSV export already
-    established row-capping-over-pagination as an accepted tradeoff at this app's scale. Calls
-    `requireAdmin()` itself, same defense-in-depth pattern `getAuditLogs()` uses.
-  - **Submitter resolution:** `Feedback.userId` is `SetNull`'d when the submitting account is
-    deleted, which could look like an anonymous submission — but every `submitFeedback()` call
-    requires `requireUser()` first, so a null `userId` here always means "submitted, then the
-    account was later deleted," never "anonymous." Labelled "Deleted user" rather than
-    "Anonymous" to reflect that.
-  - **Verified end-to-end in Chrome against the dev DB:** submitted real feedback as a signed-in
-    `MANAGER` account via the existing header Feedback dialog, confirmed the row appeared in
-    Postgres via `psql`, then signed in as `ADMIN` and confirmed `/admin` rendered that exact
-    submitter name and message text, with no changes needed to `FeedbackDialog.tsx` or
-    `submitFeedback()` — the write side was already correct from before this item existed.
-- **6.3** ✅ **Admin-authored announcements.** A third section on `/admin`, below Branding and
-  Feedback: `components/admin/AnnouncementSettings.tsx` lets an admin publish, edit, or deactivate
-  a single message shown to every signed-in user until they dismiss it — what the old
-  `NoticeBanner` (deleted in 1.7) attempted without any of this infrastructure.
-  - **New `Announcement` model, plus a single `User.dismissedAnnouncementId` pointer** —
-    deliberately not the `Dismissal` join table the roadmap floated as one option: only one
-    announcement is ever `active` at a time and there is no "reactivate" action, so a user only
-    ever needs to know whether they've dismissed *the current* one, not a growing history of ids.
-    A real FK (`onDelete: SetNull`), not a denormalised string, since there's no need for the
-    pointer to survive the announcement's own deletion the way `AuditLog.targetLabel` needs to
-    survive a user's.
-  - **"Create" and "edit" collapsed into one `saveAnnouncement()` action** (and one audit action
-    code, `announcement.saved`) rather than two — it edits the currently active row in place if
-    one exists, else creates one, the same shape `changePassword()` already uses for "set" vs.
-    "change" under a single `account.password.changed` code, varying only the human-readable
-    action text. `deactivateAnnouncement()` is separate, and the row is deactivated, not deleted,
-    so history survives. Publishing a new announcement does **not** re-show it to users who
-    already dismissed the previous one under the same id if only the text was edited — editing is
-    a correction, not automatically a re-notification; a genuinely new announcement is a separate
-    `create`, which naturally gets a new id every dismissed user hasn't seen yet.
-  - **Rendered from `Header`/`AccountHeader` themselves**, not threaded into each page file
-    individually — precisely the mistake the old `NoticeBanner` made (rendered on 7 separate
-    pages, per CLAUDE.md), and the same lesson already applied when the logo and dismissal-aware
-    banner both needed to reach every signed-in page. `getVisibleAnnouncement(userId)`
-    (`lib/queries/announcements.ts`) is what each header actually calls — returns `null` once
-    already dismissed or when nothing is active, keeping the "should I render a banner" decision
-    entirely server-side.
-  - **Dismissal is not audited** — not security-relevant, same reasoning `submitFeedback()` already
-    documents for skipping `logAudit`. Optimistic on the client (hides immediately, fire-and-forget
-    to the server), the same UX the old `NoticeBanner`'s dismiss already had, now actually backed
-    by persistence instead of resetting on the next navigation.
-  - **Verified end-to-end in Chrome against the dev DB:** published a real announcement as
-    `ADMIN` — banner appeared immediately (no reload) on both `/admin` (`Header`) and
-    `/account/preferences` (`AccountHeader`); dismissed it as that admin, confirmed via `psql` that
-    only that one user's `dismissedAnnouncementId` was set and the row otherwise untouched,
-    confirmed the banner stayed gone across a fresh navigation (not just component state); signed
-    in as a different, `MANAGER` account who had never dismissed it and confirmed they still saw
-    it; deactivated it as `ADMIN` and confirmed it disappeared for that `MANAGER` too, despite them
-    never having dismissed it — proving deactivation clears it for everyone, not just the acting
-    admin. Confirmed both `announcement.saved` and `announcement.deactivated` audit rows recorded
-    with the right distinct action text ("Created an announcement" / "Deactivated the
-    announcement").
+- Build the HR dashboard with counts for evaluated teachers, committee members, active round,
+  completed, in-progress, not-started, and awaiting-review work.
+- Provide evaluation monitoring by teacher, department, committee, progress, score, and status.
+- Add department summaries, recent activity, and readable completion/status charts based on actual
+  persisted data.
+- Add review queues and detail views showing submitted scores, comments, rubric version, and
+  committee completion.
+- Let authorized HR approve/finalize, reopen, or return evaluations for correction according to
+  the confirmed policy. Record actor, time, and reason for each decision.
+- Compute multi-member results only from eligible submissions under the configured aggregation
+  rule; expose submitted and outstanding committee counts.
 
----
+**Exit criteria:** dashboard figures reconcile with underlying records; HR can identify incomplete
+work, review submissions, apply permitted decisions, and finalize results with an audit trail.
 
-## Phase 7 — Runtime configuration 🟢
+### Phase 6 — Teacher results and formal reports
 
-**Why:** Phase 6 gave the app an admin panel with exactly one real setting (the logo). Three gaps
-remained, all of the same shape — configuration an administrator should own, that only an operator
-with shell access could actually change:
+**Outcome:** finalized results are viewable by the right people and can be printed or exported.
 
-- **Email had no UI at all.** SMTP lived solely in `.env`, and `emailEnabled` was a synchronous
-  const derived at import time. An admin could not tell whether email worked, and four user-visible
-  error strings told them to go set `SMTP_HOST` — advice a MANAGER, who cannot reach `/admin` let
-  alone a shell, could not act on.
-- **The site name required a rebuild.** `NEXT_PUBLIC_APP_NAME` is inlined by Next at build time,
-  while `logoUrl` right beside it was already a runtime value.
-- **`/admin` was one flat page**, stacking three sections with no sub-navigation, unlike `/account/*`.
+- Add a teacher-only result view for the signed-in teacher. Show only that teacher's finalized
+  results unless HR policy explicitly permits draft visibility.
+- Show total score, maximum, percentage, configurable result band, category breakdown, and
+  authorized committee feedback.
+- Create print-specific A4 reports with college/system identity, evaluation round, teacher
+  details, rubric and scores, result, comments, signature blocks, and date. Hide application
+  navigation and controls on paper.
+- Add permitted CSV/Excel exports for individual, department, overall, committee, and score
+  summaries. Apply the same authorization and data-minimization rules as the UI.
+- Verify Thai text, pagination, signatures, totals, and print output in representative browsers.
 
-A fourth item is a plain bug found in the same review: `IconSidebar` showed the **Users** link to
-every role, but `/users` redirects `MEMBER` and `VIEWER` away.
+**Exit criteria:** users cannot access another teacher's result by changing a URL or export
+parameter; finalized reports match stored results and print legibly on A4; exported totals match
+the dashboard.
 
-| # | Item | Notes |
-|---|---|---|
-| 7.1 | ✅ **Runtime app name** | New nullable `AppSettings.appName`, resolved against the env fallback inside `getAppSettings()` so no call site handles null. `export const metadata` became `async generateMetadata()` in `app/layout.tsx` and `app/page.tsx`; `app/terms/page.tsx` kept its static metadata (no name in it) but its module-level `SECTIONS` array became `sectionsFor(appName)`. The three email templates read the name inside their send functions. |
-| 7.2 | ✅ **Database-backed SMTP** | Five nullable columns on `AppSettings`, password encrypted via `lib/secret-box.ts`. New `lib/email-config.ts` resolves database-then-env; `lib/queries/email-settings.ts` is the masked admin view; `lib/actions/email-settings.ts` has save/clear/test. |
-| 7.3 | ✅ **`/admin` split into sub-routes** | `/admin/{branding,announcements,email,feedback}` with `components/admin/AdminSidebar.tsx`; `/admin` itself guards then redirects. |
-| 7.4 | ✅ **Users nav gated by role** | `IconSidebar` gained `showUsers`, defaulting to `false`. |
-| 7.5 | ✅ **Email provider presets** | Dropdown over `lib/email-providers.ts`; still one SMTP path. |
+### Phase 7 — Search, notifications, and operational usability
 
-### Decisions worth keeping
+**Outcome:** users can find work quickly and receive useful, accurate status updates.
 
-- **SMTP columns went on `AppSettings`, not a new table** — following 6.1's note that a real second
-  setting is a new column here. The safety property is enforced by explicit `select`s in two
-  separate modules instead: `getAppSettings()` (public, unauthenticated, reaches anonymous
-  visitors) selects only `logoUrl` and `appName`, and **must never be widened** to include
-  `smtpPassEncrypted` or become `select: undefined`. The schema, the query, and CLAUDE.md all carry
-  that warning at the point someone would be tempted to change it.
+- Add global search over authorized teacher, staff ID, department, and committee data, with
+  round/status/position/rank filters where relevant.
+- Add in-app notifications for pending assignments, incomplete work, submissions awaiting HR, and
+  finalization. Define read/dismiss behavior and avoid notifications that promise an action the
+  system has not completed.
+- Add clear empty states, confirmation dialogs, success/error feedback, and keyboard/touch-friendly
+  controls across role-specific screens.
+- Verify responsive table-to-card behavior and scoring usability on common phone and tablet widths.
 
-- **The cached nodemailer transport is keyed by a config fingerprint, not invalidated by a hook.**
-  An exported `resetTransporter()` called from the save action is the obvious design and is wrong:
-  it only clears the Node instance that happened to handle the save, leaving every other process
-  serving the old transport until restart. Re-deriving from the resolved config is correct
-  everywhere and costs one indexed single-row read per outbound email, which is rare. Verified
-  in-process: change the port, and the very next send fails naming the *new* port.
+**Exit criteria:** search and filters respect user permissions; notifications correspond to real
+workflow events; critical tasks can be completed without desktop-only controls.
 
-- **`emailEnabled` was deleted from `lib/env.ts`, not renamed.** Deletion guarantees no call site
-  silently keeps the synchronous env-only version; every one of the five had to be revisited.
+### Phase 8 — Production readiness and release
 
-- **The TOTP issuer deliberately does not follow the runtime name.** Changing it would not lock
-  anyone out — `verifyTotpCode()` reads only the secret — but it would leave a permanently split
-  list in people's authenticator apps, entries before the rename showing the old name and entries
-  after showing the new one, with no migration path because the string lives on someone's phone.
-  `lib/auth/totp.ts` keeps importing the build-time `appName`, with a comment saying why.
+**Outcome:** the system can be deployed and operated safely with real institutional records.
 
-- **A stored SMTP password that fails to decrypt fails soft**, unlike `decryptTwoFactorSecret()`
-  which throws by design. A corrupt value must not take down every page that renders a header, so
-  it degrades to "no auth" and `/admin/email` surfaces the condition with a recovery instruction.
-  This does extend ROADMAP 5.9's known gap: `AUTH_SECRET` now has a second dependent, and rotating
-  it breaks SMTP auth as well as 2FA. The SMTP half at least recovers by re-entering the password.
+- Review authorization for every query, mutation, file, report, and export; run tests for ID
+  tampering and committee/teacher isolation.
+- Review data retention, privacy notices, access logging, account recovery, staff offboarding,
+  backup/restore, and incident response with the college.
+- Validate migrations against a non-production database, rehearse backup restoration, and document
+  deployment, environment variables, and rollback steps.
+- Add production-safe initial-admin provisioning; disable demo identities/data and remove all
+  development shortcuts.
+- Run lint, typecheck, unit/integration tests, production build, accessibility checks, and a
+  role-based end-to-end acceptance pass before release.
+- Train HR and committee representatives; run a pilot round, collect feedback, correct workflow
+  issues, and obtain HR sign-off before general use.
 
-- **The password field renders empty even when one is stored, and blank means "leave unchanged".**
-  The form cannot render the value back, so treating blank as a deletion would wipe the password on
-  every unrelated edit. `SmtpAdminView.hasPassword` exists so the field can say so; clearing is a
-  separate explicit action.
+**Exit criteria:** a rehearsed deployment and recovery path exists; all release checks pass; no
+demo-only access remains enabled; HR signs off on policy, reports, and the pilot.
 
-- **The test send tests *saved* settings**, so the flow is Save then Send test. Testing unsaved form
-  values would ship the password through a second round-trip and duplicate the resolution path,
-  letting the test diverge from what actually sends. Nodemailer's error is surfaced verbatim —
-  admin-only surface, and `ECONNREFUSED 127.0.0.1:1026` is the entire diagnostic value.
+## Demo data
 
-- **Audit metadata for SMTP logs `{ host, port, from, user, passwordChanged }` and never the password
-  or its ciphertext** — `AuditLog.metadata` renders in the expanded row and is exported to CSV by
-  `app/account/audit-logs/export/route.ts`, which would carry the secret out of the app.
+Use the sample data in `PLAN.md` only in a development or demo environment: at least eight teachers
+across the listed departments, five committee members, and an academic-year-2569 round 1. Include
+mixed assignment and evaluation statuses so dashboards, filters, review queues, and reports can be
+exercised. Make the seed idempotent and refuse to run against production.
 
-- **No `app/admin/layout.tsx`.** A layout cannot supply the typed `active` literal without falling
-  back to `usePathname()`, and `/account/*` sets the precedent of having no layout file. The
-  `/admin/*` pages use `Header` + `AdminSidebar` and drop `IconSidebar`, mirroring how `/account/*`
-  pairs `AccountHeader` with `SettingsSidebar` — three nav elements side by side is one too many.
+## Definition of done
 
-### 7.5 — Email provider presets
-
-Administrators were being asked for a hostname and port they'd have to look up. `/admin/email` now
-leads with a provider dropdown (`lib/email-providers.ts`): Gmail, Outlook/Microsoft 365, Resend,
-SendGrid, Mailpit, and Custom.
-
-**No HTTP-API clients were added.** Resend and SendGrid both accept an API key *as the SMTP
-password* against a fixed username (`resend` / `apikey`), so every provider here is still reached
-through the one `nodemailer` path in `lib/email.ts`. The dropdown is a UX layer over the existing
-columns, not a second transport.
-
-- **Host, port and the fixed username are resolved server-side from the preset table**, never taken
-  from the request — the same closed-set discipline API-token scopes use. Verified by submitting an
-  injected `host=evil.attacker.test` alongside `provider=mailpit`: the row stored `localhost:1025`.
-- **`AppSettings.smtpProvider` exists only so the picker can redisplay** and label the credential
-  correctly ("App password" vs "API key"). The resolved host/port are still written to the existing
-  columns, so `lib/email-config.ts` never consults it and the resolution path is unchanged.
-- The form adapts per provider: host/port collapse to a static `smtp.resend.com:465` line, the
-  username field disappears for the fixed-username providers, and the password placeholder takes
-  the provider's own vocabulary.
-
-### Known gap, deliberately not closed
-
-- **`components/search/search-data.ts` still offers "Users" to every role** in the ⌘K palette. It is
-  a UX inconsistency, not a security hole — `/users` redirects server-side regardless. Fixing it
-  properly means threading the role into `SearchProvider`, which is rendered from `app/layout.tsx`,
-  a layout that must not read a session: `/` has to stay renderable for anonymous visitors, and
-  reading one would make every route dynamic and undo the static prerendering of `/` and `/terms`.
-  The cheapest correct version is a client-side role fetch inside `SearchProvider` — a separate
-  item, not a rider on this one.
-- **`appDomain` in `lib/app-config.ts` has zero consumers** anywhere in `app/`, `components/` or
-  `lib/`. A deletion candidate, left alone here to keep this phase's diff focused.
-
----
-
-## Deliberately out of scope
-
-Recorded so the question is settled rather than re-litigated. See SRS §1.2.
-
-- **Multi-tenancy** — organizations, projects, memberships, custom domains. Removed on purpose in
-  `20260826090000_users_only`. Do not reintroduce.
-- **Billing, plans, quotas, metering.**
-- **Federated identity beyond Google** — no SAML, no LDAP, no WebAuthn.
-- **A public API.** Phase 2 adds machine endpoints for token holders, not a general API surface.
+A phase is complete only when its exit criteria are met, its behavior is covered by the appropriate
+automated tests, its permissions are enforced server-side, and its directly related documentation
+is updated. The system is ready for institutional use only after Phase 8 sign-off; a polished UI or
+working demo alone is not production readiness.

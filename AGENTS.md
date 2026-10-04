@@ -2,13 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ This repo is mid-conversion
+
+The product is being turned from a generic user-management app ("Portal") into the **Teacher Performance Evaluation System** (ระบบประเมินผลการปฏิบัติงานครู) for วิทยาลัยการอาชีพลอง. Everything under [Architecture](#architecture) describes the code **as it exists today**; [Target system](#target-system-teacher-evaluation) describes what is being built, with every not-yet-built item marked **(planned)**. Where the two conflict, the target wins for new work — but never assume a *(planned)* item exists; check the code. When a phase lands, flip its *(planned)* markers here and in `docs/SRS.md` Appendix B, and update the phase table in `docs/ROADMAP.md`.
+
 ## Documentation
 
-- **`docs/SRS.md`** — the requirements specification (IEEE-830). What the system must do, every rule traced to the file that implements it, and an explicit list of what is deliberately out of scope. **Read it before changing authorization, auth, or the data model.**
-- **`docs/ROADMAP.md`** — what is shipped versus what is a shell, and in what order the gaps should close.
+- **`docs/PLAN.md`** — the original product brief (screens, workflow, Thai copy, sample data). Cited as PLAN §n.
+- **`docs/SRS.md`** — the requirements specification (IEEE-830). Platform requirements keep their old ids (FR-10 – FR-95, referenced from code comments); evaluation requirements are FR-100 and up. Status markers: **[PLANNED — Phase n]**, **[BEING REPLACED — Phase n]**, **[POLICY DEFAULT]** (a rule HR hasn't confirmed — must stay configurable; see Appendix C). **Read it before changing authorization, auth, scoring, or the data model.**
+- **`docs/ROADMAP.md`** — phases 0–8 with exit criteria, current status, and the implementation decisions already confirmed with the user.
 - **`README.md`** — setup and orientation for humans.
-
-Several toggles in this app persist state that nothing reads (see [Known shells](#known-shells)). Before "fixing" one, check `docs/ROADMAP.md` — the gap is usually known and sometimes the intended resolution is deletion, not implementation.
 
 ## Commands
 
@@ -19,20 +22,22 @@ Package manager is pnpm (see `pnpm-lock.yaml` / `pnpm-workspace.yaml`); a `packa
 - `pnpm start` — run the production build
 - `pnpm lint` — run ESLint (`eslint-config-next` core-web-vitals + typescript rules)
 - `pnpm typecheck` — `tsc --noEmit`
-- `pnpm db:up` / `pnpm db:down` — start/stop Postgres + pgAdmin + Mailpit via `docker-compose.yml`
-- `pnpm db:migrate` — `prisma migrate dev`; `pnpm db:studio`, `pnpm db:seed`, `pnpm db:reset`
+- `pnpm test` — Vitest (`vitest.config.mts`; loads `.env` via `dotenv/config`). Suites live next to the code as `*.test.ts`.
+- `pnpm db:up` / `pnpm db:down` — start/stop a *local* Postgres + pgAdmin + Mailpit via `docker-compose.yml` (optional; the primary database is Supabase)
+- `pnpm db:migrate` — `prisma migrate dev` (local Docker only); `pnpm db:studio`, `pnpm db:seed`, `pnpm db:reset`
+- `pnpm` may not be installed globally on this machine — `npx -y pnpm@10 <cmd>` works.
 
-Destructive schema changes make `prisma migrate dev` prompt, which fails in a non-interactive shell. Generate the SQL with `prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --script` (needs `SHADOW_DATABASE_URL`), **check its statement order**, then apply with `prisma migrate deploy`. Note that `SHADOW_DATABASE_URL` is read by `prisma.config.ts` but is **not** listed in `.env.example` — you have to add it yourself.
+**Database: Supabase, schema `portal`.** `.env` uses the `POSTGRES_*` URLs (no `DATABASE_URL`), each carrying `&uselibpqcompat=true&schema=portal`. `schema=portal` isolates this app; **the shared database's `public` schema (`teachers`, `committees`, `evaluations`, `profiles`) belongs to an unrelated application — never read, write, migrate or import it.** The Prisma CLI honours `?schema=` natively, but the driver adapter does not, so `lib/prisma.ts` parses it from the URL and passes `{ schema }` to `PrismaPg` explicitly — without that, runtime queries silently target `public`. `uselibpqcompat=true` is needed because node-postgres otherwise treats `sslmode=require` as full verification and rejects Supabase's pooler chain ("self-signed certificate in certificate chain"). `pnpm start` also needs `AUTH_URL` (else Auth.js `UntrustedHost`).
 
-`pnpm db:seed` inserts nothing; it only reports row counts. A fresh database is populated by signing up.
+**Migrations against Supabase:** apply with `prisma migrate deploy`, never `migrate dev`/`reset`. Destructive changes (e.g. replacing an enum) can't go through `migrate dev` non-interactively, and there is no shadow DB on Supabase. Generate the SQL by diffing schema *files* instead — `git show HEAD:prisma/schema.prisma > <scratch>/old.prisma`, then `prisma migrate diff --from-schema <scratch>/old.prisma --to-schema prisma/schema.prisma --script` — **check its statement order** (e.g. data migration before a column drop), save it as `prisma/migrations/<timestamp>_<name>/migration.sql`, then `prisma migrate deploy`. (`--from-migrations` also works but needs `SHADOW_DATABASE_URL`.)
 
-There is no test suite/framework configured in this repo.
+`pnpm db:seed` inserts nothing; it only reports row counts. *(planned)* `scripts/seed-demo.mts --yes` creates development demo data (FR-900/901): idempotent, refuses `NODE_ENV=production`. Never seed demo data any other way.
 
-Local setup: `cp .env.example .env`, fill in `AUTH_SECRET` (`npx auth secret`), `pnpm db:up`, `pnpm db:migrate`, `pnpm dev`, then sign up at `/signup`.
+Setup: `cp .env.example .env`, fill in the Supabase URLs and `AUTH_SECRET`, `prisma migrate deploy`, `tsx scripts/create-admin.mts <password>` (creates `admin@local.dev`), `pnpm dev`. *(Until Phase 1 lands, `/signup` still exists and its first account becomes ADMIN — that path is being removed.)*
 
 ## Architecture
 
-A **user-management application**: PostgreSQL (local Docker) + Prisma, with NextAuth v5 (Auth.js) for authentication. It began as a static Supabase-style hosting-console template; that domain layer (organizations, projects, domains, service versions) was deliberately removed. The app now does exactly one job — manage user accounts, roles and access.
+*Current state of the code.* A **user-management application**: PostgreSQL (Supabase, schema `portal`) + Prisma, with NextAuth v5 (Auth.js) for authentication. It began as a static Supabase-style hosting-console template; that domain layer (organizations, projects, domains, service versions) was deliberately removed. Its auth/session/audit/settings infrastructure is the foundation the evaluation system is built on — see [Target system](#target-system-teacher-evaluation) for what replaces the user-management-specific parts.
 
 Next.js App Router (`app/`), React 19, Tailwind CSS v4 (via `@tailwindcss/postcss`, tokens defined in `app/globals.css` using `@theme inline`), `lucide-react` for icons.
 
@@ -56,6 +61,8 @@ Next.js App Router (`app/`), React 19, Tailwind CSS v4 (via `@tailwindcss/postcs
 
 ### Roles
 
+> **Being replaced (Phase 1).** The four-rank model below is current code only. The target is `ADMIN` / `COMMITTEE` / `TEACHER` with no rank ordering and no `MANAGER` — see [Target system › Roles](#roles-and-access-planned). Don't extend the rank rules; the self-action ban, last-admin guard, `loadActionable()`, soft delete, invitations and password-reset behaviour described here all carry over.
+
 `ADMIN` > `MANAGER` > `MEMBER` > `VIEWER`. Admins and managers reach `/` (the users table); members and viewers are redirected to `/account/preferences`.
 
 Rules enforced in `lib/permissions.ts` and applied by every action in `lib/actions/users.ts`:
@@ -67,7 +74,7 @@ Rules enforced in `lib/permissions.ts` and applied by every action in `lib/actio
 
 Every action in `lib/actions/users.ts` routes through the private `loadActionable(targetId)` helper, which runs `requireUserManager()` + `canActOnUser()` in one place. New administrative actions should use it rather than re-deriving the check.
 
-**The first account created (via `/signup`) becomes `ADMIN`**; everyone after is a `MEMBER`. That is what makes a fresh database usable.
+**The first account created (via `/signup`) becomes `ADMIN`**; everyone after is a `MEMBER`. That is what makes a fresh database usable. *(Being removed in Phase 1: no public sign-up; the first admin comes from `scripts/create-admin.mts`.)*
 
 Suspension and password resets revoke the target's `DeviceSession` rows, and `requireUser()` rejects `SUSPENDED`, so both take effect on the very next request.
 
@@ -168,6 +175,69 @@ Two config modules, and the split matters:
 
 - **`lib/app-config.ts`** — client-safe. `NEXT_PUBLIC_*` only, plain static `process.env.X` member access so Next inlines it at build time. Safe in Client Components.
 - **`lib/env.ts`** — server only. Parses secrets with zod at import time and **throws** on anything missing or malformed, so a bad `.env` fails at boot rather than deep inside a query. **Never import it from a Client Component** — `DATABASE_URL` and `AUTH_SECRET` don't exist in the browser, so the parse would throw during hydration. It also validates the `NEXT_PUBLIC_*` names (required, and `APP_DOMAIN` must be a bare hostname) so a typo fails loudly instead of silently falling back to a default.
+
+## Target system: teacher evaluation
+
+What ROADMAP Phases 1–7 build (Phase 8, production sign-off, is out of scope for now). Specified in detail in `docs/SRS.md` §3.3 (FR-100+). **Everything in this section is *(planned)* unless marked *(done)*.** Flip markers as work lands.
+
+### Confirmed decisions (don't re-litigate)
+
+- Roles are **replaced**, not mapped: `ADMIN` (HR) / `COMMITTEE` / `TEACHER`.
+- **No public sign-up.** First admin via `scripts/create-admin.mts`; HR creates every other account. Google can sign in only to an existing account.
+- The unrelated `public.*` tables in the shared Supabase DB are ignored — no import.
+- The **rubric is per round** and frozen once the round leaves `DRAFT`; that frozen copy *is* the snapshot/version. There is no separate versioning table and no editing an open round's rubric — corrections mean a new round.
+- PDF = browser print-to-PDF of the A4 print page. No server-side PDF library.
+- Charts are small hand-rolled SVG components — no chart dependency. Excel export uses `exceljs`.
+- Policy defaults (bands 90/80/70/60, arithmetic-average aggregation, teachers see own finalized results with comments attributed by role not name) are **unconfirmed by HR** (SRS Appendix C). Keep every one of them configurable; never hardcode them outside the defaults/template modules.
+
+### Roles and access *(planned)*
+
+| Role | Linked record | May see / do |
+|---|---|---|
+| `ADMIN` | — | Everything: records, rounds, rubric, assignments, monitoring, review, finalize, reports, users, settings. |
+| `COMMITTEE` | `CommitteeMember.userId` | Only their own assignments in non-`DRAFT` rounds; only their own evaluations; never another member's scores. |
+| `TEACHER` | `Teacher.userId` | Only their own profile and their own **finalized** `TeacherResult`s and reports. |
+
+- `lib/permissions.ts` is rewritten for these roles and stays pure (no Prisma, no request context); every rule has allow + deny tests in `lib/permissions.test.ts`.
+- `lib/auth/require-session.ts` adds `requireCommittee()` / `requireTeacher()`, which return the caller's linked active record or render the "account not linked" state. `requireAdmin()` guards every HR surface.
+- **Scope in the query, not after it.** A committee read is `where: { assignment: { committeeMemberId: me.id } }`; a teacher read is `where: { teacherId: me.id, finalizedAt: { not: null } }`. A miss — including someone else's id typed into the URL — is `notFound()`, never a "forbidden" that confirms the record exists.
+- The server never trusts client-submitted totals, percentages, statuses, or teacher/round/committee ids; it derives them from the assignment and the persisted scores.
+
+### Layers
+
+- **`lib/scoring/`** — pure functions, imported by both the client form (live preview) and the server (authoritative): `validateScores()`, `computeEvaluation()` (weighted category totals, overall, max, percent, rounded half-up to 2 dp **after** summation), `aggregate(evaluations, method)` (`AVERAGE` | `WEIGHTED_AVERAGE` of members' percentages), `resolveBand(percent, bands)`. Scores are Prisma `Decimal` in the DB and converted at the boundary — never floats in storage. Heavily unit-tested.
+- **`lib/eval/`** — other pure domain logic: round lifecycle transitions (`round-lifecycle.ts`), derived teacher/evaluation status (`status.ts`), the PLAN §11 rubric template and default bands (`rubric-template.ts`).
+- **`lib/queries/eval/*`** — `cache`d, caller-scoped reads. **`lib/actions/eval/*`** — zod-validated Server Actions; each mutation writes its row(s), a `WorkflowEvent` where it's a workflow transition, notifications, and a `logAudit()` call, then `revalidatePath`. Multi-row invariants run in one `prisma.$transaction`.
+- **Concurrency:** `Evaluation.version` is an optimistic lock; save/submit are conditional `updateMany` calls on `{ id, version, status in [...] }` and treat `count === 0` as "stale or already submitted". Submission is idempotent.
+- **Notifications** are rows created in the same transaction as the event (never for an action that didn't commit); the header bell reads the unread count.
+
+### Data model *(planned)*
+
+`Department`, `Teacher`, `CommitteeMember`, `CommitteeGroup` + `CommitteeGroupMember` (role `CHAIR|MEMBER|SECRETARY`), `EvaluationRound` (status `DRAFT → OPEN → IN_PROGRESS → CLOSED → FINALIZED`, aggregation), `EvaluationCategory` → `EvaluationCriterion` (min/max/weight/commentRule, per round), `ResultBand` (per round), `Assignment` (round × teacher × member, unique; role, weight), `Evaluation` (one per assignment; `DRAFT|SUBMITTED|RETURNED|APPROVED|CANCELLED`, `version`) → `EvaluationScore` (one per criterion; score, comment, evidence), `TeacherResult` (frozen snapshot at finalize), `WorkflowEvent` (append-only history), `Notification`. `AppSettings` gains `collegeNameTh`, `collegeNameEn`, `systemTitle`. "Not started" = no `Evaluation` row. Full field list: SRS §3.5. Records in use are deactivated, never deleted; submitted evaluation data is never hard-deleted.
+
+New audit codes (`teacher.*`, `committee.*`, `round.*`, `rubric.updated`, `bands.updated`, `assignment.*`, `evaluation.*`, `result.*`, `settings.college.updated` — SRS FR-890) go into `lib/action-codes.ts` before use.
+
+### Routes *(planned)*
+
+All signed-in pages share one **`AppShell`** (`components/layout/`): header (logo, college name, system title, notification bell, profile menu, sign-out) + role-filtered left sidebar (PLAN §25), hamburger drawer on mobile. It replaces `Header` + `IconSidebar` + `AdminSidebar` on app pages; `/account/*` keeps `AccountHeader` + `SettingsSidebar`.
+
+| Route | Role | Purpose |
+|---|---|---|
+| `/` | — | Redirects to `/dashboard` |
+| `/signin` | anon | Thai sign-in (remember me = 12 h vs 30 d device session) |
+| `/dashboard` | all | HR dashboard / committee worklist / teacher results |
+| `/teachers`, `/teachers/[id]` | ADMIN | Teacher CRUD, filters, history |
+| `/committee` | ADMIN | Members and groups |
+| `/rounds`, `/rounds/[id]`, `…/rubric`, `…/bands` | ADMIN | Rounds, lifecycle, rubric and band editors |
+| `/assignments?round=` | ADMIN | Round → teacher → committee |
+| `/evaluate`, `/evaluate/[assignmentId]` | COMMITTEE | Worklist; **the evaluation form — the most important screen** |
+| `/monitoring`, `/monitoring/[roundId]/[teacherId]` | ADMIN | Progress; approve / return / cancel; finalize |
+| `/results`, `/results/[resultId]` | ADMIN, TEACHER (own) | Result detail |
+| `/reports`, `/reports/print/*`, `/reports/export/*` | ADMIN, TEACHER (own) | A4 print pages; CSV/XLSX route handlers (session-gated, **not** under `app/api/`) |
+| `/notifications` | all | Notification list |
+| `/settings/*` | ADMIN | College identity, departments, users & roles (today's `/users`), email, announcements (today's `/admin/*`) |
+
+`/signup` is deleted. UI copy is Thai; font is Noto Sans Thai (`next/font/google`), `<html lang="th">`; years display in พ.ศ. Palette: navy/blue/white with a restrained gold accent, defined as tokens in `app/globals.css` for light and dark. Status badges always carry text, not color alone. Evaluation-form touch targets ≥44 px; tables become cards on narrow screens.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
