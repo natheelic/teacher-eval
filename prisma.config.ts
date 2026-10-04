@@ -10,7 +10,13 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Prisma CLI commands should use a direct connection when available.
+    // Runtime queries resolve the pooled URL in lib/env.ts instead.
+    url:
+      process.env["DATABASE_URL"] ??
+      process.env["POSTGRES_URL_NON_POOLING"] ??
+      process.env["POSTGRES_PRISMA_URL"] ??
+      process.env["POSTGRES_URL"],
     // A scratch database Prisma may freely create, replay migrations into, and
     // drop. Required by `prisma migrate diff --from-migrations`, and used to
     // detect schema drift. Never point this at a database holding real data.

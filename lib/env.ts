@@ -9,7 +9,10 @@ import { z } from "zod";
  * browser bundle. Client-safe values go through NEXT_PUBLIC_* instead.
  */
 const serverSchema = z.object({
-  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  DATABASE_URL: z.string().min(1).optional(),
+  POSTGRES_PRISMA_URL: z.string().min(1).optional(),
+  POSTGRES_URL: z.string().min(1).optional(),
+  POSTGRES_URL_NON_POOLING: z.string().min(1).optional(),
 
   AUTH_SECRET: z
     .string()
@@ -53,6 +56,24 @@ const serverSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
+}).transform((values, ctx) => {
+  const databaseUrl =
+    values.DATABASE_URL ??
+    values.POSTGRES_PRISMA_URL ??
+    values.POSTGRES_URL ??
+    values.POSTGRES_URL_NON_POOLING;
+
+  if (!databaseUrl) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["DATABASE_URL"],
+      message:
+        "DATABASE_URL or a supported POSTGRES_* connection URL is required",
+    });
+    return z.NEVER;
+  }
+
+  return { ...values, DATABASE_URL: databaseUrl };
 });
 
 const parsed = serverSchema.safeParse(process.env);

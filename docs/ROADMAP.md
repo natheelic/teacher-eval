@@ -322,8 +322,8 @@ database query.
   `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (5.1's Vitest suite —
   added here too since it now exists, cheap to run, and the roadmap's own ordering principle is
   "close gaps," not "match the plan verbatim"), then `pnpm build`. No Postgres service container is
-  needed: `lib/env.ts` only validates that `DATABASE_URL`/`AUTH_SECRET`/`NEXT_PUBLIC_APP_NAME`/
-  `NEXT_PUBLIC_APP_DOMAIN` are present and well-formed, and `next build` never opens a connection
+  needed: `lib/env.ts` only validates that a supported database URL/`AUTH_SECRET`/
+  `NEXT_PUBLIC_APP_NAME`/`NEXT_PUBLIC_APP_DOMAIN` are present and well-formed, and `next build` never opens a connection
   during page-data collection — verified locally by running `pnpm build` with dummy env values and
   no reachable database, which succeeded (21 routes generated, no Prisma connection error).
 - **5.3** ✅ **Deleted `package-lock.json`.** `pnpm-lock.yaml` is now the only lockfile in the repo,

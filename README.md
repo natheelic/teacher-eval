@@ -62,7 +62,8 @@ instance.
 
 ## Quick start
 
-**Prerequisites:** Node.js, pnpm, and Docker (for the local database).
+**Prerequisites:** Node.js and pnpm. Docker is only needed for the local database; you can use a
+Supabase Postgres database instead (see [Supabase setup](#supabase-postgres)).
 
 ```bash
 # 1. Install dependencies
@@ -105,6 +106,25 @@ real SMTP provider in production. Inviting a user fails with a clear error until
 
 ---
 
+### Supabase Postgres
+
+Add the database connection strings from your Supabase project to `.env`. The app uses
+`POSTGRES_PRISMA_URL` for pooled runtime queries; Prisma CLI commands use
+`POSTGRES_URL_NON_POOLING` when available, which is the direct connection recommended for schema
+migrations. `DATABASE_URL`, when set, overrides both. If you only have one connection string, set
+`DATABASE_URL` to it.
+
+For a new or existing database, deploy the checked-in migrations with:
+
+```bash
+pnpm exec prisma migrate deploy
+```
+
+This applies pending migrations without the development shadow-database workflow used by
+`pnpm db:migrate`. Confirm the selected database before running it: migrations modify that database.
+
+---
+
 ## Environment variables
 
 `lib/env.ts` validates these with zod **at import time** and throws on anything missing or
@@ -112,14 +132,21 @@ malformed, so a bad `.env` fails at boot rather than deep inside a query.
 
 | Variable | Required | Notes |
 |---|---|---|
-| `DATABASE_URL` | ✅ | PostgreSQL connection string |
+| `DATABASE_URL` | One required | Explicit PostgreSQL connection string; overrides the `POSTGRES_*` alternatives |
+| `POSTGRES_PRISMA_URL` | One required | Pooled connection used by app queries when `DATABASE_URL` is unset |
+| `POSTGRES_URL_NON_POOLING` | One required | Direct connection preferred by Prisma CLI commands when `DATABASE_URL` is unset |
+| `POSTGRES_URL` | One required | Fallback PostgreSQL connection string for app queries |
 | `AUTH_SECRET` | ✅ | `npx auth secret` |
 | `AUTH_URL` | — | Required in production; leave unset in development |
 | `AUTH_GOOGLE_ID` | — | Google provider registers only if this *and* the secret are set |
 | `AUTH_GOOGLE_SECRET` | — | |
 | `NEXT_PUBLIC_APP_NAME` | ✅ | Product name used throughout the UI |
 | `NEXT_PUBLIC_APP_DOMAIN` | ✅ | Must be a **bare hostname** — no scheme, no path |
-| `SHADOW_DATABASE_URL` | — | Only for `prisma migrate diff`; not in `.env.example` yet |
+| `SHADOW_DATABASE_URL` | — | Only for `prisma migrate diff`; an optional example is in `.env.example` |
+
+At least one of these database URLs must be configured. If multiple are set, the app prefers
+`DATABASE_URL`, then `POSTGRES_PRISMA_URL`, then `POSTGRES_URL`, and finally
+`POSTGRES_URL_NON_POOLING`.
 
 Two config modules, and the split matters: **`lib/app-config.ts`** is client-safe
 (`NEXT_PUBLIC_*` only) and **`lib/env.ts`** is server-only and must never be imported from a

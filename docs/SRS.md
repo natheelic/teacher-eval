@@ -198,8 +198,10 @@ the point of the change.
 
 ### 2.6 Assumptions and dependencies
 
-- **A-1** A database is reachable at `DATABASE_URL` before the application boots; `lib/env.ts`
-  throws at import time otherwise.
+- **A-1** A database is reachable before the application boots. `lib/env.ts` resolves
+  `DATABASE_URL` first, then the supported `POSTGRES_*` connection URLs, and throws at import time
+  if none is configured. Prisma CLI commands prefer `POSTGRES_URL_NON_POOLING` when
+  `DATABASE_URL` is unset.
 - **A-2** Google OAuth is optional. Providers are registered only when both `AUTH_GOOGLE_ID` and
   `AUTH_GOOGLE_SECRET` are set; `googleEnabled` gates the UI accordingly.
 - **A-3** The deployment is trusted internally. Credentials sign-in and the TOTP code check are
@@ -887,7 +889,10 @@ required entry is missing or malformed.
 
 | Variable | Required | Consumer | Notes |
 |---|---|---|---|
-| `DATABASE_URL` | ✅ | `prisma.config.ts`, `lib/prisma.ts` | PostgreSQL connection string |
+| `DATABASE_URL` | One required | `prisma.config.ts`, `lib/prisma.ts` | Explicit PostgreSQL connection string; takes precedence over `POSTGRES_*` URLs |
+| `POSTGRES_PRISMA_URL` | One required | `lib/prisma.ts`, `prisma.config.ts` | Pooled app connection fallback |
+| `POSTGRES_URL` | One required | `lib/prisma.ts`, `prisma.config.ts` | App connection fallback when the Prisma-specific URL is absent |
+| `POSTGRES_URL_NON_POOLING` | One required | `prisma.config.ts`, `lib/prisma.ts` | Direct connection preferred by Prisma CLI; final app fallback |
 | `AUTH_SECRET` | ✅ | Auth.js | Generate with `npx auth secret` |
 | `AUTH_URL` | — | Auth.js | Required in production; leave unset in development |
 | `AUTH_GOOGLE_ID` | — | `auth.config.ts` | Google provider registers only if this **and** the secret are set |
